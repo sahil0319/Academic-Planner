@@ -165,8 +165,8 @@ frozen (crates/core/tests/api_surface.rs).
 
 ### Implementation
 
-- [ ] T040 [P] [US5] Replace the `todo!` arms of `list_assessments` in crates/core/src/db.rs (research R-D11): `Upcoming { now }` = incomplete with `now <= due_at <= now + upcoming_window_days` days (setting via `self.settings()`); `Overdue { now }` = incomplete with `due_at < now`; both with `now` truncated by `to_minute`, M1's non-archived active-term scope, ordered by `due_at`, id (R18, R19)
-- [ ] T041 [US5] Implement `dashboard(now)` in crates/core/src/dashboard.rs (research R-D10): no active term → empty `Dashboard`; `today` = `sessions_between(now.date(), now.date(), now)` sorted by start time, course code, id (R16); `next_class` = earliest pending view of a non-archived course with `session_start > to_minute(now)` (R17); `upcoming` / `overdue` from T040 (R18, R19); `awaiting` = pending views of non-archived courses with `session_end <= to_minute(now)`, ordered by date, start, id (R20); `below_target` = `all_summaries()` entries with `below_target` (R14). Doc comment cites R3, R14, R16–R20
+- [X] T040 [P] [US5] Replace the `todo!` arms of `list_assessments` in crates/core/src/db.rs (research R-D11): `Upcoming { now }` = incomplete with `now <= due_at <= now + upcoming_window_days` days (setting via `self.settings()`); `Overdue { now }` = incomplete with `due_at < now`; both with `now` truncated by `to_minute`, M1's non-archived active-term scope, ordered by `due_at`, id (R18, R19)
+- [X] T041 [US5] Implement `dashboard(now)` in crates/core/src/dashboard.rs (research R-D10): no active term → empty `Dashboard`; `today` = `sessions_between(now.date(), now.date(), now)` sorted by start time, course code, id (R16); `next_class` = earliest pending view of a non-archived course with `session_start > to_minute(now)` (R17); `upcoming` / `overdue` from T040 (R18, R19); `awaiting` = pending views of non-archived courses with `session_end <= to_minute(now)`, ordered by date, start, id (R20); `below_target` = `all_summaries()` entries with `below_target` (R14). Doc comment cites R3, R14, R16–R20
 
 **Checkpoint**: m2_dashboard passes. Commit "M2: dashboard R16–R20".
 

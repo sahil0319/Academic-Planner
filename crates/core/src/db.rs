@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Timelike, Weekday};
 use directories::ProjectDirs;
 use rusqlite::types::Type;
-use rusqlite::{params, Connection, OptionalExtension, Row};
+use rusqlite::{params, params_from_iter, Connection, OptionalExtension, Row};
 
 use crate::error::{Error, Result};
 use crate::model::*;
@@ -412,24 +412,41 @@ impl Planner {
     }
 
     /// R3: assessments of non-archived active-term courses matching `filter`, sorted by
-    /// due date.
+    /// due date, then id. R18: `Upcoming` = incomplete with
+    /// `now <= due_at <= now + upcoming_window_days`; R19: `Overdue` = incomplete with
+    /// `due_at < now`. `now` is compared at minute precision (research R-D11, R-D12).
     pub fn list_assessments(&self, filter: AssessmentFilter) -> Result<Vec<Assessment>> {
-        let completed_only = match filter {
-            AssessmentFilter::All => false,
-            AssessmentFilter::Completed => true,
-            AssessmentFilter::Upcoming { .. } => todo!("M2: R18"),
-            AssessmentFilter::Overdue { .. } => todo!("M2: R19"),
+        let (condition, bounds): (&str, Vec<NaiveDateTime>) = match filter {
+            AssessmentFilter::All => ("1", vec![]),
+            AssessmentFilter::Completed => ("a.completed = 1", vec![]),
+            AssessmentFilter::Upcoming { now } => {
+                let now = to_minute(now);
+                let days = i64::from(self.settings()?.upcoming_window_days);
+                match now.checked_add_signed(chrono::TimeDelta::days(days)) {
+                    Some(until) => (
+                        "a.completed = 0 AND a.due_at >= ?1 AND a.due_at <= ?2",
+                        vec![now, until],
+                    ),
+                    // A window past the calendar end has no upper bound.
+                    None => ("a.completed = 0 AND a.due_at >= ?1", vec![now]),
+                }
+            }
+            AssessmentFilter::Overdue { now } => {
+                ("a.completed = 0 AND a.due_at < ?1", vec![to_minute(now)])
+            }
         };
         let mut stmt = self.conn.prepare(&format!(
             "SELECT {ASSESSMENT_COLS} FROM assessment a
              JOIN course c ON c.id = a.course_id
              JOIN term t ON t.id = c.term_id
-             WHERE t.is_active = 1 AND c.archived = 0
-               AND (?1 = 0 OR a.completed = 1)
+             WHERE t.is_active = 1 AND c.archived = 0 AND {condition}
              ORDER BY a.due_at, a.id"
         ))?;
         let assessments = stmt
-            .query_map([completed_only], assessment_from_row)?
+            .query_map(
+                params_from_iter(bounds.into_iter().map(fmt_datetime)),
+                assessment_from_row,
+            )?
             .collect::<rusqlite::Result<_>>()?;
         Ok(assessments)
     }
@@ -643,7 +660,6 @@ pub(crate) fn session_start(s: &Session) -> NaiveDateTime {
 }
 
 /// R20: the moment a session ends.
-#[allow(dead_code, reason = "M2 dashboard (R20) uses it")]
 pub(crate) fn session_end(s: &Session) -> NaiveDateTime {
     s.date.and_time(s.end_time)
 }
