@@ -1,0 +1,68 @@
+//! Freezes the docs/spec.md §5 API: every method is bound to its exact signature, so a
+//! signature change fails to compile. No stub is called.
+
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
+
+use chrono::{NaiveDate, NaiveDateTime};
+use planner_core::*;
+
+#[test]
+fn api_signatures_match_spec_section_5() {
+    let _: fn(Option<OsString>, Option<PathBuf>) -> Result<PathBuf> = resolve_db_path;
+    let _: fn() -> Result<PathBuf> = default_db_path;
+
+    let _: fn(&Path) -> Result<Planner> = Planner::open;
+    let _: fn() -> Result<Planner> = Planner::open_in_memory;
+
+    // terms & holidays
+    let _: fn(&Planner) -> Result<Option<Term>> = Planner::active_term;
+    let _: fn(&mut Planner, TermInput) -> Result<Term> = Planner::save_term;
+    let _: fn(&mut Planner, i64, &[Holiday]) -> Result<()> = Planner::set_holidays;
+
+    // courses
+    let _: fn(&mut Planner, CourseInput) -> Result<Course> = Planner::create_course;
+    let _: fn(&mut Planner, i64, CourseInput) -> Result<Course> = Planner::update_course;
+    let _: fn(&mut Planner, i64, bool) -> Result<()> = Planner::set_archived;
+    let _: fn(&Planner, bool) -> Result<Vec<Course>> = Planner::list_courses;
+
+    // timetable
+    let _: fn(&mut Planner, SlotInput) -> Result<Slot> = Planner::add_slot;
+    let _: fn(&mut Planner, i64, SlotInput, NaiveDate) -> Result<Slot> = Planner::change_slot;
+    let _: fn(&mut Planner, i64, NaiveDate) -> Result<()> = Planner::end_slot;
+    let _: fn(&Planner, NaiveDate) -> Result<Vec<Slot>> = Planner::list_slots;
+
+    // sessions
+    let _: fn(&mut Planner, NaiveDate) -> Result<SyncReport> = Planner::sync_sessions;
+    let _: fn(&Planner, NaiveDate, NaiveDate, NaiveDateTime) -> Result<Vec<SessionView>> =
+        Planner::sessions_between;
+    let _: fn(&Planner, i64, NaiveDateTime) -> Result<Vec<SessionView>> =
+        Planner::sessions_for_course;
+    let _: fn(&mut Planner, i64, Status, NaiveDateTime) -> Result<()> = Planner::set_status;
+    let _: fn(&mut Planner, i64, MakeupInput) -> Result<Session> = Planner::reschedule;
+    let _: fn(&mut Planner, MakeupInput) -> Result<Session> = Planner::add_makeup;
+
+    // attendance & dashboard
+    let _: fn(&Planner, i64) -> Result<AttendanceSummary> = Planner::attendance_summary;
+    let _: fn(&Planner) -> Result<Vec<AttendanceSummary>> = Planner::all_summaries;
+    let _: fn(&Planner, NaiveDateTime) -> Result<Dashboard> = Planner::dashboard;
+
+    // assessments
+    let _: fn(&mut Planner, AssessmentInput) -> Result<Assessment> = Planner::create_assessment;
+    let _: fn(&mut Planner, i64, AssessmentInput) -> Result<Assessment> =
+        Planner::update_assessment;
+    let _: fn(&mut Planner, i64, bool) -> Result<()> = Planner::set_completed;
+    let _: fn(&mut Planner, i64) -> Result<()> = Planner::delete_assessment;
+    let _: fn(&Planner, AssessmentFilter) -> Result<Vec<Assessment>> = Planner::list_assessments;
+
+    // settings, backup, export
+    let _: fn(&Planner) -> Result<Settings> = Planner::settings;
+    let _: fn(&mut Planner, &Settings) -> Result<()> = Planner::save_settings;
+    let _: fn(&Planner, NaiveDateTime) -> Result<String> = Planner::export_json;
+    let _: fn(&mut Planner, &str) -> Result<()> = Planner::restore_json;
+    let _: fn(&Planner, Vec<u8>) -> Result<()> = Planner::export_attendance_csv::<Vec<u8>>;
+    let _: fn(&Planner, Vec<u8>) -> Result<()> = Planner::export_assessments_csv::<Vec<u8>>;
+
+    // M5
+    let _: fn(&mut Planner, NaiveDateTime) -> Result<Vec<Reminder>> = Planner::due_reminders;
+}

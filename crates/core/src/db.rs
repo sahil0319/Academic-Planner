@@ -1,9 +1,6 @@
 //! SQLite storage: opening and migrating the database, text codecs for dates and enums,
 //! and the M1 operations (terms, holidays, courses, slots, settings, assessments).
 
-// TEMP(M1 skeleton): removed in T024 once the M1 bodies use these items.
-#![allow(dead_code, unused_imports)]
-
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
@@ -657,6 +654,7 @@ pub(crate) fn weekday_from_db(n: i64) -> Option<Weekday> {
         .and_then(|i| DAYS.get(i).copied())
 }
 
+#[allow(dead_code, reason = "M2 session queries use the status codec")]
 impl Status {
     pub(crate) fn as_db(self) -> &'static str {
         match self {
@@ -678,6 +676,7 @@ impl Status {
     }
 }
 
+#[allow(dead_code, reason = "M2 session queries use the kind codec")]
 impl SessionKind {
     pub(crate) fn as_db(self) -> &'static str {
         match self {
@@ -716,6 +715,7 @@ impl AssessmentKind {
     }
 }
 
+#[allow(dead_code, reason = "M5 reminder log uses the kind codec")]
 impl ReminderKind {
     pub(crate) fn as_db(self) -> &'static str {
         match self {
@@ -785,10 +785,12 @@ pub(crate) fn col_weekday(row: &Row, idx: usize) -> rusqlite::Result<Weekday> {
     weekday_from_db(n).ok_or_else(|| bad_value(idx, "weekday", &n.to_string()))
 }
 
+#[allow(dead_code, reason = "M2 session queries decode statuses")]
 pub(crate) fn col_status(row: &Row, idx: usize) -> rusqlite::Result<Status> {
     decode(row, idx, "status", Status::from_db)
 }
 
+#[allow(dead_code, reason = "M2 session queries decode kinds")]
 pub(crate) fn col_session_kind(row: &Row, idx: usize) -> rusqlite::Result<SessionKind> {
     decode(row, idx, "session kind", SessionKind::from_db)
 }

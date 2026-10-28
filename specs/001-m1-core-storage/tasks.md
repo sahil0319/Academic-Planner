@@ -142,8 +142,8 @@ Rust workspace. Core crate: `crates/core/src/`, integration tests: `crates/core/
 
 **Independent Test**: `cargo test -p planner-core --test api_surface`
 
-- [ ] T023 [US5] Write crates/core/tests/api_surface.rs: one `#[test] fn api_signatures_match_spec_section_5()` that binds every method in contracts/core-api.md to an explicit `fn` pointer type (e.g. `let _: fn(&Planner, NaiveDate, NaiveDate, NaiveDateTime) -> Result<Vec<SessionView>> = Planner::sessions_between;`, generic CSV methods as `Planner::export_attendance_csv::<Vec<u8>>`), plus `resolve_db_path` and `default_db_path`. Never calls a stub
-- [ ] T024 [US5] Grep crates/core/src for `todo!(` and confirm the only remaining ones are the out-of-scope methods and the `Upcoming`/`Overdue` arms, each with a milestone + rule message; no `todo!("M1")` remains
+- [X] T023 [US5] Write crates/core/tests/api_surface.rs: one `#[test] fn api_signatures_match_spec_section_5()` that binds every method in contracts/core-api.md to an explicit `fn` pointer type (e.g. `let _: fn(&Planner, NaiveDate, NaiveDate, NaiveDateTime) -> Result<Vec<SessionView>> = Planner::sessions_between;`, generic CSV methods as `Planner::export_attendance_csv::<Vec<u8>>`), plus `resolve_db_path` and `default_db_path`. Never calls a stub
+- [X] T024 [US5] Grep crates/core/src for `todo!(` and confirm the only remaining ones are the out-of-scope methods and the `Upcoming`/`Overdue` arms, each with a milestone + rule message; no `todo!("M1")` remains
 
 **Checkpoint**: Commit "M1: API surface check".
 
