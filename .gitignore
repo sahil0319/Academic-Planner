@@ -6,3 +6,4 @@
 *.rs.bk
 .claude/worktrees/
 .claude/skills/impeccable/scripts/bin/
+/THIRD-PARTY-NOTICES.html

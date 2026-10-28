@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Academic Planner: third-party notices</title>
+</head>
+<body>
+<main>
+<h1>Academic Planner: third-party notices</h1>
+<p>These are the licenses of the Rust crates compiled into Academic Planner. The app itself is
+licensed under GPL-3.0-or-later (see LICENSE and NOTICE).</p>
+
+<h2>Overview of licenses</h2>
+<ul>
+{{#each overview}}
+<li><a href="#{{id}}">{{name}}</a> ({{count}})</li>
+{{/each}}
+</ul>
+
+<h2>All license texts</h2>
+<ul>
+{{#each licenses}}
+<li>
+{{#if first_of_kind}}<h3 id="{{id}}">{{name}}</h3>{{else}}<h3>{{name}}</h3>{{/if}}
+<h4>Used by</h4>
+<ul>
+{{#each used_by}}
+<li>{{crate.name}} {{crate.version}}</li>
+{{/each}}
+</ul>
+<pre>{{text}}</pre>
+</li>
+{{/each}}
+</ul>
+</main>
+</body>
+</html>
