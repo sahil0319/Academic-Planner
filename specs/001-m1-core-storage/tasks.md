@@ -151,8 +151,8 @@ Rust workspace. Core crate: `crates/core/src/`, integration tests: `crates/core/
 
 ## Phase 8: Polish & gate
 
-- [ ] T025 Run `cargo doc -p planner-core --no-deps` and fix any broken doc links; confirm every public item has a doc comment
-- [ ] T026 Run the gate `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` and paste its summary; confirm T20, T24, T26 pass (§7 M1 done-when)
+- [X] T025 Run `cargo doc -p planner-core --no-deps` and fix any broken doc links; confirm every public item has a doc comment
+- [X] T026 Run the gate `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` and paste its summary; confirm T20, T24, T26 pass (§7 M1 done-when)
 - [ ] T027 Update .claude/state/progress.json (all tasks) and .claude/state/checkpoint.md (last green gate hash, next milestone M2); commit "M1: milestone complete"
 
 ---
@@ -202,3 +202,7 @@ final gate (T026) is a formality.
 
 - Single agent, sequential: [P] marks independence, not a request to spawn subagents (§12.4).
 - No task adds a requirement outside `docs/spec.md` plus the two recorded human decisions.
+
+## Phase 9: Convergence
+
+- [X] T028 Document the public constants `DB_ENV_VAR`, `DB_FILE_NAME`, `SCHEMA_VERSION` and `impl Default for Settings` (§3 defaults) in specs/001-m1-core-storage/contracts/core-api.md so the frozen API surface matches crates/core/src/lib.rs per plan: contracts/core-api.md (unrequested)

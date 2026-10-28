@@ -11,6 +11,15 @@ session readers). Types are in [../data-model.md](../data-model.md). `Result<T>`
 | `resolve_db_path(env_override: Option<OsString>, data_dir: Option<PathBuf>) -> Result<PathBuf>` | ✅ R24 (pure) |
 | `default_db_path() -> Result<PathBuf>` | ✅ R24 (reads `ACADEMIC_PLANNER_DB`, `ProjectDirs`) |
 
+## Constants and trait impls
+
+| Item | M1 |
+|---|---|
+| `DB_ENV_VAR: &str = "ACADEMIC_PLANNER_DB"` | ✅ R24 |
+| `DB_FILE_NAME: &str = "planner.sqlite"` | ✅ R24 |
+| `SCHEMA_VERSION: i64` (number of embedded migrations; 1 in M1) | ✅ R25 |
+| `impl Default for Settings` (15, 7, true) | ✅ §3 defaults |
+
 ## `impl Planner`
 
 | Method | M1 | Rules / notes |
