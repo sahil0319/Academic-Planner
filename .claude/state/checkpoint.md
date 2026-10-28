@@ -1,9 +1,9 @@
 # Checkpoint
 
 - M4 (specs/004-m4-desktop-ui): T001–T028 done. T028 impeccable critique 22/40, three P1 fixed (dashboard order, keyboard focus, empty states); P2 follow-ups in checklists/design-review.md. Waiting only on T029 human §9 smoke.
-- M5 (specs/005-m5-reminders): spec bde3dcc, plan/tasks ee86772. In progress: tester T001–T004 (core m5_* tests), builder T008–T011 (notify-rust + tick hook). Next: core T005–T007, converge T013, gate T014. T012 manual notification = human.
+- M5 (specs/005-m5-reminders): T001–T011, T013–T014 done (303c018); converge clean; 258 tests green; app logged a real reminder end to end. Waiting only on T012 human (see one notification).
 - M6 (specs/006-m6-release): spec 28838a6; planner running plan/tasks/analyze (does not touch .specify/feature.json, which stays on M5 until M5 converge).
-- Last green gate: 4912f26 (M4 after P1 fixes; app 113 tests, theme grep clean, launches on demo and empty DB).
+- Last green gate: 303c018 (M5 converge; 258 tests, clippy 0 warnings, theme grep clean).
 - Morning human tasks: M4 T029 §9 smoke; M5 T012 see one notification; M6 README screenshots, push tag v0.1.0, confirm 3 OS artifacts, install on one OS. Origin is 50+ commits behind; nothing pushed.
 - Demo data: ACADEMIC_PLANNER_DB="$PWD/target/scratch/demo.sqlite" cargo run -p app
 - Router decisions (human delegated overnight 2026-10-29):
