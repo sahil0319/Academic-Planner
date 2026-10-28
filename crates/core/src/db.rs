@@ -4,7 +4,7 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Weekday};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Timelike, Weekday};
 use directories::ProjectDirs;
 use rusqlite::types::Type;
 use rusqlite::{params, Connection, OptionalExtension, Row};
@@ -244,20 +244,7 @@ impl Planner {
     pub fn add_slot(&mut self, input: SlotInput) -> Result<Slot> {
         input.validate()?;
         let tx = self.conn.transaction()?;
-        tx.execute(
-            "INSERT INTO slot (course_id, weekday, start_time, end_time, room, valid_from, valid_to)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-            params![
-                input.course_id,
-                weekday_to_db(input.weekday),
-                fmt_time(input.start_time),
-                fmt_time(input.end_time),
-                input.room,
-                fmt_date(input.valid_from),
-                input.valid_to.map(fmt_date)
-            ],
-        )?;
-        let slot = load_slot(&tx, tx.last_insert_rowid())?;
+        let slot = insert_slot(&tx, &input)?;
         tx.commit()?;
         Ok(slot)
     }
@@ -471,14 +458,14 @@ fn ensure_code_free(
 // ---- row loaders (take `&Connection` so they also work inside a transaction) ----
 
 /// R1: id of the active term, if any.
-fn active_term_id(conn: &Connection) -> Result<Option<i64>> {
+pub(crate) fn active_term_id(conn: &Connection) -> Result<Option<i64>> {
     let id = conn
         .query_row("SELECT id FROM term WHERE is_active = 1", [], |r| r.get(0))
         .optional()?;
     Ok(id)
 }
 
-fn load_term(conn: &Connection, id: i64) -> Result<Term> {
+pub(crate) fn load_term(conn: &Connection, id: i64) -> Result<Term> {
     let term = conn
         .query_row(
             "SELECT id, name, start_date, end_date, is_active FROM term WHERE id = ?1",
@@ -526,7 +513,7 @@ fn course_from_row(r: &Row) -> rusqlite::Result<Course> {
     })
 }
 
-fn load_course(conn: &Connection, id: i64) -> Result<Course> {
+pub(crate) fn load_course(conn: &Connection, id: i64) -> Result<Course> {
     conn.query_row(
         &format!("SELECT {COURSE_COLS} FROM course WHERE id = ?1"),
         [id],
@@ -539,10 +526,29 @@ fn load_course(conn: &Connection, id: i64) -> Result<Course> {
     })
 }
 
-const SLOT_COLS: &str = "s.id, s.course_id, s.weekday, s.start_time, s.end_time, s.room, \
+/// Inserts a slot row exactly as given (validation is the caller's job) and returns it.
+pub(crate) fn insert_slot(conn: &Connection, input: &SlotInput) -> Result<Slot> {
+    conn.execute(
+        "INSERT INTO slot (course_id, weekday, start_time, end_time, room, valid_from, valid_to)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![
+            input.course_id,
+            weekday_to_db(input.weekday),
+            fmt_time(input.start_time),
+            fmt_time(input.end_time),
+            input.room,
+            fmt_date(input.valid_from),
+            input.valid_to.map(fmt_date)
+        ],
+    )?;
+    load_slot(conn, conn.last_insert_rowid())
+}
+
+pub(crate) const SLOT_COLS: &str =
+    "s.id, s.course_id, s.weekday, s.start_time, s.end_time, s.room, \
      s.valid_from, s.valid_to";
 
-fn slot_from_row(r: &Row) -> rusqlite::Result<Slot> {
+pub(crate) fn slot_from_row(r: &Row) -> rusqlite::Result<Slot> {
     Ok(Slot {
         id: r.get(0)?,
         course_id: r.get(1)?,
@@ -555,7 +561,7 @@ fn slot_from_row(r: &Row) -> rusqlite::Result<Slot> {
     })
 }
 
-fn load_slot(conn: &Connection, id: i64) -> Result<Slot> {
+pub(crate) fn load_slot(conn: &Connection, id: i64) -> Result<Slot> {
     conn.query_row(
         &format!("SELECT {SLOT_COLS} FROM slot s WHERE s.id = ?1"),
         [id],
@@ -596,6 +602,58 @@ fn load_assessment(conn: &Connection, id: i64) -> Result<Assessment> {
         entity: "assessment",
         id,
     })
+}
+
+pub(crate) const SESSION_COLS: &str = "s.id, s.course_id, s.slot_id, s.kind, s.date, \
+     s.start_time, s.end_time, s.room, s.status, s.replaces_session_id, s.note";
+
+/// Decodes the `SESSION_COLS` columns of a `session s` row.
+pub(crate) fn session_from_row(r: &Row) -> rusqlite::Result<Session> {
+    Ok(Session {
+        id: r.get(0)?,
+        course_id: r.get(1)?,
+        slot_id: r.get(2)?,
+        kind: col_session_kind(r, 3)?,
+        date: col_date(r, 4)?,
+        start_time: col_time(r, 5)?,
+        end_time: col_time(r, 6)?,
+        room: r.get(7)?,
+        status: col_status(r, 8)?,
+        replaces_session_id: r.get(9)?,
+        note: r.get(10)?,
+    })
+}
+
+pub(crate) fn load_session(conn: &Connection, id: i64) -> Result<Session> {
+    conn.query_row(
+        &format!("SELECT {SESSION_COLS} FROM session s WHERE s.id = ?1"),
+        [id],
+        session_from_row,
+    )
+    .optional()?
+    .ok_or(Error::NotFound {
+        entity: "session",
+        id,
+    })
+}
+
+/// R12, R17: the moment a session starts.
+pub(crate) fn session_start(s: &Session) -> NaiveDateTime {
+    s.date.and_time(s.start_time)
+}
+
+/// R20: the moment a session ends.
+#[allow(dead_code, reason = "M2 dashboard (R20) uses it")]
+pub(crate) fn session_end(s: &Session) -> NaiveDateTime {
+    s.date.and_time(s.end_time)
+}
+
+/// Research R-D12: drops seconds (and below) so `now` compares at the minute precision of
+/// stored values.
+pub(crate) fn to_minute(dt: NaiveDateTime) -> NaiveDateTime {
+    let t = dt.time();
+    let minute = NaiveTime::from_hms_opt(t.hour(), t.minute(), 0).unwrap_or(t);
+    dt.date().and_time(minute)
 }
 
 // ---- setting keys (docs/spec.md §3) ----
@@ -654,7 +712,6 @@ pub(crate) fn weekday_from_db(n: i64) -> Option<Weekday> {
         .and_then(|i| DAYS.get(i).copied())
 }
 
-#[allow(dead_code, reason = "M2 session queries use the status codec")]
 impl Status {
     pub(crate) fn as_db(self) -> &'static str {
         match self {
@@ -676,7 +733,6 @@ impl Status {
     }
 }
 
-#[allow(dead_code, reason = "M2 session queries use the kind codec")]
 impl SessionKind {
     pub(crate) fn as_db(self) -> &'static str {
         match self {
@@ -785,12 +841,10 @@ pub(crate) fn col_weekday(row: &Row, idx: usize) -> rusqlite::Result<Weekday> {
     weekday_from_db(n).ok_or_else(|| bad_value(idx, "weekday", &n.to_string()))
 }
 
-#[allow(dead_code, reason = "M2 session queries decode statuses")]
 pub(crate) fn col_status(row: &Row, idx: usize) -> rusqlite::Result<Status> {
     decode(row, idx, "status", Status::from_db)
 }
 
-#[allow(dead_code, reason = "M2 session queries decode kinds")]
 pub(crate) fn col_session_kind(row: &Row, idx: usize) -> rusqlite::Result<SessionKind> {
     decode(row, idx, "session kind", SessionKind::from_db)
 }
@@ -861,6 +915,15 @@ mod tests {
         assert_eq!(fmt_time(t), "09:05");
         let dt = NaiveDate::from_ymd_opt(2026, 1, 5).unwrap().and_time(t);
         assert_eq!(fmt_datetime(dt), "2026-01-05T09:05");
+    }
+
+    #[test]
+    fn to_minute_drops_seconds() {
+        let day = NaiveDate::from_ymd_opt(2026, 1, 5).unwrap();
+        let with_secs = day.and_hms_milli_opt(10, 0, 30, 500).unwrap();
+        assert_eq!(to_minute(with_secs), day.and_hms_opt(10, 0, 0).unwrap());
+        let exact = day.and_hms_opt(23, 59, 0).unwrap();
+        assert_eq!(to_minute(exact), exact);
     }
 
     #[test]
