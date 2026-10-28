@@ -2,11 +2,12 @@
 //!
 //! No Slint types, no clock, no database, no file access. Every function here is unit tested
 //! in `viewmodel/tests.rs`. Contract: `specs/004-m4-desktop-ui/contracts/viewmodel.md`.
-#![allow(dead_code, unused_variables)] // removed in T026 once pages use every item (unused_variables: todo!() stubs, removed in T008)
+#![allow(dead_code)] // removed in T026 once pages use every item
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Weekday};
+use chrono::{Datelike, Days, Duration, NaiveDate, NaiveDateTime, NaiveTime, Weekday};
 use planner_core::{
     Assessment, AssessmentFilter, AssessmentInput, AssessmentKind, AttendanceSummary, Course,
     CourseInput, Dashboard, Holiday, MakeupInput, SessionView, Settings, Slot, SlotInput, Status,
@@ -15,6 +16,17 @@ use planner_core::{
 
 #[cfg(test)]
 mod tests;
+
+/// Shown for a missing value (R13: never `0%` or `NaN`).
+const DASH: &str = "\u{2014}";
+/// FR-007: the error states the expected date format.
+const DATE_FORMAT_ERR: &str = "Use YYYY-MM-DD, e.g. 2026-10-29";
+/// FR-007: the error states the expected time format.
+const TIME_FORMAT_ERR: &str = "Use HH:MM, e.g. 09:30";
+const WHOLE_NUMBER_ERR: &str = "Enter a whole number";
+const CHOOSE_COURSE_ERR: &str = "Choose a course";
+/// Human decision (§6): the holiday range check belongs to the view model.
+const HOLIDAY_RANGE_ERR: &str = "End date must be on or after the start date";
 
 // ---- Status and percentages ----
 
@@ -33,106 +45,186 @@ pub const BELOW_TARGET_LABEL: &str = "Below target";
 
 /// R11: display label of a session status.
 pub fn status_label(status: Status) -> &'static str {
-    todo!()
+    match status {
+        Status::Pending => "Pending",
+        Status::Attended => "Attended",
+        Status::Absent => "Absent",
+        Status::Cancelled => "Cancelled",
+    }
 }
 
 /// R11: chip kind of a status; a rescheduled original (status `Cancelled`) shows as `Cancelled`.
 pub fn chip_kind(status: Status) -> ChipKind {
-    todo!()
+    match status {
+        Status::Pending => ChipKind::Pending,
+        Status::Attended => ChipKind::Attended,
+        Status::Absent => ChipKind::Absent,
+        Status::Cancelled => ChipKind::Cancelled,
+    }
 }
 
 /// R13: percentage with one decimal; `None` (nothing attended or absent) shows an em dash.
 pub fn format_pct(pct: Option<f64>) -> String {
-    todo!()
+    match pct {
+        Some(p) if p.is_finite() => format!("{p:.1}%"),
+        _ => DASH.to_string(),
+    }
 }
 
 /// R14: attendance target as `75%`, or an em dash when there is none.
 pub fn format_target(target: Option<i64>) -> String {
-    todo!()
+    match target {
+        Some(t) => format!("{t}%"),
+        None => DASH.to_string(),
+    }
 }
 
 /// Trimmed text, or an em dash when absent or blank.
 pub fn or_dash(value: Option<&str>) -> String {
-    todo!()
+    match value.map(str::trim) {
+        Some(v) if !v.is_empty() => v.to_string(),
+        _ => DASH.to_string(),
+    }
 }
 
 /// R12: attendance can be marked only once the session has started.
 pub fn can_mark_attendance(view: &SessionView) -> bool {
-    todo!()
+    view.is_past
 }
 
 // ---- Dates and times ----
 
 /// `2026-10-29`.
 pub fn format_date(d: NaiveDate) -> String {
-    todo!()
+    d.format("%Y-%m-%d").to_string()
 }
 
 /// `09:05` (seconds dropped).
 pub fn format_time(t: NaiveTime) -> String {
-    todo!()
+    t.format("%H:%M").to_string()
 }
 
 /// `09:00–10:30` (en dash, no spaces).
 pub fn format_time_range(start: NaiveTime, end: NaiveTime) -> String {
-    todo!()
+    format!("{}\u{2013}{}", format_time(start), format_time(end))
 }
 
 /// `2026-10-30 23:59`.
 pub fn format_datetime(dt: NaiveDateTime) -> String {
-    todo!()
+    dt.format("%Y-%m-%d %H:%M").to_string()
 }
 
 /// `Monday` … `Sunday`.
 pub fn weekday_name(w: Weekday) -> &'static str {
-    todo!()
+    match w {
+        Weekday::Mon => "Monday",
+        Weekday::Tue => "Tuesday",
+        Weekday::Wed => "Wednesday",
+        Weekday::Thu => "Thursday",
+        Weekday::Fri => "Friday",
+        Weekday::Sat => "Saturday",
+        Weekday::Sun => "Sunday",
+    }
 }
 
 /// Combo index 0 = Monday … 6 = Sunday; anything else is `None`.
 pub fn weekday_from_index(i: i32) -> Option<Weekday> {
-    todo!()
+    match i {
+        0 => Some(Weekday::Mon),
+        1 => Some(Weekday::Tue),
+        2 => Some(Weekday::Wed),
+        3 => Some(Weekday::Thu),
+        4 => Some(Weekday::Fri),
+        5 => Some(Weekday::Sat),
+        6 => Some(Weekday::Sun),
+        _ => None,
+    }
 }
 
 /// Inverse of [`weekday_from_index`].
 pub fn weekday_index(w: Weekday) -> i32 {
-    todo!()
+    // `num_days_from_monday` is 0..=6, so the cast cannot truncate.
+    w.num_days_from_monday() as i32
 }
 
 /// Strict `YYYY-MM-DD` after trimming (FR-007).
 pub fn parse_date(text: &str) -> Result<NaiveDate, String> {
-    todo!()
+    let s = text.trim();
+    let b = s.as_bytes();
+    let shape_ok = b.len() == 10
+        && b.iter().enumerate().all(|(i, c)| match i {
+            4 | 7 => *c == b'-',
+            _ => c.is_ascii_digit(),
+        });
+    if !shape_ok {
+        return Err(DATE_FORMAT_ERR.to_string());
+    }
+    NaiveDate::parse_from_str(s, "%Y-%m-%d").map_err(|_| DATE_FORMAT_ERR.to_string())
 }
 
 /// Blank is `Ok(None)`; otherwise as [`parse_date`].
 pub fn parse_optional_date(text: &str) -> Result<Option<NaiveDate>, String> {
-    todo!()
+    if text.trim().is_empty() {
+        Ok(None)
+    } else {
+        parse_date(text).map(Some)
+    }
 }
 
 /// Strict `HH:MM` after trimming (FR-007).
 pub fn parse_time(text: &str) -> Result<NaiveTime, String> {
-    todo!()
+    let s = text.trim();
+    let b = s.as_bytes();
+    let shape_ok = b.len() == 5
+        && b.iter().enumerate().all(|(i, c)| match i {
+            2 => *c == b':',
+            _ => c.is_ascii_digit(),
+        });
+    if !shape_ok {
+        return Err(TIME_FORMAT_ERR.to_string());
+    }
+    let hour: u32 = s[0..2].parse().map_err(|_| TIME_FORMAT_ERR.to_string())?;
+    let minute: u32 = s[3..5].parse().map_err(|_| TIME_FORMAT_ERR.to_string())?;
+    NaiveTime::from_hms_opt(hour, minute, 0).ok_or_else(|| TIME_FORMAT_ERR.to_string())
 }
 
 // ---- Text and numbers ----
 
 /// Trimmed text; empty becomes `None` (optional fields are stored as absent).
 pub fn optional_text(text: &str) -> Option<String> {
-    todo!()
+    let t = text.trim();
+    (!t.is_empty()).then(|| t.to_string())
 }
 
 /// Optional whole-number target. The 0–100 range is checked by core (R2), not here.
 pub fn parse_target(text: &str) -> Result<Option<i64>, String> {
-    todo!()
+    let t = text.trim();
+    if t.is_empty() {
+        return Ok(None);
+    }
+    t.parse::<i64>()
+        .map(Some)
+        .map_err(|_| WHOLE_NUMBER_ERR.to_string())
 }
 
 /// Optional non-negative whole number of minutes.
 pub fn parse_optional_minutes(text: &str) -> Result<Option<u32>, String> {
-    todo!()
+    let t = text.trim();
+    if t.is_empty() {
+        return Ok(None);
+    }
+    t.parse::<u32>()
+        .map(Some)
+        .map_err(|_| "Enter a whole number of minutes".to_string())
 }
 
 /// Required non-negative whole number.
 pub fn parse_count(text: &str) -> Result<u32, String> {
-    todo!()
+    let t = text.trim();
+    if t.is_empty() {
+        return Err("Required".to_string());
+    }
+    t.parse::<u32>().map_err(|_| WHOLE_NUMBER_ERR.to_string())
 }
 
 // ---- Forms ----
@@ -146,12 +238,31 @@ pub struct FormErrors {
 impl FormErrors {
     /// Message of `field`, or `""` when the field has no error.
     pub fn get(&self, field: &str) -> String {
-        todo!()
+        self.errors
+            .iter()
+            .find(|(f, _)| f == field)
+            .map(|(_, m)| m.clone())
+            .unwrap_or_default()
     }
 
     /// True when no field has an error.
     pub fn is_empty(&self) -> bool {
-        todo!()
+        self.errors.is_empty()
+    }
+
+    fn push(&mut self, field: &str, message: String) {
+        self.errors.push((field.to_string(), message));
+    }
+
+    /// Records the error of `result` under `field`, so every field is checked (FR-007).
+    fn check<T>(&mut self, field: &str, result: Result<T, String>) -> Option<T> {
+        match result {
+            Ok(value) => Some(value),
+            Err(message) => {
+                self.push(field, message);
+                None
+            }
+        }
     }
 }
 
@@ -162,7 +273,18 @@ pub fn parse_term_form(
     start: &str,
     end: &str,
 ) -> Result<TermInput, FormErrors> {
-    todo!()
+    let mut errors = FormErrors::default();
+    let start_date = errors.check("start", parse_date(start));
+    let end_date = errors.check("end", parse_date(end));
+    match (start_date, end_date) {
+        (Some(start_date), Some(end_date)) if errors.is_empty() => Ok(TermInput {
+            id,
+            name: name.trim().to_string(),
+            start_date,
+            end_date,
+        }),
+        _ => Err(errors),
+    }
 }
 
 /// Checks `target`. R2 checks (empty code or name, range) belong to core.
@@ -174,7 +296,18 @@ pub fn parse_course_form(
     notes: &str,
     target: &str,
 ) -> Result<CourseInput, FormErrors> {
-    todo!()
+    let mut errors = FormErrors::default();
+    match errors.check("target", parse_target(target)) {
+        Some(min_attendance_pct) => Ok(CourseInput {
+            code: code.trim().to_string(),
+            name: name.trim().to_string(),
+            instructor: optional_text(instructor),
+            room: optional_text(room),
+            notes: optional_text(notes),
+            min_attendance_pct,
+        }),
+        None => Err(errors),
+    }
 }
 
 /// Checks `course`, `weekday`, `start`, `end`, `valid_from`, `valid_to`. R2: end <= start is core's.
@@ -187,7 +320,40 @@ pub fn parse_slot_form(
     valid_from: &str,
     valid_to: &str,
 ) -> Result<SlotInput, FormErrors> {
-    todo!()
+    let mut errors = FormErrors::default();
+    let course_id = errors.check(
+        "course",
+        course_id.ok_or_else(|| CHOOSE_COURSE_ERR.to_string()),
+    );
+    let weekday = errors.check(
+        "weekday",
+        weekday_from_index(weekday).ok_or_else(|| "Choose a weekday".to_string()),
+    );
+    let start_time = errors.check("start", parse_time(start));
+    let end_time = errors.check("end", parse_time(end));
+    let valid_from = errors.check("valid_from", parse_date(valid_from));
+    let valid_to = errors.check("valid_to", parse_optional_date(valid_to));
+    match (
+        course_id, weekday, start_time, end_time, valid_from, valid_to,
+    ) {
+        (
+            Some(course_id),
+            Some(weekday),
+            Some(start_time),
+            Some(end_time),
+            Some(valid_from),
+            Some(valid_to),
+        ) => Ok(SlotInput {
+            course_id,
+            weekday,
+            start_time,
+            end_time,
+            room: optional_text(room),
+            valid_from,
+            valid_to,
+        }),
+        _ => Err(errors),
+    }
 }
 
 /// R9, R10: checks `date`, `start`, `end` for reschedule and "Add makeup class".
@@ -199,7 +365,21 @@ pub fn parse_makeup_form(
     room: &str,
     note: &str,
 ) -> Result<MakeupInput, FormErrors> {
-    todo!()
+    let mut errors = FormErrors::default();
+    let date = errors.check("date", parse_date(date));
+    let start_time = errors.check("start", parse_time(start));
+    let end_time = errors.check("end", parse_time(end));
+    match (date, start_time, end_time) {
+        (Some(date), Some(start_time), Some(end_time)) => Ok(MakeupInput {
+            course_id,
+            date,
+            start_time,
+            end_time,
+            room: optional_text(room),
+            note: optional_text(note),
+        }),
+        _ => Err(errors),
+    }
 }
 
 /// Checks `course`, `kind`, `due_date`, `due_time`, `remind`. `due_at` is date plus time.
@@ -212,12 +392,45 @@ pub fn parse_assessment_form(
     notes: &str,
     remind: &str,
 ) -> Result<AssessmentInput, FormErrors> {
-    todo!()
+    let mut errors = FormErrors::default();
+    let course_id = errors.check(
+        "course",
+        course_id.ok_or_else(|| CHOOSE_COURSE_ERR.to_string()),
+    );
+    let kind = errors.check(
+        "kind",
+        assessment_kind_from_index(kind).ok_or_else(|| "Choose a kind".to_string()),
+    );
+    let date = errors.check("due_date", parse_date(due_date));
+    let time = errors.check("due_time", parse_time(due_time));
+    let remind = errors.check("remind", parse_optional_minutes(remind));
+    match (course_id, kind, date, time, remind) {
+        (Some(course_id), Some(kind), Some(date), Some(time), Some(remind_minutes_before)) => {
+            Ok(AssessmentInput {
+                course_id,
+                kind,
+                title: title.trim().to_string(),
+                due_at: date.and_time(time),
+                notes: optional_text(notes),
+                remind_minutes_before,
+            })
+        }
+        _ => Err(errors),
+    }
 }
 
 /// Checks `start` and `end`; `end < start` is an error. Returns the expanded range.
 pub fn parse_holiday_form(start: &str, end: &str, label: &str) -> Result<Vec<Holiday>, FormErrors> {
-    todo!()
+    let mut errors = FormErrors::default();
+    let start = errors.check("start", parse_date(start));
+    let end = errors.check("end", parse_optional_date(end));
+    let (Some(start), Some(end)) = (start, end) else {
+        return Err(errors);
+    };
+    expand_holiday_range(start, end, optional_text(label)).map_err(|msg| {
+        errors.push("end", msg);
+        errors
+    })
 }
 
 /// Checks `reminder` and `window` via [`parse_count`].
@@ -226,7 +439,17 @@ pub fn parse_settings_form(
     window_days: &str,
     notifications: bool,
 ) -> Result<Settings, FormErrors> {
-    todo!()
+    let mut errors = FormErrors::default();
+    let reminder = errors.check("reminder", parse_count(reminder_minutes));
+    let window = errors.check("window", parse_count(window_days));
+    match (reminder, window) {
+        (Some(class_reminder_minutes), Some(upcoming_window_days)) => Ok(Settings {
+            class_reminder_minutes,
+            upcoming_window_days,
+            notifications_enabled: notifications,
+        }),
+        _ => Err(errors),
+    }
 }
 
 // ---- Holidays (single date or inclusive range) ----
@@ -237,17 +460,38 @@ pub fn expand_holiday_range(
     end: Option<NaiveDate>,
     label: Option<String>,
 ) -> Result<Vec<Holiday>, String> {
-    todo!()
+    let end = end.unwrap_or(start);
+    if end < start {
+        return Err(HOLIDAY_RANGE_ERR.to_string());
+    }
+    Ok(start
+        .iter_days()
+        .take_while(|d| *d <= end)
+        .map(|date| Holiday {
+            date,
+            label: label.clone(),
+        })
+        .collect())
 }
 
 /// Exactly one holiday per date, sorted; for a date in both lists the added one wins.
 pub fn merge_holidays(existing: &[Holiday], added: &[Holiday]) -> Vec<Holiday> {
-    todo!()
+    let mut by_date: BTreeMap<NaiveDate, Holiday> = BTreeMap::new();
+    for h in existing.iter().chain(added) {
+        by_date.insert(h.date, h.clone());
+    }
+    by_date.into_values().collect()
 }
 
 /// Removes only `date`; the others stay unchanged and sorted.
 pub fn remove_holiday(existing: &[Holiday], date: NaiveDate) -> Vec<Holiday> {
-    todo!()
+    let mut rest: Vec<Holiday> = existing
+        .iter()
+        .filter(|h| h.date != date)
+        .cloned()
+        .collect();
+    rest.sort_by_key(|h| h.date);
+    rest
 }
 
 /// A holiday as display text.
@@ -259,7 +503,10 @@ pub struct HolidayRow {
 
 /// Label `None` shows an em dash.
 pub fn holiday_row(h: &Holiday) -> HolidayRow {
-    todo!()
+    HolidayRow {
+        date: format_date(h.date),
+        label: or_dash(h.label.as_deref()),
+    }
 }
 
 // ---- Rows ----
@@ -281,7 +528,19 @@ pub struct SessionRow {
 
 /// R11, R12: builds a session row; the status label keeps core's `display_status`.
 pub fn session_row(view: &SessionView) -> SessionRow {
-    todo!()
+    let s = &view.session;
+    SessionRow {
+        id: s.id,
+        date: format_date(s.date),
+        weekday: weekday_name(s.date.weekday()).to_string(),
+        time: format_time_range(s.start_time, s.end_time),
+        course: format!("{} \u{b7} {}", view.course_code, view.course_name),
+        room: or_dash(s.room.as_deref()),
+        status_label: view.display_status.clone(),
+        chip: chip_kind(s.status),
+        can_mark: can_mark_attendance(view),
+        note: s.note.clone().unwrap_or_default(),
+    }
 }
 
 /// Attendance summary as display text.
@@ -298,12 +557,25 @@ pub struct SummaryView {
 
 /// R13–R15: counts, percentage, target, below-target flag.
 pub fn summary_view(s: &AttendanceSummary) -> SummaryView {
-    todo!()
+    SummaryView {
+        attended: s.attended.to_string(),
+        absent: s.absent.to_string(),
+        cancelled: s.cancelled.to_string(),
+        pending: s.pending.to_string(),
+        pct: format_pct(s.pct),
+        target: format_target(s.target),
+        below_target: s.below_target,
+    }
 }
 
 /// R14: banner text, `CSE101 — 66.7% (target 75%)`.
 pub fn banner_line(s: &AttendanceSummary) -> String {
-    todo!()
+    format!(
+        "{} {DASH} {} (target {})",
+        s.course_code,
+        format_pct(s.pct),
+        format_target(s.target)
+    )
 }
 
 /// A course as display text.
@@ -320,12 +592,20 @@ pub struct CourseRow {
 
 /// R3: builds a course row; missing optional fields show an em dash.
 pub fn course_row(c: &Course) -> CourseRow {
-    todo!()
+    CourseRow {
+        id: c.id,
+        code: c.code.clone(),
+        name: c.name.clone(),
+        instructor: or_dash(c.instructor.as_deref()),
+        room: or_dash(c.room.as_deref()),
+        target: format_target(c.min_attendance_pct),
+        archived: c.archived,
+    }
 }
 
 /// `CSE101 · Intro to Programming` for combo boxes.
 pub fn course_option_label(c: &Course) -> String {
-    todo!()
+    format!("{} \u{b7} {}", c.code, c.name)
 }
 
 /// A timetable slot as display text.
@@ -341,7 +621,26 @@ pub struct SlotRow {
 
 /// Course is the matching code, or an em dash when not found.
 pub fn slot_row(slot: &Slot, courses: &[Course]) -> SlotRow {
-    todo!()
+    let course = courses
+        .iter()
+        .find(|c| c.id == slot.course_id)
+        .map_or_else(|| DASH.to_string(), |c| c.code.clone());
+    let valid = match slot.valid_to {
+        Some(to) => format!(
+            "From {} to {}",
+            format_date(slot.valid_from),
+            format_date(to)
+        ),
+        None => format!("From {} until term end", format_date(slot.valid_from)),
+    };
+    SlotRow {
+        id: slot.id,
+        weekday: weekday_name(slot.weekday).to_string(),
+        time: format_time_range(slot.start_time, slot.end_time),
+        course,
+        room: or_dash(slot.room.as_deref()),
+        valid,
+    }
 }
 
 /// An assessment as display text.
@@ -358,22 +657,46 @@ pub struct AssessmentRow {
 
 /// Builds an assessment row; `due` uses [`format_datetime`].
 pub fn assessment_row(a: &Assessment) -> AssessmentRow {
-    todo!()
+    AssessmentRow {
+        id: a.id,
+        course_code: a.course_code.clone(),
+        kind: assessment_kind_label(a.kind).to_string(),
+        title: a.title.clone(),
+        due: format_datetime(a.due_at),
+        completed: a.completed,
+        notes: a.notes.clone().unwrap_or_default(),
+    }
 }
 
 /// `Quiz`, `Exam`, `Assignment`, `Other`.
 pub fn assessment_kind_label(k: AssessmentKind) -> &'static str {
-    todo!()
+    match k {
+        AssessmentKind::Quiz => "Quiz",
+        AssessmentKind::Exam => "Exam",
+        AssessmentKind::Assignment => "Assignment",
+        AssessmentKind::Other => "Other",
+    }
 }
 
 /// Combo index 0 Quiz, 1 Exam, 2 Assignment, 3 Other; anything else is `None`.
 pub fn assessment_kind_from_index(i: i32) -> Option<AssessmentKind> {
-    todo!()
+    match i {
+        0 => Some(AssessmentKind::Quiz),
+        1 => Some(AssessmentKind::Exam),
+        2 => Some(AssessmentKind::Assignment),
+        3 => Some(AssessmentKind::Other),
+        _ => None,
+    }
 }
 
 /// Inverse of [`assessment_kind_from_index`].
 pub fn assessment_kind_index(k: AssessmentKind) -> i32 {
-    todo!()
+    match k {
+        AssessmentKind::Quiz => 0,
+        AssessmentKind::Exam => 1,
+        AssessmentKind::Assignment => 2,
+        AssessmentKind::Other => 3,
+    }
 }
 
 // ---- Assessment filters ----
@@ -389,34 +712,48 @@ pub enum FilterChoice {
 
 /// 0 Upcoming, 1 Overdue, 2 Completed, 3 All; anything else is Upcoming.
 pub fn filter_from_index(i: i32) -> FilterChoice {
-    todo!()
+    match i {
+        1 => FilterChoice::Overdue,
+        2 => FilterChoice::Completed,
+        3 => FilterChoice::All,
+        _ => FilterChoice::Upcoming,
+    }
 }
 
 /// R18, R19: Upcoming and Overdue carry `now`.
 pub fn assessment_filter(choice: FilterChoice, now: NaiveDateTime) -> AssessmentFilter {
-    todo!()
+    match choice {
+        FilterChoice::Upcoming => AssessmentFilter::Upcoming { now },
+        FilterChoice::Overdue => AssessmentFilter::Overdue { now },
+        FilterChoice::Completed => AssessmentFilter::Completed,
+        FilterChoice::All => AssessmentFilter::All,
+    }
 }
 
 // ---- Week view ----
 
 /// Monday on or before `date`.
 pub fn week_start(date: NaiveDate) -> NaiveDate {
-    todo!()
+    date - Days::new(u64::from(date.weekday().num_days_from_monday()))
 }
 
 /// Sunday of the week starting at `week_start`.
 pub fn week_end(week_start: NaiveDate) -> NaiveDate {
-    todo!()
+    week_start + Days::new(6)
 }
 
 /// Moves by whole weeks, across month and year ends.
 pub fn shift_week(week_start: NaiveDate, weeks: i64) -> NaiveDate {
-    todo!()
+    week_start + Duration::weeks(weeks)
 }
 
 /// `2026-10-26 – 2026-11-01` (en dash with spaces).
 pub fn week_title(week_start: NaiveDate) -> String {
-    todo!()
+    format!(
+        "{} \u{2013} {}",
+        format_date(week_start),
+        format_date(week_end(week_start))
+    )
 }
 
 /// Sessions of one day.
@@ -428,7 +765,20 @@ pub struct DayGroup {
 
 /// One group per distinct date in date order, keeping input order inside a day.
 pub fn group_week(views: &[SessionView]) -> Vec<DayGroup> {
-    todo!()
+    let mut by_date: BTreeMap<NaiveDate, Vec<SessionRow>> = BTreeMap::new();
+    for view in views {
+        by_date
+            .entry(view.session.date)
+            .or_default()
+            .push(session_row(view));
+    }
+    by_date
+        .into_iter()
+        .map(|(date, rows)| DayGroup {
+            title: format!("{} {}", weekday_name(date.weekday()), format_date(date)),
+            rows,
+        })
+        .collect()
 }
 
 // ---- Dashboard ----
@@ -446,42 +796,67 @@ pub struct DashboardView {
 
 /// R14, R16–R20: keeps core's order; the banner has one line per below-target course.
 pub fn dashboard_view(d: &Dashboard) -> DashboardView {
-    todo!()
+    DashboardView {
+        today: d.today.iter().map(session_row).collect(),
+        next_class: d.next_class.as_ref().map(session_row),
+        upcoming: d.upcoming.iter().map(assessment_row).collect(),
+        overdue: d.overdue.iter().map(assessment_row).collect(),
+        awaiting: d.awaiting.iter().map(session_row).collect(),
+        banner: d.below_target.iter().map(banner_line).collect(),
+    }
 }
 
 // ---- Errors, files, timer ----
 
 /// R2, R25: user-facing error text; `Validation` messages are capitalized.
 pub fn error_text(e: &planner_core::Error) -> String {
-    todo!()
+    match e {
+        planner_core::Error::Validation(msg) => {
+            let mut chars = msg.chars();
+            match chars.next() {
+                Some(first) => first.to_uppercase().chain(chars).collect(),
+                None => String::new(),
+            }
+        }
+        other => other.to_string(),
+    }
 }
 
 /// R22: `pre-restore-20261029-1430.sqlite` (seconds ignored).
 pub fn pre_restore_file_name(now: NaiveDateTime) -> String {
-    todo!()
+    format!("pre-restore-{}.sqlite", now.format("%Y%m%d-%H%M"))
 }
 
 /// R22: the base name if free, else the first free `-2`, `-3`, … suffix; unrelated names ignored.
 pub fn free_pre_restore_name(now: NaiveDateTime, existing: &[String]) -> String {
-    todo!()
+    let taken = |name: &str| existing.iter().any(|e| e == name);
+    let base = pre_restore_file_name(now);
+    if !taken(&base) {
+        return base;
+    }
+    let stem = format!("pre-restore-{}", now.format("%Y%m%d-%H%M"));
+    (2u32..)
+        .map(|n| format!("{stem}-{n}.sqlite"))
+        .find(|name| !taken(name))
+        .unwrap_or(base)
 }
 
 /// `academic-planner-backup-20261029-1430.json`.
 pub fn backup_file_name(now: NaiveDateTime) -> String {
-    todo!()
+    format!("academic-planner-backup-{}.json", now.format("%Y%m%d-%H%M"))
 }
 
 /// R6: true once the calendar date moved past the last sync date.
 pub fn date_rolled_over(last_sync: NaiveDate, now: NaiveDateTime) -> bool {
-    todo!()
+    now.date() != last_sync
 }
 
 /// R24: display text of the database path.
 pub fn db_path_text(path: &Path) -> String {
-    todo!()
+    path.display().to_string()
 }
 
 /// Message shown after a restore (R22).
 pub fn restored_message(copy: &Path) -> String {
-    todo!()
+    format!("Backup restored. Previous data saved to {}", copy.display())
 }
