@@ -1,0 +1,81 @@
+// Shared Slint types (contracts/ui-bridge.md). Rust fills these through src/bridge.rs;
+// every string is already formatted by src/viewmodel.rs.
+
+// Chip colors of a session status (R11).
+export enum Chip { attended, absent, cancelled, pending }
+
+// Status a row action asks for; src/bridge.rs maps it to planner_core::Status (R11).
+export enum StatusAction { attended, absent, cancelled, pending }
+
+export struct SessionRow {
+    id: int,
+    date: string,
+    weekday: string,
+    time: string,
+    course: string,
+    room: string,
+    status-label: string,
+    chip: Chip,
+    // R12: attendance can be marked only once the session has started.
+    can-mark: bool,
+    note: string,
+}
+
+export struct DayGroup {
+    title: string,
+    rows: [SessionRow],
+}
+
+export struct AssessmentRow {
+    id: int,
+    course-code: string,
+    kind: string,
+    title: string,
+    due: string,
+    completed: bool,
+    notes: string,
+}
+
+export struct CourseRow {
+    id: int,
+    code: string,
+    name: string,
+    instructor: string,
+    room: string,
+    target: string,
+    archived: bool,
+}
+
+export struct SlotRow {
+    id: int,
+    weekday: string,
+    time: string,
+    course: string,
+    room: string,
+    valid: string,
+}
+
+export struct HolidayRow {
+    date: string,
+    label: string,
+}
+
+// R13-R15: attendance summary as display text.
+export struct SummaryView {
+    attended: string,
+    absent: string,
+    cancelled: string,
+    pending: string,
+    pct: string,
+    target: string,
+    below-target: bool,
+}
+
+export global AppState {
+    // 0 Dashboard, 1 Timetable, 2 Courses, 3 Assessments, 4 Settings
+    in-out property <int> current-page;
+    // FR-008: non-empty means only the error screen is shown.
+    in property <string> startup-error;
+    // Rust refreshes all pages with a fresh `now`.
+    callback page-selected(int);
+}

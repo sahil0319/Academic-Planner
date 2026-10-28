@@ -1,8 +1,120 @@
+// Main window: left navigation and the current page (docs/spec.md §6, FR-004), or only the
+// startup error when the database cannot be opened (FR-008).
+import { ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
+import { AppState } from "types.slint";
+import { NavItem, PageTitle } from "components.slint";
+import { DashboardPage, DashboardState } from "dashboard.slint";
+import { TimetablePage, TimetableState } from "timetable.slint";
+import { CoursesPage, CoursesState } from "courses.slint";
+import { AssessmentsPage, AssessmentsState } from "assessments.slint";
+import { SettingsPage, SettingsState } from "settings.slint";
+
+export {
+    Chip,
+    StatusAction,
+    SessionRow,
+    DayGroup,
+    AssessmentRow,
+    CourseRow,
+    SlotRow,
+    HolidayRow,
+    SummaryView,
+    AppState,
+} from "types.slint";
+export { DashboardState, TimetableState, CoursesState, AssessmentsState, SettingsState }
 
 export component AppWindow inherits Window {
     title: "Academic Planner";
     background: Theme.neutral;
     preferred-width: Theme.window-width;
     preferred-height: Theme.window-height;
+
+    if AppState.startup-error != "": VerticalLayout {
+        padding: Theme.space-xl;
+        spacing: Theme.space-md;
+        alignment: start;
+        PageTitle {
+            text: "The database could not be opened";
+        }
+        Text {
+            text: AppState.startup-error;
+            color: Theme.error;
+            wrap: word-wrap;
+            font-family: Theme.font-body;
+            font-size: Theme.body-md-size;
+            font-weight: Theme.body-md-weight;
+        }
+    }
+
+    if AppState.startup-error == "": HorizontalLayout {
+        Rectangle {
+            width: Theme.nav-width;
+            background: Theme.surface-alt;
+
+            VerticalLayout {
+                padding: Theme.space-sm;
+                spacing: Theme.space-xs;
+                alignment: start;
+
+                NavItem {
+                    text: "Dashboard";
+                    active: AppState.current-page == 0;
+                    clicked => {
+                        AppState.current-page = 0;
+                        AppState.page-selected(0);
+                    }
+                }
+                NavItem {
+                    text: "Timetable";
+                    active: AppState.current-page == 1;
+                    clicked => {
+                        AppState.current-page = 1;
+                        AppState.page-selected(1);
+                    }
+                }
+                NavItem {
+                    text: "Courses";
+                    active: AppState.current-page == 2;
+                    clicked => {
+                        AppState.current-page = 2;
+                        AppState.page-selected(2);
+                    }
+                }
+                NavItem {
+                    text: "Assessments";
+                    active: AppState.current-page == 3;
+                    clicked => {
+                        AppState.current-page = 3;
+                        AppState.page-selected(3);
+                    }
+                }
+                NavItem {
+                    text: "Settings";
+                    active: AppState.current-page == 4;
+                    clicked => {
+                        AppState.current-page = 4;
+                        AppState.page-selected(4);
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            background: Theme.neutral;
+
+            ScrollView {
+                VerticalLayout {
+                    padding: Theme.space-xl;
+                    alignment: start;
+
+                    if AppState.current-page == 0: DashboardPage { }
+                    if AppState.current-page == 1: TimetablePage { }
+                    if AppState.current-page == 2: CoursesPage { }
+                    if AppState.current-page == 3: AssessmentsPage { }
+                    if AppState.current-page == 4: SettingsPage { }
+                }
+            }
+        }
+    }
 }

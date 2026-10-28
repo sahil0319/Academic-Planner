@@ -1,0 +1,267 @@
+// Shared components built from base elements (DESIGN.md "Components", research R-D7).
+// Every color, size, spacing, radius, and font comes from Theme.*; no logic beyond bindings.
+import { Theme } from "theme.slint";
+import { Chip } from "types.slint";
+
+// Left navigation entry. The active item uses the selected fill and label weight, never the accent.
+export component NavItem inherits Rectangle {
+    in property <string> text;
+    in property <bool> active;
+    callback clicked();
+
+    height: Theme.row-height;
+    border-radius: Theme.radius-sm;
+    background: root.active || touch.has-hover ? Theme.surface-selected : transparent;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: Theme.space-sm;
+        padding-right: Theme.space-sm;
+        Text {
+            text: root.text;
+            vertical-alignment: center;
+            color: Theme.on-surface;
+            font-family: Theme.font-body;
+            font-size: Theme.body-md-size;
+            font-weight: root.active ? Theme.label-md-weight : Theme.body-md-weight;
+        }
+    }
+}
+
+// Terracotta button; at most one per panel (DESIGN.md).
+export component PrimaryButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> enabled: true;
+    callback clicked();
+
+    height: Theme.input-height;
+    min-width: label.preferred-width + 2 * Theme.space-md;
+    horizontal-stretch: 0;
+    border-radius: Theme.radius-sm;
+    background: !root.enabled ? Theme.surface-alt : touch.has-hover ? Theme.primary-hover : Theme.primary;
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    label := Text {
+        text: root.text;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        color: root.enabled ? Theme.on-primary : Theme.on-surface-muted;
+        font-family: Theme.font-body;
+        font-size: Theme.label-md-size;
+        font-weight: Theme.label-md-weight;
+    }
+}
+
+// Paper button with a border, for row actions such as Attended / Absent / Cancelled.
+export component SecondaryButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> enabled: true;
+    callback clicked();
+
+    height: Theme.input-height;
+    min-width: label.preferred-width + 2 * Theme.space-md;
+    horizontal-stretch: 0;
+    border-radius: Theme.radius-sm;
+    border-width: Theme.border-width;
+    border-color: Theme.border;
+    background: root.enabled && touch.has-hover ? Theme.surface-alt : Theme.surface;
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    label := Text {
+        text: root.text;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        color: root.enabled ? Theme.on-surface : Theme.on-surface-muted;
+        font-family: Theme.font-body;
+        font-size: Theme.label-md-size;
+        font-weight: Theme.label-md-weight;
+    }
+}
+
+// FR-007: labelled text input; a non-empty `error` turns the border red and is shown below.
+export component Field inherits VerticalLayout {
+    in property <string> label;
+    in-out property <string> text <=> input.text;
+    in property <string> error;
+    callback edited(string);
+
+    spacing: Theme.space-xs;
+
+    Text {
+        text: root.label;
+        color: Theme.on-surface-muted;
+        font-family: Theme.font-body;
+        font-size: Theme.label-md-size;
+        font-weight: Theme.label-md-weight;
+    }
+
+    Rectangle {
+        height: Theme.input-height;
+        border-radius: Theme.radius-sm;
+        border-width: Theme.border-width;
+        border-color: root.error != "" ? Theme.error : input.has-focus ? Theme.primary : Theme.border;
+        background: Theme.surface;
+
+        HorizontalLayout {
+            padding-left: Theme.space-sm;
+            padding-right: Theme.space-sm;
+            input := TextInput {
+                vertical-alignment: center;
+                color: Theme.on-surface;
+                font-family: Theme.font-body;
+                font-size: Theme.body-md-size;
+                single-line: true;
+                edited => {
+                    root.edited(self.text);
+                }
+            }
+        }
+    }
+
+    if root.error != "": Text {
+        text: root.error;
+        color: Theme.error;
+        wrap: word-wrap;
+        font-family: Theme.font-body;
+        font-size: Theme.body-sm-size;
+        font-weight: Theme.body-sm-weight;
+    }
+}
+
+// R11: status pill. The text label is always shown next to the color (DESIGN.md).
+export component StatusChip inherits Rectangle {
+    in property <Chip> chip;
+    in property <string> text;
+
+    horizontal-stretch: 0;
+    vertical-stretch: 0;
+    border-radius: Theme.radius-full;
+    background: root.chip == Chip.attended ? Theme.status-attended-bg
+        : root.chip == Chip.absent ? Theme.status-absent-bg
+        : root.chip == Chip.cancelled ? Theme.status-cancelled-bg
+        : Theme.status-pending-bg;
+
+    HorizontalLayout {
+        padding-left: Theme.space-sm;
+        padding-right: Theme.space-sm;
+        padding-top: Theme.space-xs;
+        padding-bottom: Theme.space-xs;
+        Text {
+            text: root.text;
+            vertical-alignment: center;
+            color: root.chip == Chip.attended ? Theme.status-attended
+                : root.chip == Chip.absent ? Theme.status-absent
+                : root.chip == Chip.cancelled ? Theme.status-cancelled
+                : Theme.status-pending;
+            font-family: Theme.font-body;
+            font-size: Theme.label-sm-size;
+            font-weight: Theme.label-sm-weight;
+        }
+    }
+}
+
+// Paper card with a serif headline title; children stack below the title.
+export component SectionCard inherits Rectangle {
+    in property <string> title;
+
+    background: Theme.surface;
+    border-radius: Theme.radius-md;
+    border-width: Theme.border-width;
+    border-color: Theme.border;
+
+    VerticalLayout {
+        padding: Theme.space-lg;
+        spacing: Theme.space-sm;
+        Text {
+            text: root.title;
+            color: Theme.on-surface;
+            font-family: Theme.font-heading;
+            font-size: Theme.headline-md-size;
+            font-weight: Theme.headline-md-weight;
+        }
+        @children
+    }
+}
+
+// One list row: paper background, bottom divider; children are laid out left to right.
+export component ListRow inherits Rectangle {
+    min-height: Theme.row-height;
+    background: Theme.surface;
+
+    HorizontalLayout {
+        padding-left: Theme.space-sm;
+        padding-right: Theme.space-sm;
+        padding-top: Theme.space-xs;
+        padding-bottom: Theme.space-xs;
+        spacing: Theme.space-sm;
+        alignment: stretch;
+        @children
+    }
+
+    Rectangle {
+        y: parent.height - self.height;
+        height: Theme.divider-width;
+        background: Theme.border;
+    }
+}
+
+// Muted sentence centered in its section, e.g. "No classes today."
+export component EmptyState inherits Text {
+    color: Theme.on-surface-muted;
+    horizontal-alignment: center;
+    vertical-alignment: center;
+    wrap: word-wrap;
+    font-family: Theme.font-body;
+    font-size: Theme.body-md-size;
+    font-weight: Theme.body-md-weight;
+    min-height: Theme.row-height;
+}
+
+// R14: tinted card listing each course below its attendance target.
+export component Banner inherits Rectangle {
+    in property <[string]> lines;
+
+    background: Theme.below-target-bg;
+    border-radius: Theme.radius-md;
+
+    VerticalLayout {
+        padding: Theme.space-md;
+        spacing: Theme.space-xs;
+        for line in root.lines: Text {
+            text: line;
+            color: Theme.below-target;
+            wrap: word-wrap;
+            font-family: Theme.font-body;
+            font-size: Theme.body-md-size;
+            font-weight: Theme.label-md-weight;
+        }
+    }
+}
+
+// Serif page title.
+export component PageTitle inherits Text {
+    color: Theme.on-surface;
+    font-family: Theme.font-heading;
+    font-size: Theme.title-lg-size;
+    font-weight: Theme.title-lg-weight;
+}

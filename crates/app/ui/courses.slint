@@ -1,0 +1,21 @@
+// Courses page (docs/spec.md §6). Stub from T011; the page task fills it in.
+import { Theme } from "theme.slint";
+import { PageTitle, EmptyState } from "components.slint";
+
+export global CoursesState {
+    // Row-action errors and success notes.
+    in property <string> message;
+}
+
+export component CoursesPage inherits VerticalLayout {
+    spacing: Theme.space-lg;
+    alignment: start;
+
+    PageTitle {
+        text: "Courses";
+    }
+
+    EmptyState {
+        text: "No courses yet.";
+    }
+}

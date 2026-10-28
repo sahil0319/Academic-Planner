@@ -1,0 +1,21 @@
+// Timetable page (docs/spec.md §6). Stub from T011; the page task fills it in.
+import { Theme } from "theme.slint";
+import { PageTitle, EmptyState } from "components.slint";
+
+export global TimetableState {
+    // Row-action errors and success notes.
+    in property <string> message;
+}
+
+export component TimetablePage inherits VerticalLayout {
+    spacing: Theme.space-lg;
+    alignment: start;
+
+    PageTitle {
+        text: "Timetable";
+    }
+
+    EmptyState {
+        text: "No classes this week.";
+    }
+}
