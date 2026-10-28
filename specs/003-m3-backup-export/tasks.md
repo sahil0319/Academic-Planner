@@ -39,7 +39,7 @@ API is added for the R22 file copy (FR-014, built in M4).
 
 **Purpose**: dependencies the tests and the implementation both need
 
-- [ ] T001 (builder) Add `serde_json.workspace = true` and `csv.workspace = true` to `[dependencies]` in crates/core/Cargo.toml (both already in root `[workspace.dependencies]`, named in §1; research R-D1) and let `Cargo.lock` update; run `cargo build -p planner-core`
+- [x] T001 (builder) Add `serde_json.workspace = true` and `csv.workspace = true` to `[dependencies]` in crates/core/Cargo.toml (both already in root `[workspace.dependencies]`, named in §1; research R-D1) and let `Cargo.lock` update; run `cargo build -p planner-core`
 
 ---
 
