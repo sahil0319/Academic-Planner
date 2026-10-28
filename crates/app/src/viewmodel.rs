@@ -730,6 +730,26 @@ pub fn assessment_filter(choice: FilterChoice, now: NaiveDateTime) -> Assessment
     }
 }
 
+/// FR-005: title of the assessments list for the filter choice.
+pub fn filter_title(choice: FilterChoice) -> &'static str {
+    match choice {
+        FilterChoice::Upcoming => "Upcoming",
+        FilterChoice::Overdue => "Overdue",
+        FilterChoice::Completed => "Completed",
+        FilterChoice::All => "All assessments",
+    }
+}
+
+/// FR-005, FR-008: empty-state sentence of the assessments list for the filter choice.
+pub fn filter_empty_text(choice: FilterChoice) -> &'static str {
+    match choice {
+        FilterChoice::Upcoming => "No upcoming assessments.",
+        FilterChoice::Overdue => "No overdue assessments.",
+        FilterChoice::Completed => "No completed assessments.",
+        FilterChoice::All => "No assessments yet.",
+    }
+}
+
 // ---- Week view ----
 
 /// Monday on or before `date`.

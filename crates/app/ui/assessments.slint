@@ -20,6 +20,10 @@ export global AssessmentsState {
 
     // 0 Upcoming, 1 Overdue, 2 Completed, 3 All (viewmodel::filter_from_index).
     in-out property <int> filter;
+    // List title and empty-state sentence for the filter (viewmodel::filter_title,
+    // viewmodel::filter_empty_text).
+    in property <string> list-title: "Upcoming";
+    in property <string> empty-text: "No upcoming assessments.";
     in property <[AssessmentRow]> rows;
     // Combo labels from viewmodel::course_option_label, active courses only.
     in property <[string]> course-options;
@@ -183,16 +187,10 @@ export component AssessmentsPage inherits VerticalLayout {
     }
 
     SectionCard {
-        title: AssessmentsState.filter == 1 ? "Overdue"
-            : AssessmentsState.filter == 2 ? "Completed"
-            : AssessmentsState.filter == 3 ? "All assessments"
-            : "Upcoming";
+        title: AssessmentsState.list-title;
 
         if AssessmentsState.rows.length == 0: EmptyState {
-            text: AssessmentsState.filter == 1 ? "No overdue assessments."
-                : AssessmentsState.filter == 2 ? "No completed assessments."
-                : AssessmentsState.filter == 3 ? "No assessments yet."
-                : "No upcoming assessments.";
+            text: AssessmentsState.empty-text;
         }
 
         for row in AssessmentsState.rows: ListRow {

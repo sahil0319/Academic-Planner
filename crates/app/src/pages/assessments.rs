@@ -32,6 +32,8 @@ pub fn refresh(app: &App) {
     st.set_kind_options(bridge::strings(&kinds));
 
     let choice = app.state().filter;
+    st.set_list_title(vm::filter_title(choice).into());
+    st.set_empty_text(vm::filter_empty_text(choice).into());
     let mut problems = Vec::new();
 
     let listed = app

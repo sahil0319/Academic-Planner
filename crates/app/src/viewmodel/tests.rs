@@ -1012,6 +1012,33 @@ fn assessment_filter_per_choice() {
     );
 }
 
+/// FR-005: the list title per filter choice is built in Rust, not in assessments.slint.
+#[test]
+fn filter_title_per_choice() {
+    assert_eq!(filter_title(FilterChoice::Upcoming), "Upcoming");
+    assert_eq!(filter_title(FilterChoice::Overdue), "Overdue");
+    assert_eq!(filter_title(FilterChoice::Completed), "Completed");
+    assert_eq!(filter_title(FilterChoice::All), "All assessments");
+}
+
+/// FR-005: the empty-state sentence per filter choice is built in Rust.
+#[test]
+fn filter_empty_text_per_choice() {
+    assert_eq!(
+        filter_empty_text(FilterChoice::Upcoming),
+        "No upcoming assessments."
+    );
+    assert_eq!(
+        filter_empty_text(FilterChoice::Overdue),
+        "No overdue assessments."
+    );
+    assert_eq!(
+        filter_empty_text(FilterChoice::Completed),
+        "No completed assessments."
+    );
+    assert_eq!(filter_empty_text(FilterChoice::All), "No assessments yet.");
+}
+
 // ---- Week view ----
 
 /// Monday maps to itself.

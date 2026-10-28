@@ -100,6 +100,8 @@ holidays have no core range call.
 | `pub enum FilterChoice { Upcoming, Overdue, Completed, All }` | Derive `Debug, Clone, Copy, PartialEq, Eq` |
 | `pub fn filter_from_index(i: i32) -> FilterChoice` | 0 Upcoming, 1 Overdue, 2 Completed, 3 All; other → Upcoming |
 | `pub fn assessment_filter(choice: FilterChoice, now: NaiveDateTime) -> AssessmentFilter` | Upcoming/Overdue carry `now` |
+| `pub fn filter_title(choice: FilterChoice) -> &'static str` | "Upcoming", "Overdue", "Completed", "All assessments" (FR-005, T025) |
+| `pub fn filter_empty_text(choice: FilterChoice) -> &'static str` | "No upcoming assessments.", "No overdue assessments.", "No completed assessments.", "No assessments yet." (FR-005, T025) |
 
 ## Week view
 
