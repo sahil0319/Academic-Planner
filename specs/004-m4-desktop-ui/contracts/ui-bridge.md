@@ -42,6 +42,10 @@ Built from base elements, every value from `Theme.*`: `NavItem`, `PrimaryButton`
 the field in the error color, error border when non-empty), `StatusChip` (`chip`, `text`; text is
 always shown), `SectionCard` (headline title), `ListRow`, `EmptyState` (`text`), `Banner`
 (`lines: [string]`), `PageTitle`.
+`NavItem`, both buttons, and the assessments `FilterTab` are keyboard reachable (T028): a
+`FocusScope` (disabled buttons are not focusable), Enter or Space activates, `accessible-role`
+`button` (`tab` for nav and filter tabs) with `accessible-label` from the text, and a terracotta
+focus ring at `Theme.border-width`.
 
 ## `ui/app-window.slint`
 

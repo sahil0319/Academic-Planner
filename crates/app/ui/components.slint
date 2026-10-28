@@ -4,6 +4,7 @@ import { Theme } from "theme.slint";
 import { Chip } from "types.slint";
 
 // Left navigation entry. The active item uses the selected fill and label weight, never the accent.
+// Focus shows a terracotta ring (DESIGN.md focus rings).
 export component NavItem inherits Rectangle {
     in property <string> text;
     in property <bool> active;
@@ -11,7 +12,16 @@ export component NavItem inherits Rectangle {
 
     height: Theme.row-height;
     border-radius: Theme.radius-sm;
+    border-width: Theme.border-width;
+    border-color: focus-scope.has-focus ? Theme.primary : transparent;
     background: root.active || touch.has-hover ? Theme.surface-selected : transparent;
+    accessible-role: tab;
+    accessible-label: root.text;
+    accessible-item-selectable: true;
+    accessible-item-selected: root.active;
+    accessible-action-default => {
+        root.clicked();
+    }
 
     touch := TouchArea {
         mouse-cursor: pointer;
@@ -20,11 +30,26 @@ export component NavItem inherits Rectangle {
         }
     }
 
+    // Keyboard access (T028 critique): Tab reaches the control, Enter or Space activates it.
+    focus-scope := FocusScope {
+        x: 0;
+        width: 0; // clicks go to the TouchArea
+        key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Space {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
     HorizontalLayout {
         padding-left: Theme.space-sm;
         padding-right: Theme.space-sm;
         Text {
             text: root.text;
+            // The nav item carries the accessible label.
+            accessible-role: none;
             vertical-alignment: center;
             color: Theme.on-surface;
             font-family: Theme.font-body;
@@ -45,6 +70,14 @@ export component PrimaryButton inherits Rectangle {
     horizontal-stretch: 0;
     border-radius: Theme.radius-sm;
     background: !root.enabled ? Theme.surface-alt : touch.has-hover ? Theme.primary-hover : Theme.primary;
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-enabled: root.enabled;
+    accessible-action-default => {
+        if root.enabled {
+            root.clicked();
+        }
+    }
 
     touch := TouchArea {
         enabled: root.enabled;
@@ -54,14 +87,42 @@ export component PrimaryButton inherits Rectangle {
         }
     }
 
+    // Keyboard access (T028 critique): Tab reaches the control, Enter or Space activates it.
+    focus-scope := FocusScope {
+        x: 0;
+        width: 0; // clicks go to the TouchArea
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Space {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
     label := Text {
         text: root.text;
+        // The button carries the accessible label.
+        accessible-role: none;
         horizontal-alignment: center;
         vertical-alignment: center;
         color: root.enabled ? Theme.on-primary : Theme.on-surface-muted;
         font-family: Theme.font-body;
         font-size: Theme.label-md-size;
         font-weight: Theme.label-md-weight;
+    }
+
+    // Focus ring: the fill is already terracotta, so the ring sits just outside the button with a
+    // gap of two border widths (DESIGN.md: terracotta focus rings).
+    if focus-scope.has-focus: Rectangle {
+        x: -3 * Theme.border-width;
+        y: -3 * Theme.border-width;
+        width: parent.width + 6 * Theme.border-width;
+        height: parent.height + 6 * Theme.border-width;
+        border-radius: Theme.radius-sm + 3 * Theme.border-width;
+        border-width: Theme.border-width;
+        border-color: Theme.primary;
     }
 }
 
@@ -76,8 +137,16 @@ export component SecondaryButton inherits Rectangle {
     horizontal-stretch: 0;
     border-radius: Theme.radius-sm;
     border-width: Theme.border-width;
-    border-color: Theme.border;
+    border-color: focus-scope.has-focus ? Theme.primary : Theme.border;
     background: root.enabled && touch.has-hover ? Theme.surface-alt : Theme.surface;
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-enabled: root.enabled;
+    accessible-action-default => {
+        if root.enabled {
+            root.clicked();
+        }
+    }
 
     touch := TouchArea {
         enabled: root.enabled;
@@ -87,8 +156,24 @@ export component SecondaryButton inherits Rectangle {
         }
     }
 
+    // Keyboard access (T028 critique): Tab reaches the control, Enter or Space activates it.
+    focus-scope := FocusScope {
+        x: 0;
+        width: 0; // clicks go to the TouchArea
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Space {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
     label := Text {
         text: root.text;
+        // The button carries the accessible label.
+        accessible-role: none;
         horizontal-alignment: center;
         vertical-alignment: center;
         color: root.enabled ? Theme.on-surface : Theme.on-surface-muted;

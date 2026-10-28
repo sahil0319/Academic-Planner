@@ -60,6 +60,7 @@ export global AssessmentsState {
 }
 
 // One filter choice; the active one uses the selected fill (no accent, like navigation).
+// Focus shows a terracotta border (DESIGN.md focus rings).
 component FilterTab inherits Rectangle {
     in property <string> text;
     in property <bool> active;
@@ -70,8 +71,15 @@ component FilterTab inherits Rectangle {
     horizontal-stretch: 0;
     border-radius: Theme.radius-sm;
     border-width: Theme.border-width;
-    border-color: Theme.border;
+    border-color: focus-scope.has-focus ? Theme.primary : Theme.border;
     background: root.active || touch.has-hover ? Theme.surface-selected : Theme.surface;
+    accessible-role: tab;
+    accessible-label: root.text;
+    accessible-item-selectable: true;
+    accessible-item-selected: root.active;
+    accessible-action-default => {
+        root.clicked();
+    }
 
     touch := TouchArea {
         mouse-cursor: pointer;
@@ -80,8 +88,23 @@ component FilterTab inherits Rectangle {
         }
     }
 
+    // Keyboard access (T028 critique): Tab reaches the tab, Enter or Space selects it.
+    focus-scope := FocusScope {
+        x: 0;
+        width: 0; // clicks go to the TouchArea
+        key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Space {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
     label := Text {
         text: root.text;
+        // The tab carries the accessible label.
+        accessible-role: none;
         horizontal-alignment: center;
         vertical-alignment: center;
         color: Theme.on-surface;
