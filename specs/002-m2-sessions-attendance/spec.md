@@ -385,8 +385,9 @@ same mechanics as T06/T07; no new T-ID is added to `docs/spec.md` §8.
   (T07, T08, T10, T27).
 - **SC-005**: No §5 operation signature changes, so M4 UI work built against the M1 stubs needs no
   edits.
-- **SC-006**: In the exam-period scenarios (User Story 7), 0 class sessions exist inside a period
-  after sync, and 0 of them appear in awaiting attendance or count toward the percentage.
+- **SC-006**: In the exam-period scenarios (User Story 7), 0 pending class sessions exist inside a
+  period after sync, and 0 sessions inside it await attendance. Sessions already attended, absent,
+  or cancelled before the period was entered are kept (R5).
 
 ## Assumptions
 
@@ -408,6 +409,7 @@ same mechanics as T06/T07; no new T-ID is added to `docs/spec.md` §8.
   schema, API, or rule change. Entering a whole date range in one step is a UI convenience for M4;
   `docs/spec.md` §6 currently lists holidays as add/remove one date + label, so a range input
   would need a §6 update first. In M2, the caller passes every date of the period to the existing
-  set-holidays operation.
+  set-holidays operation. That operation replaces the term's whole holiday set, so the caller
+  passes the existing holidays together with the new period dates.
 - Human decisions 2026-10-29: the internal sync of a slot change uses the effective date as today
   (FR-007, FR-008); R3 takes precedence over R5 for archived courses (FR-006).

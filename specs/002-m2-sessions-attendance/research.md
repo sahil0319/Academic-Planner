@@ -92,8 +92,8 @@ the schema, or the API.
 ## R-D9. Attendance summary (R13–R15)
 
 - **Decision**: counts cover every session of the course, regular and makeup, past and future.
-  `pct = round(attended / (attended + absent) × 1000) / 10` as `f64` (one decimal), `None` when
-  the denominator is 0. `below_target` compares the **rounded** `pct` with `target` (R14 uses
+  `pct = round(attended / (attended + absent) × 1000) / 10` as `f64` (one decimal), with ties
+  rounded half away from zero (`f64::round`, e.g. 6.25 → 6.3), `None` when the denominator is 0. `below_target` compares the **rounded** `pct` with `target` (R14 uses
   `pct`). `attendance_summary` returns `NotFound` for an unknown course and works for archived
   courses (T15). `all_summaries`: non-archived courses of the active term, ordered by code.
 - **Rationale**: R13–R15 text; spec Assumptions for `all_summaries` scope (confirmed by router

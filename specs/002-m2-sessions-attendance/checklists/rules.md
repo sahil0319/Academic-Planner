@@ -10,62 +10,62 @@
 
 ## Requirement Completeness
 
-- [ ] CHK001 Are all of R4–R20 mapped to at least one functional requirement, and is every FR in FR-001–FR-025 traced to a rule or §5 item? [Traceability, Spec §FR-001–FR-025]
-- [ ] CHK002 Is each of the 25 T-IDs (T01–T19, T21–T23, T27–T29) mapped to an acceptance scenario with explicit Given/When/Then values? [Completeness, Spec §User Stories 1–6]
-- [ ] CHK003 Are the User Story 7 exam-period scenarios specified with exact dates and expected sessions, given that they have no T-ID in §8? [Completeness, Spec §US7, FR-006a]
-- [ ] CHK004 Is the behavior of sync, dashboard, summaries, and session lists defined when no active term exists? [Gap, Spec §FR-005; research R-D2]
-- [ ] CHK005 Are error outcomes (validation vs. not found) specified for unknown session, slot, and course IDs in set_status, reschedule, change_slot, end_slot, and attendance_summary? [Gap, Spec §FR-007–FR-016; contracts/core-api-m2.md]
-- [ ] CHK006 Is the content of a makeup session's room and note specified for both reschedule and add_makeup? [Completeness, Spec §FR-010, FR-011]
-- [ ] CHK007 Are ordering requirements stated for every list output: today's classes with equal start times, awaiting attendance, session lists, all summaries, and below-target courses? [Gap, Spec §FR-016, FR-017, FR-019, FR-023, FR-024]
+- [x] CHK001 Are all of R4–R20 mapped to at least one functional requirement, and is every FR in FR-001–FR-025 traced to a rule or §5 item? [Traceability, Spec §FR-001–FR-025] — R4 FR-001/002, R5 FR-003, R6 FR-005, R7 FR-007/008, R8 FR-009, R9 FR-010, R10 FR-011, R11 FR-012, R12 FR-013, R13-R15 FR-014-016, R16-R20 FR-019-023; FR-017/018 §5, FR-024 R14, FR-025 R3, FR-026 §1
+- [x] CHK002 Is each of the 25 T-IDs (T01–T19, T21–T23, T27–T29) mapped to an acceptance scenario with explicit Given/When/Then values? [Completeness, Spec §User Stories 1–6] — US1-US6 cover 25 T-IDs (5+3+6+4+5+2); Given/When/Then values explicit
+- [x] CHK003 Are the User Story 7 exam-period scenarios specified with exact dates and expected sessions, given that they have no T-ID in §8? [Completeness, Spec §US7, FR-006a] — US7 scenarios 1-2 give exact dates; scenarios 3-4 leave the date to the test (tests use 01-19 and 01-14), acceptable
+- [x] CHK004 Is the behavior of sync, dashboard, summaries, and session lists defined when no active term exists? [Gap, Spec §FR-005; research R-D2] — research R-D2 (empty results, {0,0}); contracts sync row
+- [x] CHK005 Are error outcomes (validation vs. not found) specified for unknown session, slot, and course IDs in set_status, reschedule, change_slot, end_slot, and attendance_summary? [Gap, Spec §FR-007–FR-016; contracts/core-api-m2.md] — contracts/core-api-m2.md Errors column; research R-D4-R-D9 (NotFound vs Validation)
+- [x] CHK006 Is the content of a makeup session's room and note specified for both reschedule and add_makeup? [Completeness, Spec §FR-010, FR-011] — data-model.md Session: makeup room/note come from MakeupInput; research R-D7; tasks T006
+- [x] CHK007 Are ordering requirements stated for every list output: today's classes with equal start times, awaiting attendance, session lists, all summaries, and below-target courses? [Gap, Spec §FR-016, FR-017, FR-019, FR-023, FR-024] — research R-D8 (lists: date, start, id), R-D10 (today: start, code, id; awaiting: date, start, id), R-D9 (summaries by code); below-target follows all_summaries order
 
 ## Requirement Clarity
 
-- [ ] CHK008 Is "copying room from the slot" clear when the slot room is empty (§3: empty slot room means the course room)? Is it stated whether the session stores the empty value or the resolved course room? [Ambiguity, Spec §FR-001; research R-D3]
-- [ ] CHK009 Is "rounded to 1 decimal" specified with a rounding mode (half away from zero vs. half to even)? [Clarity, Spec §FR-014]
-- [ ] CHK010 Is it stated whether below-target compares the rounded or the unrounded percentage with the target? [Ambiguity, Spec §FR-015]
-- [ ] CHK011 Is "session start" / "session end" defined as date plus start/end time in naive local time, and is the precision of `now` (minutes vs. seconds) stated for the R12, R17, R20 boundaries? [Clarity, Spec §FR-013, FR-020, FR-023; research R-D12]
-- [ ] CHK012 Is "now + upcoming window days" defined precisely enough (N × 24 h in naive time) to decide the T17 boundary? [Clarity, Spec §FR-021, Assumptions]
-- [ ] CHK013 Is the exact display text "Rescheduled → {makeup date}" specified, including the arrow character and date format? [Clarity, Spec §FR-018]
-- [ ] CHK014 Is "no longer produced by R4" defined in terms of slot and date identity, so that a changed slot's old sessions are distinguishable from the new slot's? [Clarity, Spec §FR-003]
+- [x] CHK008 Is "copying room from the slot" clear when the slot room is empty (§3: empty slot room means the course room)? Is it stated whether the session stores the empty value or the resolved course room? [Ambiguity, Spec §FR-001; research R-D3] — research R-D3 (stores coalesce(slot.room, course.room)); data-model Session
+- [x] CHK009 Is "rounded to 1 decimal" specified with a rounding mode (half away from zero vs. half to even)? [Clarity, Spec §FR-014] — GAP (naive): R-D9 gives round(x*1000)/10 but names no tie mode; 1 attended of 16 gives exactly 6.25. Recommend stating half away from zero (f64::round) in R-D9
+- [x] CHK010 Is it stated whether below-target compares the rounded or the unrounded percentage with the target? [Ambiguity, Spec §FR-015] — research R-D9: compares the rounded pct; tasks T026 helper
+- [x] CHK011 Is "session start" / "session end" defined as date plus start/end time in naive local time, and is the precision of `now` (minutes vs. seconds) stated for the R12, R17, R20 boundaries? [Clarity, Spec §FR-013, FR-020, FR-023; research R-D12] — research R-D6/R-D8 (date.and_time(start/end)), R-D12 (minute precision, naive local time)
+- [x] CHK012 Is "now + upcoming window days" defined precisely enough (N × 24 h in naive time) to decide the T17 boundary? [Clarity, Spec §FR-021, Assumptions] — Assumptions (N x 24 h naive); research R-D11
+- [x] CHK013 Is the exact display text "Rescheduled → {makeup date}" specified, including the arrow character and date format? [Clarity, Spec §FR-018] — FR-018 (YYYY-MM-DD); research R-D8 (arrow U+2192)
+- [x] CHK014 Is "no longer produced by R4" defined in terms of slot and date identity, so that a changed slot's old sessions are distinguishable from the new slot's? [Clarity, Spec §FR-003] — research R-D1: identity is (slot_id, date) against the expected set
 
 ## Requirement Consistency
 
-- [ ] CHK015 Is the exception to R5 "past sessions are never deleted" for change_slot/end_slot with an effective date earlier than the real today documented as an intentional human decision, and consistent between FR-003, FR-007, FR-008, and the Edge Cases? [Consistency, Spec §FR-003, FR-007, FR-008, Edge Cases]
-- [ ] CHK016 Do FR-006 (sync never deletes archived courses' sessions) and FR-003 (deletion conditions) state the same scope without contradiction? [Consistency, Spec §FR-003, FR-006]
-- [ ] CHK017 Are "non-archived" and "active term" scope statements consistent across FR-017, FR-019–FR-025, and the all-summaries assumption? [Consistency, Spec §FR-016–FR-025, Assumptions]
-- [ ] CHK018 Is FR-012 ("status never changes automatically except FR-003, FR-009, FR-010") consistent with FR-003, which deletes sessions rather than changing their status? [Consistency, Spec §FR-012]
-- [ ] CHK019 Do the status rules of FR-013 (cancel and reset any time) and FR-010 (reschedule forbidden for attended/absent) agree on whether a cancelled-by-reschedule original may later be reset to pending, and what its display status then is? [Consistency, Spec §FR-010, FR-013, FR-018]
+- [x] CHK015 Is the exception to R5 "past sessions are never deleted" for change_slot/end_slot with an effective date earlier than the real today documented as an intentional human decision, and consistent between FR-003, FR-007, FR-008, and the Edge Cases? [Consistency, Spec §FR-003, FR-007, FR-008, Edge Cases] — FR-007/FR-008 human decision 2026-10-29, Edge Cases (past effective date), header; 'past' is relative to the sync's today (FR-003)
+- [x] CHK016 Do FR-006 (sync never deletes archived courses' sessions) and FR-003 (deletion conditions) state the same scope without contradiction? [Consistency, Spec §FR-003, FR-006] — FR-006 restricts FR-003 to non-archived courses; research R-D1 step 4
+- [x] CHK017 Are "non-archived" and "active term" scope statements consistent across FR-017, FR-019–FR-025, and the all-summaries assumption? [Consistency, Spec §FR-016–FR-025, Assumptions] — active term made explicit in research R-D2/R-D8/R-D10 and the all-summaries Assumption; FR-017/FR-019-025 say non-archived only (implicit active term, no contradiction)
+- [x] CHK018 Is FR-012 ("status never changes automatically except FR-003, FR-009, FR-010") consistent with FR-003, which deletes sessions rather than changing their status? [Consistency, Spec §FR-012] — FR-012 lists FR-003 although sync deletes and never changes status (data-model: sync never changes a status); harmless superset, wording only
+- [x] CHK019 Do the status rules of FR-013 (cancel and reset any time) and FR-010 (reschedule forbidden for attended/absent) agree on whether a cancelled-by-reschedule original may later be reset to pending, and what its display status then is? [Consistency, Spec §FR-010, FR-013, FR-018] — FR-013 allows reset to pending any time; research R-D8 shows 'Rescheduled' only while cancelled, so a reset original shows 'Pending' and the makeup stays; follows literally from R12
 
 ## Acceptance Criteria Quality
 
-- [ ] CHK020 Can T03's 74.9 case be reached with sessions the fixture can hold, or does the scenario need to say how the 74.9 percentage is produced? [Measurability, Spec §US3 scenario 3]
-- [ ] CHK021 Is T05's "same identities" criterion objectively measurable (same session IDs and same field values)? [Measurability, Spec §US1 scenario 2, SC-003]
-- [ ] CHK022 Is SC-004 ("no past or non-pending session is ever deleted") measurable from the listed tests, with "past" defined relative to the sync's today? [Measurability, Spec §SC-004]
-- [ ] CHK023 Is SC-006's "0 of them count toward the percentage" measurable, given that deleted sessions cannot be counted at all? [Measurability, Spec §SC-006]
-- [ ] CHK024 Do T09's expected counts (attended 1, cancelled 1) state which other sessions exist, so pending counts are not ambiguous? [Clarity, Spec §US4 scenario 2]
+- [x] CHK020 Can T03's 74.9 case be reached with sessions the fixture can hold, or does the scenario need to say how the 74.9 percentage is produced? [Measurability, Spec §US3 scenario 3] — spec scenario is value-based; tasks T026 unit tests (74.9,75) and m2_attendance t03 (149 attended + 50 absent real makeups) make it measurable
+- [x] CHK021 Is T05's "same identities" criterion objectively measurable (same session IDs and same field values)? [Measurability, Spec §US1 scenario 2, SC-003] — FR-002 + SC-003 (zero created/deleted); tests compare full rows incl. ids
+- [x] CHK022 Is SC-004 ("no past or non-pending session is ever deleted") measurable from the listed tests, with "past" defined relative to the sync's today? [Measurability, Spec §SC-004] — FR-003 'date >= today' defines past per sync; SC-004 covered by T07, T08, T10, T27
+- [x] CHK023 Is SC-006's "0 of them count toward the percentage" measurable, given that deleted sessions cannot be counted at all? [Measurability, Spec §SC-006] — GAP (naive wording): SC-006 says '0 class sessions exist inside a period', but US7 scenario 4 and the Edge Cases keep attended/absent/cancelled sessions there. Recommend 'no pending class sessions inside a period; none awaits attendance'
+- [x] CHK024 Do T09's expected counts (attended 1, cancelled 1) state which other sessions exist, so pending counts are not ambiguous? [Clarity, Spec §US4 scenario 2] — US4 scenario 2 starts from the 'synced fixture' (6 sessions), so pending = 5 is derivable
 
 ## Scenario Coverage
 
-- [ ] CHK025 Are requirements defined for rescheduling a session that is already cancelled or already rescheduled once (a second makeup replacing the same original), including which makeup the display status names? [Coverage, Spec §FR-010, FR-018, Assumptions]
-- [ ] CHK026 Are requirements defined for change_slot when the effective date is on or before the old slot's valid-from date? [Coverage, Gap, Spec §FR-007]
-- [ ] CHK027 Are requirements defined for end_slot when the last date is before the slot's valid-from date or after the term end? [Coverage, Gap, Spec §FR-008]
-- [ ] CHK028 Is the error path of reschedule required to leave no partial change (no makeup row, original unchanged) explicitly, and is the same stated for set_status before start? [Exception Flow, Spec §FR-010, FR-013]
-- [ ] CHK029 Are makeup sessions explicitly included or excluded in next class, today's classes, and awaiting attendance? [Coverage, Spec §FR-019, FR-020, FR-023, Edge Cases]
-- [ ] CHK030 Is the effect on sessions of a course moving between archived and non-archived states covered for both directions (T15, T28), including pending future sessions kept while archived? [Coverage, Spec §FR-006, US6]
+- [x] CHK025 Are requirements defined for rescheduling a session that is already cancelled or already rescheduled once (a second makeup replacing the same original), including which makeup the display status names? [Coverage, Spec §FR-010, FR-018, Assumptions] — Assumptions (cancelled may be rescheduled); research R-D7, R-D8 (highest-id makeup shown)
+- [x] CHK026 Are requirements defined for change_slot when the effective date is on or before the old slot's valid-from date? [Coverage, Gap, Spec §FR-007] — data-model Slot: valid_to < valid_from yields an empty range; no error; research R-D4
+- [x] CHK027 Are requirements defined for end_slot when the last date is before the slot's valid-from date or after the term end? [Coverage, Gap, Spec §FR-008] — same data-model rule (empty range) and R4 min(term.end, valid_to); research R-D5; no error path
+- [x] CHK028 Is the error path of reschedule required to leave no partial change (no makeup row, original unchanged) explicitly, and is the same stated for set_status before start? [Exception Flow, Spec §FR-010, FR-013] — FR-010 'all-or-nothing', 'change nothing'; FR-013 'change nothing'; contracts Errors column
+- [x] CHK029 Are makeup sessions explicitly included or excluded in next class, today's classes, and awaiting attendance? [Coverage, Spec §FR-019, FR-020, FR-023, Edge Cases] — FR-019/020/023 say 'sessions' (Key Entities: regular or makeup), so makeups are included; FR-011/R10 'counts like any other'
+- [x] CHK030 Is the effect on sessions of a course moving between archived and non-archived states covered for both directions (T15, T28), including pending future sessions kept while archived? [Coverage, Spec §FR-006, US6] — FR-006, US6, Edge Cases; research R-D1 (pending future sessions kept while archived)
 
 ## Edge Case Coverage
 
-- [ ] CHK031 Are holidays outside the term range, and holidays on weekdays without slots, addressed? [Edge Case, Gap, Spec §FR-001]
-- [ ] CHK032 Is the inclusive-range boundary covered at both ends (term start on a slot weekday and term end on a slot weekday, T14)? [Edge Case, Spec §FR-001, US1 scenario 5]
-- [ ] CHK033 Is a session dated today, already started but still pending, covered for deletion by sync (R5 `date >= today`) after a holiday or slot change? [Edge Case, Spec §Edge Cases]
-- [ ] CHK034 Are the exam-period cases where some period dates already hold attended, absent, or cancelled sessions covered, and is removing one holiday date (period shortened) covered? [Edge Case, Spec §US7 scenarios 3–4, FR-006a]
+- [x] CHK031 Are holidays outside the term range, and holidays on weekdays without slots, addressed? [Edge Case, Gap, Spec §FR-001] — FR-001/R-D1: holidays only filter dates inside the slot range, so outside-term dates or weekdays without slots have no effect
+- [x] CHK032 Is the inclusive-range boundary covered at both ends (term start on a slot weekday and term end on a slot weekday, T14)? [Edge Case, Spec §FR-001, US1 scenario 5] — Edge Cases (both ends inclusive); T04 (term start Monday 01-05 generated); T14 (term end)
+- [x] CHK033 Is a session dated today, already started but still pending, covered for deletion by sync (R5 `date >= today`) after a holiday or slot change? [Edge Case, Spec §Edge Cases] — Edge Cases: a pending regular session dated today is deleted if no longer produced (R5 date >= today)
+- [x] CHK034 Are the exam-period cases where some period dates already hold attended, absent, or cancelled sessions covered, and is removing one holiday date (period shortened) covered? [Edge Case, Spec §US7 scenarios 3–4, FR-006a] — Edge Cases (attended/absent/cancelled in period kept); US7 scenarios 3-4; FR-006a
 
 ## Dependencies & Assumptions
 
-- [ ] CHK035 Is the assumption documented that entering an exam period requires passing the term's full holiday list to set-holidays (which replaces the set), so existing holidays are not lost? [Assumption, Spec §FR-006a, Assumptions]
-- [ ] CHK036 Is the deferral of R6 trigger wiring to M4 stated so that M2 acceptance does not depend on triggers? [Assumption, Spec §FR-005, Assumptions]
-- [ ] CHK037 Is the assumption that a reschedule makeup may belong to a different course than the original acknowledged as not adding any check? [Assumption, Spec §Assumptions]
-- [ ] CHK038 Are the M1 dependencies M2 relies on (holiday storage, settings `upcoming_window_days`, assessment storage, archive flag) listed as already delivered? [Dependency, Spec §Key Entities]
+- [x] CHK035 Is the assumption documented that entering an exam period requires passing the term's full holiday list to set-holidays (which replaces the set), so existing holidays are not lost? [Assumption, Spec §FR-006a, Assumptions] — GAP (naive): Assumptions say the caller 'passes every date of the period' but not that set-holidays replaces the whole set (M1 doc comment), so existing holidays must be re-passed. Recommend one added assumption sentence
+- [x] CHK036 Is the deferral of R6 trigger wiring to M4 stated so that M2 acceptance does not depend on triggers? [Assumption, Spec §FR-005, Assumptions] — FR-005; Assumptions (R6 triggers are M4)
+- [x] CHK037 Is the assumption that a reschedule makeup may belong to a different course than the original acknowledged as not adding any check? [Assumption, Spec §Assumptions] — Assumptions (no course-match check on reschedule); research R-D4 'no extra course check'
+- [x] CHK038 Are the M1 dependencies M2 relies on (holiday storage, settings `upcoming_window_days`, assessment storage, archive flag) listed as already delivered? [Dependency, Spec §Key Entities] — Key Entities: Holiday, Slot, Term, Course, Assessment, Settings 'from M1'; Assumptions (upcoming window from M1); US6 (R3 storage shipped in M1)
 
 ## Notes
 
