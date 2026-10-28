@@ -34,6 +34,11 @@ pub fn refresh(app: &App) {
 fn fill(state: &DashboardState<'_>, view: &DashboardView) -> Result<(), String> {
     state.set_banner(bridge::strings(&view.banner));
     state.set_today(bridge::rows(&view.today, bridge::session_row)?);
+    // R16, R17: hide Next class when that session is already in Today's classes.
+    state.set_show_next(viewmodel::show_next_card(
+        view.next_class.as_ref(),
+        &view.today,
+    ));
     // R17: no next class hides the row and shows the empty state.
     match &view.next_class {
         Some(row) => {

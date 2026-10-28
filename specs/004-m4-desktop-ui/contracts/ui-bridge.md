@@ -57,7 +57,10 @@ Each page file exports `<Name>Page` and `global <Name>State`. Every page global 
 ### DashboardState (`ui/dashboard.slint`, `src/pages/dashboard.rs`)
 
 - In: `banner: [string]`, `today: [SessionRow]`, `has-next: bool`, `next-class: SessionRow`,
-  `upcoming: [AssessmentRow]`, `overdue: [AssessmentRow]`, `awaiting: [SessionRow]`.
+  `show-next: bool` (T028: false when the next class is already in `today`,
+  `viewmodel::show_next_card`), `upcoming: [AssessmentRow]`, `overdue: [AssessmentRow]`,
+  `awaiting: [SessionRow]`. Section order (T028): banner, awaiting, today, next class, overdue,
+  upcoming.
 - Callbacks: `set-status(int, StatusAction)` (awaiting rows: Attended / Absent disabled unless
   `can-mark`; Cancelled always enabled).
 - Rust: `refresh` calls `dashboard(now)` → `dashboard_view`; `set-status` calls

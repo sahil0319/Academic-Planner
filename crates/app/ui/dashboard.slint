@@ -22,6 +22,8 @@ export global DashboardState {
     // R17: false when there is no next class.
     in property <bool> has-next;
     in property <SessionRow> next-class;
+    // R17: false when the next class is already listed in Today's classes; hides the card.
+    in property <bool> show-next: true;
     // R18: incomplete assessments due within the upcoming window.
     in property <[AssessmentRow]> upcoming;
     // R19: incomplete assessments past due.
@@ -100,6 +102,8 @@ component AssessmentLine inherits ListRow {
     }
 }
 
+// Section order (T028 critique): banner, the action list (awaiting attendance), today, next class,
+// overdue, then upcoming.
 export component DashboardPage inherits VerticalLayout {
     spacing: Theme.space-xl;
     alignment: start;
@@ -120,54 +124,6 @@ export component DashboardPage inherits VerticalLayout {
     // R14: hidden when no course is below target.
     if DashboardState.banner.length > 0: Banner {
         lines: DashboardState.banner;
-    }
-
-    SectionCard {
-        title: "Today's classes";
-        // Rows sit flush, separated only by their own divider (DESIGN.md list row).
-        if DashboardState.today.length > 0: VerticalLayout {
-            for row in DashboardState.today: SessionLine {
-                item: row;
-            }
-        }
-        if DashboardState.today.length == 0: EmptyState {
-            text: "No classes today.";
-        }
-    }
-
-    SectionCard {
-        title: "Next class";
-        if DashboardState.has-next: SessionLine {
-            item: DashboardState.next-class;
-            show-date: true;
-        }
-        if !DashboardState.has-next: EmptyState {
-            text: "No upcoming classes.";
-        }
-    }
-
-    SectionCard {
-        title: "Upcoming";
-        if DashboardState.upcoming.length > 0: VerticalLayout {
-            for row in DashboardState.upcoming: AssessmentLine {
-                item: row;
-            }
-        }
-        if DashboardState.upcoming.length == 0: EmptyState {
-            text: "No assessments due soon.";
-        }
-    }
-
-    SectionCard {
-        title: "Overdue";
-        if DashboardState.overdue.length > 0: VerticalLayout {
-            for row in DashboardState.overdue: AssessmentLine {
-                item: row;
-            }
-        }
-        if DashboardState.overdue.length == 0: EmptyState {
-            text: "No overdue assessments.";
-        }
     }
 
     SectionCard {
@@ -222,6 +178,55 @@ export component DashboardPage inherits VerticalLayout {
         }
         if DashboardState.awaiting.length == 0: EmptyState {
             text: "Nothing awaiting attendance.";
+        }
+    }
+
+    SectionCard {
+        title: "Today's classes";
+        // Rows sit flush, separated only by their own divider (DESIGN.md list row).
+        if DashboardState.today.length > 0: VerticalLayout {
+            for row in DashboardState.today: SessionLine {
+                item: row;
+            }
+        }
+        if DashboardState.today.length == 0: EmptyState {
+            text: "No classes today.";
+        }
+    }
+
+    // R17: hidden when the next class is already in Today's classes (viewmodel::show_next_card).
+    if DashboardState.show-next: SectionCard {
+        title: "Next class";
+        if DashboardState.has-next: SessionLine {
+            item: DashboardState.next-class;
+            show-date: true;
+        }
+        if !DashboardState.has-next: EmptyState {
+            text: "No upcoming classes.";
+        }
+    }
+
+    SectionCard {
+        title: "Overdue";
+        if DashboardState.overdue.length > 0: VerticalLayout {
+            for row in DashboardState.overdue: AssessmentLine {
+                item: row;
+            }
+        }
+        if DashboardState.overdue.length == 0: EmptyState {
+            text: "No overdue assessments.";
+        }
+    }
+
+    SectionCard {
+        title: "Upcoming";
+        if DashboardState.upcoming.length > 0: VerticalLayout {
+            for row in DashboardState.upcoming: AssessmentLine {
+                item: row;
+            }
+        }
+        if DashboardState.upcoming.length == 0: EmptyState {
+            text: "No assessments due soon.";
         }
     }
 }

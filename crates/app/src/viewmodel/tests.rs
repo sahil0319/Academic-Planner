@@ -1152,6 +1152,35 @@ fn dashboard_view_empty_has_no_banner() {
     assert!(got.today.is_empty());
 }
 
+/// R16, R17 (T028): the Next class card is hidden when that session is already in Today's
+/// classes.
+#[test]
+fn show_next_card_hides_session_already_in_today() {
+    let today = vec![
+        session_row(&pending_view(1, d(2026, 10, 29))),
+        session_row(&pending_view(2, d(2026, 10, 29))),
+    ];
+    let next = session_row(&pending_view(2, d(2026, 10, 29)));
+    assert!(!show_next_card(Some(&next), &today));
+}
+
+/// R17 (T028): a next class on a later day keeps the card.
+#[test]
+fn show_next_card_keeps_session_not_in_today() {
+    let today = vec![session_row(&pending_view(1, d(2026, 10, 29)))];
+    let next = session_row(&pending_view(3, d(2026, 10, 30)));
+    assert!(show_next_card(Some(&next), &today));
+    assert!(show_next_card(Some(&next), &[]));
+}
+
+/// R17 (T028): with no next class the card stays to show its empty state.
+#[test]
+fn show_next_card_without_next_class_shows_empty_state() {
+    let today = vec![session_row(&pending_view(1, d(2026, 10, 29)))];
+    assert!(show_next_card(None, &today));
+    assert!(show_next_card(None, &[]));
+}
+
 // ---- Errors, files, timer ----
 
 /// R2: validation messages are capitalized.

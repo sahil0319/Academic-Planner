@@ -815,6 +815,16 @@ pub fn dashboard_view(d: &Dashboard) -> DashboardView {
     }
 }
 
+/// R16, R17 (T028 critique): false when the next class is already listed in Today's classes,
+/// so the dashboard does not show the same session twice. With no next class the card stays
+/// visible to show its empty state.
+pub fn show_next_card(next: Option<&SessionRow>, today: &[SessionRow]) -> bool {
+    match next {
+        Some(row) => !today.iter().any(|t| t.id == row.id),
+        None => true,
+    }
+}
+
 // ---- Errors, files, timer ----
 
 /// R2, R25: user-facing error text; `Validation` messages are capitalized.
