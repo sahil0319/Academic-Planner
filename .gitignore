@@ -5,3 +5,4 @@
 .DS_Store
 *.rs.bk
 .claude/worktrees/
+.claude/skills/impeccable/scripts/bin/
