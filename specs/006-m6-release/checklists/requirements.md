@@ -32,4 +32,4 @@
 ## Notes
 
 - `cargo-packager`, `cargo-about`, the artifact formats, and the CI matrix are fixed by `docs/spec.md` §7; they are inherited constraints, not new implementation choices.
-- Router decisions dated 2026-10-29 (overnight delegation): draft release, tag/version check, default icon, oldest Ubuntu runner for AppImage, README screenshots as a human task if no one is at the screen. Pushing the tag stays with the human.
+- Router decisions dated 2026-10-29 (overnight delegation): draft release, tag/version check, default icon (superseded at planning: cargo-packager has no default icon and AppImage needs one, so a placeholder icon is used; plan research R-6), oldest Ubuntu runner for AppImage, README screenshots as a human task if no one is at the screen. Pushing the tag stays with the human.

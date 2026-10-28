@@ -154,7 +154,9 @@ third-party notices file.
 
 - The first release version is the current workspace version `0.1.0` (tag `v0.1.0`).
 - The release is created as a draft so the maintainer reviews it before publishing.
-- No app icon is specified in `docs/spec.md` or `DESIGN.md`; the packager's default icon is used.
+- No app icon is specified in `docs/spec.md` or `DESIGN.md`. `cargo-packager` has no default icon
+  and its AppImage step requires a square PNG, so a placeholder icon (a plain square in DESIGN.md
+  `primary`) is used until the human supplies one (planner finding 2026-10-29, research R-6).
 - `cargo-packager` and `cargo-about` are installed in CI with pinned versions.
 - Local verification is limited to the host OS (macOS): building the `.dmg` locally proves the
   packager config; Windows and Linux packaging are verified by the tag build.
