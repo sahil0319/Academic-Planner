@@ -267,34 +267,27 @@ export component CoursesPage inherits VerticalLayout {
             height: 10 * Theme.row-height;
             VerticalLayout {
                 alignment: start;
+                // DESIGN.md list row: primary text left, muted metadata next to it.
                 for s in CoursesState.sessions: ListRow {
-                    VerticalLayout {
+                    Body {
+                        text: s.date;
+                        horizontal-stretch: 0;
+                    }
+                    Body {
+                        text: s.weekday;
+                        horizontal-stretch: 0;
+                    }
+                    Body {
+                        text: s.time;
+                        horizontal-stretch: 0;
+                    }
+                    Meta {
+                        text: s.room;
+                        horizontal-stretch: 0;
+                    }
+                    Meta {
+                        text: s.note;
                         horizontal-stretch: 1;
-                        alignment: center;
-                        HorizontalLayout {
-                            spacing: Theme.space-sm;
-                            Body {
-                                text: s.date;
-                                horizontal-stretch: 0;
-                            }
-                            Body {
-                                text: s.weekday;
-                                horizontal-stretch: 0;
-                            }
-                            Body {
-                                text: s.time;
-                            }
-                        }
-                        HorizontalLayout {
-                            spacing: Theme.space-sm;
-                            Meta {
-                                text: s.room;
-                                horizontal-stretch: 0;
-                            }
-                            Meta {
-                                text: s.note;
-                            }
-                        }
                     }
                     VerticalLayout {
                         alignment: center;
