@@ -114,8 +114,8 @@ release time (milestone M6)".
 
 ## Phase 6: Gate and done-when
 
-- [ ] T017 [builder] Run `speckit-converge` against spec.md, plan.md, and tasks.md; append and do any leftover agent work. Needs T005, T010, T011, T012, T015
-- [ ] T018 [builder] Run the gate `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` and paste the summary (FR-006, SC-004). The local `THIRD-PARTY-NOTICES.html` may stay (git ignores it). Do not edit `.claude/state/` (the router does). Needs T017
+- [X] T017 [builder] Run `speckit-converge` against spec.md, plan.md, and tasks.md; append and do any leftover agent work. Needs T005, T010, T011, T012, T015
+- [X] T018 [builder] Run the gate `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` and paste the summary (FR-006, SC-004). The local `THIRD-PARTY-NOTICES.html` may stay (git ignores it). Do not edit `.claude/state/` (the router does). Needs T017
 - [ ] T019 [human] After the router's commits are pushed (`git push origin main`), push the release tag: `git tag v0.1.0 && git push origin v0.1.0`. Watch the "Release" workflow: `prepare`, the three `package` jobs, and `release` must all be green (US1, FR-007, SC-001). Needs T018
 - [ ] T020 [human] Open the draft release for `v0.1.0` and confirm it holds the `.dmg`, the `-setup.exe`, the `.deb`, the `.AppImage`, and `THIRD-PARTY-NOTICES.html` (US1 scenario 2, FR-004, FR-007). Needs T019
 - [ ] T021 [human] Install one artifact on your own OS by following README.md alone (on macOS, including the Gatekeeper steps) and open the app; it shows your data or an empty planner (US2, FR-007, SC-002). If you install on Windows or Linux, also check US2 scenario 2 (Start-menu entry and uninstaller) or 3 (deb installs, AppImage runs after `chmod +x`). Then publish the draft or keep it as a draft. Needs T020
