@@ -211,8 +211,8 @@ impl Planner {
 
     // sessions
     pub fn sync_sessions(&mut self, today: NaiveDate) -> Result<SyncReport>;  // {created, deleted}
-    pub fn sessions_between(&self, from: NaiveDate, to: NaiveDate) -> Result<Vec<SessionView>>;
-    pub fn sessions_for_course(&self, course_id: i64) -> Result<Vec<SessionView>>;
+    pub fn sessions_between(&self, from: NaiveDate, to: NaiveDate, now: NaiveDateTime) -> Result<Vec<SessionView>>;
+    pub fn sessions_for_course(&self, course_id: i64, now: NaiveDateTime) -> Result<Vec<SessionView>>;
     pub fn set_status(&mut self, id: i64, status: Status, now: NaiveDateTime) -> Result<()>;
     pub fn reschedule(&mut self, id: i64, makeup: MakeupInput) -> Result<Session>;
     pub fn add_makeup(&mut self, makeup: MakeupInput) -> Result<Session>;
@@ -242,7 +242,7 @@ impl Planner {
 }
 ```
 
-`SessionView` includes course code/name, `display_status` ("Pending" / "Attended" / "Absent" / "Cancelled" / "Rescheduled → 2026-01-15"), and `is_past`.
+`SessionView` includes course code/name, `display_status` ("Pending" / "Attended" / "Absent" / "Cancelled" / "Rescheduled → 2026-01-15"), and `is_past` (`now >= session start`, i.e. attendance may be marked per R12; `now` is passed in because core never reads the clock).
 
 ## 6. UI (Slint), minimal
 

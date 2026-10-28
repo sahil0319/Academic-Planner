@@ -1,7 +1,8 @@
 {
   "milestone": "M1",
-  "phase": "plan",
+  "phase": "tasks",
   "tasks": {
-    "specify": "done"
+    "specify": "done",
+    "plan": "done"
   }
 }
