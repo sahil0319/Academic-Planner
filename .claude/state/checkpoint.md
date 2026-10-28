@@ -1,11 +1,12 @@
 # Checkpoint
-- Milestone: M0 (code done; awaiting human approval of DESIGN.md before M1)
-- Last green gate: 9d85aed (fmt, clippy -D warnings, test all pass locally)
-- CI: workflow written; not yet run (no GitHub remote)
+- Milestone: M0 (all checks green; awaiting human approval of DESIGN.md before M1)
+- Last green gate: 0f5b6bd (local gate + GitHub CI run 40720326799 success)
+- Window verified: macOS reports window "Academic Planner" for the app process.
 - Next: after approval, M1 via /speckit-specify "Milestone M1 from docs/spec.md: rules R1-R3, R24-R25, tests T20, T24, T26. Do not add requirements."
 - Notes:
+  - DESIGN.md: warm cream/terracotta theme, Georgia headings, system-font body (user asked for a Claude-like light theme).
   - Local rustc 1.90; Slint pinned to 1.16 by resolver 3 + rust-version 1.90 (Slint 1.18 needs 1.92).
   - Package names: planner-core (lib planner_core), app (bin academic-planner).
   - clippy.toml clock ban is workspace-wide; app allows it at its one clock call site (M4/M5).
-  - frontend-design / impeccable skills not installed; DESIGN.md hand-drafted.
+  - Screenshots need Screen Recording permission for VS Code (needed for M4 impeccable review).
 - Open questions: none
