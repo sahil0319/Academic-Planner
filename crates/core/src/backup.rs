@@ -1,4 +1,4 @@
-//! JSON backup and restore (M3) and reminders (M5).
+//! JSON backup and restore (M3).
 
 use std::collections::BTreeMap;
 
@@ -9,7 +9,6 @@ use serde_json::Value;
 
 use crate::db::{fmt_datetime, parse_date, parse_datetime, parse_time, Planner, SCHEMA_VERSION};
 use crate::error::{Error, Result};
-use crate::model::Reminder;
 
 /// R21: value of the `format` key of every backup document.
 const BACKUP_FORMAT: &str = "academic-planner-backup";
@@ -437,12 +436,6 @@ impl Planner {
         let tx = self.conn.transaction()?;
         apply(&tx, &backup).map_err(apply_error)?;
         tx.commit().map_err(apply_error)
-    }
-
-    /// Reminders due at `now`, logged in `reminder_log` so none is returned twice.
-    pub fn due_reminders(&mut self, now: NaiveDateTime) -> Result<Vec<Reminder>> {
-        let _ = now;
-        todo!("M5: reminders")
     }
 }
 

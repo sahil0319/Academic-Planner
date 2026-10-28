@@ -8,6 +8,7 @@ mod db;
 mod error;
 mod export;
 mod model;
+mod reminders;
 mod schedule;
 
 pub use db::{default_db_path, resolve_db_path, Planner, DB_ENV_VAR, DB_FILE_NAME, SCHEMA_VERSION};
