@@ -251,10 +251,10 @@ impl Planner {
 One window. Left nav with 5 pages. Forms are inline panels or dialogs. Every list has an empty state.
 
 1. **Dashboard:** sections for R16–R20. Each awaiting-attendance row has Attended / Absent / Cancelled buttons. A banner lists courses that are below target.
-2. **Timetable:** a week view (prev/next/today buttons) showing that week's sessions grouped by weekday. Clicking a session offers: mark status, cancel, reschedule (date + time + room), note. A second tab, "Rules", lists slots with add/edit (asks for an effective date)/end actions. **A grouped list is acceptable; a visual time grid is out of scope.**
-3. **Courses:** a list (with a show-archived toggle) and create/edit/archive. Course detail shows the attendance summary and the full session list with status buttons.
+2. **Timetable:** a week view (prev/next/today buttons) showing that week's sessions grouped by weekday. Clicking a session offers: mark status, cancel, reschedule (date + time + room + optional note; the note is stored on the makeup session), and shows any stored note read-only. A second tab, "Rules", lists slots with add/edit (asks for an effective date)/end actions. **A grouped list is acceptable; a visual time grid is out of scope.**
+3. **Courses:** a list (with a show-archived toggle) and create/edit/archive. Course detail shows the attendance summary, the full session list with status buttons, and an "Add makeup class" form (date, start, end, room, note) for R10.
 4. **Assessments:** a list with filters (upcoming / overdue / completed / all), create/edit/delete, and a complete checkbox.
-5. **Settings:** term (name, start, end), holidays (add/remove date + label), reminder minutes, upcoming window, notifications on/off, Backup (save JSON), Restore (open JSON, with a confirm dialog), Export CSV, and the DB file location shown as text.
+5. **Settings:** term (name, start, end), holidays (add a single date or an inclusive date range with one label, expanded into one holiday per day; remove per day), reminder minutes, upcoming window, notifications on/off, Backup (save JSON), Restore (open JSON, with a confirm dialog), Export CSV, and the DB file location shown as text.
 
 Date/time inputs: text fields validated as `YYYY-MM-DD` / `HH:MM` with inline errors. Date pickers are out of scope.
 
