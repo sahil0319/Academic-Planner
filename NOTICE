@@ -12,4 +12,7 @@ License version 3 (GPL-3.0-only), one of Slint's three license options
 LicenseRef-Slint-Software-3.0). Distributed builds are therefore licensed under
 GPL-3.0. No additional attribution is required under the GPL option.
 
-Third-party dependency notices are generated at release time (milestone M6).
+Notices for the third-party Rust crates compiled into this program are in
+THIRD-PARTY-NOTICES.html. It is generated from Cargo.lock by cargo-about (configuration:
+about.toml, about.hbs), is bundled in every installer, and is attached to every GitHub release.
+To generate it locally: cargo about generate --workspace --locked -o THIRD-PARTY-NOTICES.html about.hbs
