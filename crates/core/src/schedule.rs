@@ -1,11 +1,13 @@
 //! Session generation, slot changes, exceptions, and attendance marking (M2).
 
-use chrono::{NaiveDate, NaiveDateTime};
+use std::collections::HashSet;
+
+use chrono::{Datelike, Days, NaiveDate, NaiveDateTime, Weekday};
 use rusqlite::{params, Connection, Params};
 
 use crate::db::{
-    fmt_date, fmt_time, load_course, load_session, session_from_row, session_start, to_minute,
-    Planner, SESSION_COLS,
+    active_term_id, col_date, fmt_date, fmt_time, load_course, load_session, load_term,
+    session_from_row, session_start, slot_from_row, to_minute, Planner, SESSION_COLS, SLOT_COLS,
 };
 use crate::error::{Error, Result};
 use crate::model::*;
@@ -33,11 +35,15 @@ impl Planner {
         todo!("M2: R7")
     }
 
-    /// R4, R5: idempotently creates the regular sessions the slots produce and deletes
-    /// future pending ones they no longer produce.
+    /// R4, R5, R6: idempotently creates the regular sessions the slots produce and deletes
+    /// future pending ones they no longer produce. R6: the app calls this on start, and slot
+    /// edits call it internally. Runs in one transaction; with no active term it changes
+    /// nothing.
     pub fn sync_sessions(&mut self, today: NaiveDate) -> Result<SyncReport> {
-        let _ = today;
-        todo!("M2: R4, R5")
+        let tx = self.conn.transaction()?;
+        let report = sync_in(&tx, today)?;
+        tx.commit()?;
+        Ok(report)
     }
 
     /// R3, §5: sessions dated `from..=to` of non-archived active-term courses, ordered by
@@ -100,6 +106,95 @@ impl Planner {
         tx.commit()?;
         Ok(session)
     }
+}
+
+/// R3, R4, R5: the sync body, run inside the caller's transaction (research R-D1).
+///
+/// R3, R4: for each slot of each non-archived course in the active term, every date in
+/// `[max(term.start, valid_from), min(term.end, valid_to ?? term.end)]` (both inclusive)
+/// with the slot's weekday that is not a holiday gets one `regular`, pending session; an
+/// existing row for that `(slot, date)` is left untouched, whatever its status (R8). The
+/// session copies start, end, and room (slot room, else course room) at creation time.
+///
+/// R5: sync never deletes past or non-pending sessions; it deletes a session only when it
+/// is regular, pending, dated on or after `today`, and no longer produced by R4.
+/// FR-006: sessions of archived courses are never created or deleted.
+pub(crate) fn sync_in(conn: &Connection, today: NaiveDate) -> Result<SyncReport> {
+    let Some(term_id) = active_term_id(conn)? else {
+        return Ok(SyncReport::default());
+    };
+    let term = load_term(conn, term_id)?;
+    let holidays: HashSet<NaiveDate> = term.holidays.iter().map(|h| h.date).collect();
+
+    let slots: Vec<(Slot, Option<String>)> = {
+        let mut stmt = conn.prepare(&format!(
+            "SELECT {SLOT_COLS}, coalesce(s.room, c.room) FROM slot s
+             JOIN course c ON c.id = s.course_id
+             WHERE c.term_id = ?1 AND c.archived = 0
+             ORDER BY s.id"
+        ))?;
+        let rows = stmt
+            .query_map([term_id], |r| Ok((slot_from_row(r)?, r.get(8)?)))?
+            .collect::<rusqlite::Result<_>>()?;
+        rows
+    };
+
+    let mut report = SyncReport::default();
+    let mut expected: HashSet<(i64, NaiveDate)> = HashSet::new();
+    let mut insert = conn.prepare(
+        "INSERT OR IGNORE INTO session (course_id, slot_id, kind, date, start_time, end_time,
+             room, status)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+    )?;
+    for (slot, room) in &slots {
+        let first = term.start_date.max(slot.valid_from);
+        let last = term.end_date.min(slot.valid_to.unwrap_or(term.end_date));
+        let mut day = first_weekday_on_or_after(first, slot.weekday);
+        while let Some(date) = day.filter(|d| *d <= last) {
+            if !holidays.contains(&date) {
+                expected.insert((slot.id, date));
+                report.created += insert.execute(params![
+                    slot.course_id,
+                    slot.id,
+                    SessionKind::Regular.as_db(),
+                    fmt_date(date),
+                    fmt_time(slot.start_time),
+                    fmt_time(slot.end_time),
+                    room,
+                    Status::Pending.as_db()
+                ])?;
+            }
+            day = date.checked_add_days(Days::new(7));
+        }
+    }
+
+    let candidates: Vec<(i64, i64, NaiveDate)> = {
+        let mut stmt = conn.prepare(
+            "SELECT s.id, s.slot_id, s.date FROM session s
+             JOIN course c ON c.id = s.course_id
+             WHERE s.kind = 'regular' AND s.status = 'pending' AND s.date >= ?1
+               AND c.term_id = ?2 AND c.archived = 0",
+        )?;
+        let rows = stmt
+            .query_map(params![fmt_date(today), term_id], |r| {
+                Ok((r.get(0)?, r.get(1)?, col_date(r, 2)?))
+            })?
+            .collect::<rusqlite::Result<_>>()?;
+        rows
+    };
+    let mut delete = conn.prepare("DELETE FROM session WHERE id = ?1")?;
+    for (id, slot_id, date) in candidates {
+        if !expected.contains(&(slot_id, date)) {
+            report.deleted += delete.execute([id])?;
+        }
+    }
+    Ok(report)
+}
+
+/// The first date on or after `from` that falls on `weekday`; `None` past the calendar end.
+fn first_weekday_on_or_after(from: NaiveDate, weekday: Weekday) -> Option<NaiveDate> {
+    let ahead = (7 + weekday.num_days_from_monday() - from.weekday().num_days_from_monday()) % 7;
+    from.checked_add_days(Days::new(u64::from(ahead)))
 }
 
 /// §3, §5, FR-018: the status text shown for a session. A cancelled session replaced by a
@@ -189,6 +284,21 @@ mod tests {
 
     fn day() -> NaiveDate {
         NaiveDate::from_ymd_opt(2026, 1, 13).unwrap()
+    }
+
+    #[test]
+    fn first_weekday_on_or_after_wraps_the_week() {
+        // 2026-01-13 is a Tuesday.
+        let tue = day();
+        assert_eq!(first_weekday_on_or_after(tue, Weekday::Tue), Some(tue));
+        assert_eq!(
+            first_weekday_on_or_after(tue, Weekday::Wed),
+            NaiveDate::from_ymd_opt(2026, 1, 14)
+        );
+        assert_eq!(
+            first_weekday_on_or_after(tue, Weekday::Mon),
+            NaiveDate::from_ymd_opt(2026, 1, 19)
+        );
     }
 
     #[test]
