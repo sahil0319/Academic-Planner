@@ -1,13 +1,14 @@
 # Checkpoint
 
-- Milestone: M2 done (specs/002-m2-sessions-attendance, T001–T050). Next milestone: M3
-- Last green gate: 7c9f2c3 (fmt ok, clippy -D warnings ok, cargo test --workspace: 95 tests pass incl. T01–T19, T21–T23, T27–T29, m2_exam_periods, M1 T20/T24/T26).
-- Next: /speckit-specify for Milestone M3 from docs/spec.md (backup/restore R21–R22, CSV export R23). Do not add requirements.
-- M2 notes:
-  - sync_in(conn, today) in schedule.rs is shared by sync_sessions, change_slot (today = effective_from), end_slot (today = last_date + 1).
-  - query_views + ACTIVE_SCOPE in schedule.rs are reused by dashboard.rs.
-  - pct uses f64::round (ties away from zero, router clarification R-D9).
-  - Remaining stubs: backup.rs (M3 R21/R22, M5 reminders), export.rs (M3 R23).
+- Milestone: M3 done (specs/003-m3-backup-export, T001–T013, converge clean). Next milestone: M4
+- Last green gate: 2dfaf5c (fmt ok, clippy -D warnings ok, cargo test --workspace: 124 tests pass incl. T25, T30, r21_/r22_/r23_ backup and CSV tests).
+- Next: M4 per docs/spec.md §7: ui/theme.slint from DESIGN.md first, then full UI (§6); design skills allowed at M4 start/end only (§12.0).
+- M4 carry-over (human decision 2026-10-29, M3 FR-014): the R22 pre-restore copy of the DB file to {data_dir}/backups/pre-restore-{YYYYMMDD-HHMM}.sqlite is built in the app restore flow, before calling restore_json.
+- M4 carry-over (memory): exam periods are entered as holidays; raise a date-range holiday input at M4.
+- M3 notes:
+  - Backup JSON: flags as booleans, nullable keys must be present (null ok), exported_at = YYYY-MM-DDTHH:MM.
+  - restore_json validates the whole document before writing; constraint violations -> Error::Validation; reminder_log untouched.
+  - CSV: explicit CRLF terminator (csv crate default is LF); completed = true/false.
+  - Remaining stub: due_reminders (M5).
 - Notes: rustc 1.90; Slint 1.16; rusqlite 0.41; packages planner-core / app.
-- Decision (human, 2026-10-29): R5 sync never deletes a session a makeup references (FR-003, research R-D13; test r5_sync_keeps_session_referenced_by_makeup).
 - Open questions: none
