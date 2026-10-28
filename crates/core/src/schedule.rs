@@ -6,8 +6,9 @@ use chrono::{Datelike, Days, NaiveDate, NaiveDateTime, Weekday};
 use rusqlite::{params, Connection, Params};
 
 use crate::db::{
-    active_term_id, col_date, fmt_date, fmt_time, load_course, load_session, load_term,
-    session_from_row, session_start, slot_from_row, to_minute, Planner, SESSION_COLS, SLOT_COLS,
+    active_term_id, col_date, fmt_date, fmt_time, insert_slot, load_course, load_session,
+    load_slot, load_term, session_from_row, session_start, slot_from_row, to_minute, Planner,
+    SESSION_COLS, SLOT_COLS,
 };
 use crate::error::{Error, Result};
 use crate::model::*;
@@ -18,21 +19,55 @@ pub(crate) const ACTIVE_SCOPE: &str =
 
 impl Planner {
     /// R7: ends the old slot the day before `effective_from`, inserts the changed slot from
-    /// `effective_from`, then syncs. Past sessions keep their stored values.
+    /// `effective_from`, then syncs with today = `effective_from`, all in one transaction.
+    /// Past sessions keep their stored values (sessions are snapshots). `input.valid_from`
+    /// is ignored: the new slot always starts at `effective_from` (research R-D4).
     pub fn change_slot(
         &mut self,
         id: i64,
         input: SlotInput,
         effective_from: NaiveDate,
     ) -> Result<Slot> {
-        let _ = (id, input, effective_from);
-        todo!("M2: R7")
+        input.validate()?;
+        let tx = self.conn.transaction()?;
+        load_slot(&tx, id)?;
+        let old_last = effective_from.pred_opt().ok_or_else(|| {
+            Error::Validation(format!(
+                "effective date {effective_from} has no previous day"
+            ))
+        })?;
+        tx.execute(
+            "UPDATE slot SET valid_to = ?1 WHERE id = ?2",
+            params![fmt_date(old_last), id],
+        )?;
+        let new_slot = insert_slot(
+            &tx,
+            &SlotInput {
+                valid_from: effective_from,
+                ..input
+            },
+        )?;
+        sync_in(&tx, effective_from)?;
+        tx.commit()?;
+        Ok(new_slot)
     }
 
-    /// R7: makes `last_date` the slot's last valid date, then syncs.
+    /// R7, FR-008: makes `last_date` the slot's last valid date, then syncs with today =
+    /// the day after `last_date`, in one transaction (research R-D5). Later pending regular
+    /// sessions are removed by R5; sessions on or before `last_date` are kept.
     pub fn end_slot(&mut self, id: i64, last_date: NaiveDate) -> Result<()> {
-        let _ = (id, last_date);
-        todo!("M2: R7")
+        let tx = self.conn.transaction()?;
+        load_slot(&tx, id)?;
+        let next_day = last_date.succ_opt().ok_or_else(|| {
+            Error::Validation(format!("last date {last_date} has no following day"))
+        })?;
+        tx.execute(
+            "UPDATE slot SET valid_to = ?1 WHERE id = ?2",
+            params![fmt_date(last_date), id],
+        )?;
+        sync_in(&tx, next_day)?;
+        tx.commit()?;
+        Ok(())
     }
 
     /// R4, R5, R6: idempotently creates the regular sessions the slots produce and deletes

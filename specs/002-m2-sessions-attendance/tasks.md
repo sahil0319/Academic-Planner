@@ -95,8 +95,8 @@ frozen (crates/core/tests/api_surface.rs).
 
 ### Implementation
 
-- [ ] T018 [US2] Implement `change_slot(id, input, effective_from)` in crates/core/src/schedule.rs (research R-D4): `input.validate()?` (R2, as `add_slot`); load the old slot (`NotFound { entity: "slot" }`); `effective_from.pred_opt()` missing → `Error::Validation`; in one transaction set old `valid_to = effective_from - 1 day`, insert the new slot from `input` with `valid_from = effective_from` (input.valid_from ignored), run `sync_in(&tx, effective_from)`, commit, return the new `Slot`. Doc comment `/// R7: …`
-- [ ] T019 [US2] Implement `end_slot(id, last_date)` in crates/core/src/schedule.rs (research R-D5): `NotFound { entity: "slot" }` if missing; in one transaction set `valid_to = last_date`, run `sync_in(&tx, last_date + 1 day)`, commit. Doc comment `/// R7, FR-008: …`
+- [X] T018 [US2] Implement `change_slot(id, input, effective_from)` in crates/core/src/schedule.rs (research R-D4): `input.validate()?` (R2, as `add_slot`); load the old slot (`NotFound { entity: "slot" }`); `effective_from.pred_opt()` missing → `Error::Validation`; in one transaction set old `valid_to = effective_from - 1 day`, insert the new slot from `input` with `valid_from = effective_from` (input.valid_from ignored), run `sync_in(&tx, effective_from)`, commit, return the new `Slot`. Doc comment `/// R7: …`
+- [X] T019 [US2] Implement `end_slot(id, last_date)` in crates/core/src/schedule.rs (research R-D5): `NotFound { entity: "slot" }` if missing; in one transaction set `valid_to = last_date`, run `sync_in(&tx, last_date + 1 day)`, commit. Doc comment `/// R7, FR-008: …`
 
 **Checkpoint**: m2_slot_changes and m2_sync pass. Commit "M2: change_slot and end_slot R7".
 
