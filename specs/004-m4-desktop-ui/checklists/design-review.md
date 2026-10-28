@@ -67,3 +67,18 @@ Line numbers refer to the files after the fixes in this review.
 | 18 | Low | timetable.slint:146, settings.slint:269 | Inline panels (session panel, restore confirm) use the oat fill, which DESIGN.md names for nav and list header rows only. Readable and distinct from cards. | No: left. |
 | 19 | Low | assessments.slint:181 vs others | Page messages use body-md on Dashboard / Assessments and body-sm on Timetable / Courses. | No: left (folds into finding 8). |
 | 20 | Low | all pages | Text clipping at 1100 × 720: estimated content width is about 830px; the widest row (course detail session row with four actions) needs about 720px, so nothing clips. Needs confirmation by screenshot. | No: left for T028 (estimate only). |
+
+## T028 critique follow-ups (P2, not fixed per §12.3)
+
+Source: `.impeccable/critique/2026-10-28T21-17-59Z__crates-app-ui.md` (score 22/40). The three P1
+items (dashboard order, keyboard focus and accessibility of custom controls, empty-state copy) are
+fixed. The P2 items below stay open; §12.3 fixes only high-severity items.
+
+- [ ] P2: Timetable week view uses one card per weekday (timetable.slint, week tab), which breaks
+  the "full week fits" rule. Suggested: one card with oat weekday header rows, a today marker, and
+  whole-row tap targets.
+- [ ] P2: Off-system states. Nav item and filter tab hover use the active `surface-selected` fill,
+  so a hovered item looks active (components.slint `NavItem`, assessments.slint `FilterTab`; see
+  finding 15). Standard Fluent `Switch` / `CheckBox` draw a blue accent (settings.slint Switch,
+  assessments.slint and courses.slint CheckBox; see finding 9). Suggested: hover `Theme.surface`,
+  custom terracotta toggle and check components.
