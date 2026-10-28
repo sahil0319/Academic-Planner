@@ -1,10 +1,102 @@
-// Dashboard page (docs/spec.md §6). Stub from T011; the page task fills it in.
+// Dashboard page (docs/spec.md §6, contracts/ui-bridge.md "DashboardState").
+// R14 banner, R16-R20 sections. Every string is formatted in src/viewmodel.rs; bindings only.
 import { Theme } from "theme.slint";
-import { PageTitle, EmptyState } from "components.slint";
+import { SessionRow, AssessmentRow, StatusAction } from "types.slint";
+import {
+    PageTitle,
+    EmptyState,
+    Banner,
+    SectionCard,
+    ListRow,
+    StatusChip,
+    SecondaryButton,
+} from "components.slint";
 
 export global DashboardState {
     // Row-action errors and success notes.
     in property <string> message;
+    // R14: one line per course below its target; empty hides the banner.
+    in property <[string]> banner;
+    // R16: today's sessions, by start time.
+    in property <[SessionRow]> today;
+    // R17: false when there is no next class.
+    in property <bool> has-next;
+    in property <SessionRow> next-class;
+    // R18: incomplete assessments due within the upcoming window.
+    in property <[AssessmentRow]> upcoming;
+    // R19: incomplete assessments past due.
+    in property <[AssessmentRow]> overdue;
+    // R20: pending sessions that have ended, oldest first.
+    in property <[SessionRow]> awaiting;
+    // R11, R12: Rust calls set_status(id, status, now), then refreshes every page.
+    callback set-status(int, StatusAction);
+}
+
+// Primary row text.
+component RowText inherits Text {
+    vertical-alignment: center;
+    color: Theme.on-surface;
+    font-family: Theme.font-body;
+    font-size: Theme.body-md-size;
+    font-weight: Theme.body-md-weight;
+}
+
+// Muted row metadata, e.g. time or room.
+component RowMeta inherits Text {
+    vertical-alignment: center;
+    color: Theme.on-surface-muted;
+    font-family: Theme.font-body;
+    font-size: Theme.body-md-size;
+    font-weight: Theme.body-md-weight;
+}
+
+// Session row: time, course, room, and the status chip right-aligned.
+component SessionLine inherits ListRow {
+    in property <SessionRow> item;
+    in property <bool> show-date;
+
+    if root.show-date: RowMeta {
+        text: root.item.weekday;
+    }
+    if root.show-date: RowMeta {
+        text: root.item.date;
+    }
+    RowMeta {
+        text: root.item.time;
+    }
+    RowText {
+        text: root.item.course;
+        horizontal-stretch: 1;
+    }
+    RowMeta {
+        text: root.item.room;
+    }
+    VerticalLayout {
+        alignment: center;
+        StatusChip {
+            chip: root.item.chip;
+            text: root.item.status-label;
+        }
+    }
+}
+
+// Assessment row: due date-time, course, kind, and title.
+component AssessmentLine inherits ListRow {
+    in property <AssessmentRow> item;
+
+    RowMeta {
+        text: root.item.due;
+    }
+    RowText {
+        text: root.item.course-code;
+    }
+    RowMeta {
+        text: root.item.kind;
+    }
+    RowText {
+        text: root.item.title;
+        horizontal-stretch: 1;
+    }
 }
 
 export component DashboardPage inherits VerticalLayout {
@@ -15,7 +107,111 @@ export component DashboardPage inherits VerticalLayout {
         text: "Dashboard";
     }
 
-    EmptyState {
-        text: "No classes today.";
+    if DashboardState.message != "": Text {
+        text: DashboardState.message;
+        color: Theme.error;
+        wrap: word-wrap;
+        font-family: Theme.font-body;
+        font-size: Theme.body-md-size;
+        font-weight: Theme.body-md-weight;
+    }
+
+    // R14: hidden when no course is below target.
+    if DashboardState.banner.length > 0: Banner {
+        lines: DashboardState.banner;
+    }
+
+    SectionCard {
+        title: "Today's classes";
+        for row in DashboardState.today: SessionLine {
+            item: row;
+        }
+        if DashboardState.today.length == 0: EmptyState {
+            text: "No classes today.";
+        }
+    }
+
+    SectionCard {
+        title: "Next class";
+        if DashboardState.has-next: SessionLine {
+            item: DashboardState.next-class;
+            show-date: true;
+        }
+        if !DashboardState.has-next: EmptyState {
+            text: "No upcoming classes.";
+        }
+    }
+
+    SectionCard {
+        title: "Upcoming";
+        for row in DashboardState.upcoming: AssessmentLine {
+            item: row;
+        }
+        if DashboardState.upcoming.length == 0: EmptyState {
+            text: "No assessments due soon.";
+        }
+    }
+
+    SectionCard {
+        title: "Overdue";
+        for row in DashboardState.overdue: AssessmentLine {
+            item: row;
+        }
+        if DashboardState.overdue.length == 0: EmptyState {
+            text: "No overdue assessments.";
+        }
+    }
+
+    SectionCard {
+        title: "Awaiting attendance";
+        for row in DashboardState.awaiting: ListRow {
+            RowMeta {
+                text: row.weekday;
+            }
+            RowMeta {
+                text: row.date;
+            }
+            RowMeta {
+                text: row.time;
+            }
+            RowText {
+                text: row.course;
+                horizontal-stretch: 1;
+            }
+            VerticalLayout {
+                alignment: center;
+                SecondaryButton {
+                    text: "Attended";
+                    // R12: attendance only once the session has started.
+                    enabled: row.can-mark;
+                    clicked => {
+                        DashboardState.set-status(row.id, StatusAction.attended);
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                SecondaryButton {
+                    text: "Absent";
+                    enabled: row.can-mark;
+                    clicked => {
+                        DashboardState.set-status(row.id, StatusAction.absent);
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                SecondaryButton {
+                    // R12: cancelling is allowed at any time.
+                    text: "Cancelled";
+                    clicked => {
+                        DashboardState.set-status(row.id, StatusAction.cancelled);
+                    }
+                }
+            }
+        }
+        if DashboardState.awaiting.length == 0: EmptyState {
+            text: "Nothing awaiting attendance.";
+        }
     }
 }

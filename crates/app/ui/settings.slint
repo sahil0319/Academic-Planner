@@ -1,10 +1,76 @@
-// Settings page (docs/spec.md §6). Stub from T011; the page task fills it in.
+// Settings page (docs/spec.md §6, contracts/ui-bridge.md "SettingsState"): term, holidays,
+// reminder settings, backup, restore, CSV export, and the database path. Bindings only; every
+// data-derived string comes from Rust (src/pages/settings.rs via src/viewmodel.rs).
+import { Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { PageTitle, EmptyState } from "components.slint";
+import { HolidayRow } from "types.slint";
+import {
+    PageTitle, EmptyState, SectionCard, ListRow, Field, PrimaryButton, SecondaryButton,
+} from "components.slint";
 
 export global SettingsState {
     // Row-action errors and success notes.
     in property <string> message;
+
+    // Term form (R1, R2). `has-term` is true when an active term exists.
+    in property <bool> has-term;
+    in-out property <string> term-name;
+    in-out property <string> term-start;
+    in-out property <string> term-end;
+    in property <string> term-start-error;
+    in property <string> term-end-error;
+    in property <string> term-form-error;
+
+    // Holidays of the active term (human decision §6: one date or an inclusive range).
+    in property <[HolidayRow]> holidays;
+    in-out property <string> hol-start;
+    in-out property <string> hol-end;
+    in-out property <string> hol-label;
+    in property <string> hol-start-error;
+    in property <string> hol-end-error;
+    in property <string> hol-form-error;
+
+    // Settings form (§3 settings).
+    in-out property <string> reminder;
+    in-out property <string> window;
+    in-out property <bool> notifications;
+    in property <string> reminder-error;
+    in property <string> window-error;
+    in property <string> settings-form-error;
+
+    // R24: database file path as text.
+    in property <string> db-path;
+
+    // R22: inline confirm panel shown after a backup file is picked for restore.
+    in property <bool> confirm-restore;
+
+    callback save-term();
+    callback add-holiday();
+    callback remove-holiday(string);
+    callback save-settings();
+    callback backup();
+    callback restore-pick();
+    callback restore-confirm();
+    callback restore-cancel();
+    callback export-csv();
+}
+
+// Form-level error under a form (core R2 errors, no active term).
+component FormError inherits Text {
+    color: Theme.error;
+    wrap: word-wrap;
+    font-family: Theme.font-body;
+    font-size: Theme.body-sm-size;
+    font-weight: Theme.body-sm-weight;
+}
+
+// Body text on a card.
+component BodyText inherits Text {
+    color: Theme.on-surface;
+    wrap: word-wrap;
+    font-family: Theme.font-body;
+    font-size: Theme.body-md-size;
+    font-weight: Theme.body-md-weight;
 }
 
 export component SettingsPage inherits VerticalLayout {
@@ -15,7 +81,229 @@ export component SettingsPage inherits VerticalLayout {
         text: "Settings";
     }
 
-    EmptyState {
-        text: "No term saved yet.";
+    if SettingsState.message != "": BodyText {
+        text: SettingsState.message;
+    }
+
+    SectionCard {
+        title: "Term";
+
+        if !SettingsState.has-term: EmptyState {
+            text: "No term saved yet. Enter the term below to start.";
+        }
+
+        HorizontalLayout {
+            spacing: Theme.space-md;
+            alignment: start;
+            Field {
+                label: "Name";
+                text <=> SettingsState.term-name;
+            }
+
+            Field {
+                label: "Start (YYYY-MM-DD)";
+                text <=> SettingsState.term-start;
+                error: SettingsState.term-start-error;
+            }
+
+            Field {
+                label: "End (YYYY-MM-DD)";
+                text <=> SettingsState.term-end;
+                error: SettingsState.term-end-error;
+            }
+        }
+
+        if SettingsState.term-form-error != "": FormError {
+            text: SettingsState.term-form-error;
+        }
+
+        HorizontalLayout {
+            alignment: start;
+            PrimaryButton {
+                text: "Save term";
+                clicked => {
+                    SettingsState.save-term();
+                }
+            }
+        }
+    }
+
+    SectionCard {
+        title: "Holidays";
+
+        if SettingsState.holidays.length == 0: EmptyState {
+            text: "No holidays yet.";
+        }
+
+        for row in SettingsState.holidays: ListRow {
+            Text {
+                text: row.date;
+                vertical-alignment: center;
+                color: Theme.on-surface;
+                font-family: Theme.font-body;
+                font-size: Theme.body-md-size;
+                font-weight: Theme.body-md-weight;
+            }
+
+            Text {
+                text: row.label;
+                horizontal-stretch: 1;
+                vertical-alignment: center;
+                color: Theme.on-surface-muted;
+                font-family: Theme.font-body;
+                font-size: Theme.body-md-size;
+                font-weight: Theme.body-md-weight;
+            }
+
+            SecondaryButton {
+                text: "Remove";
+                clicked => {
+                    SettingsState.remove-holiday(row.date);
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: Theme.space-md;
+            alignment: start;
+            Field {
+                label: "Date or first day (YYYY-MM-DD)";
+                text <=> SettingsState.hol-start;
+                error: SettingsState.hol-start-error;
+            }
+
+            Field {
+                label: "Last day, optional (YYYY-MM-DD)";
+                text <=> SettingsState.hol-end;
+                error: SettingsState.hol-end-error;
+            }
+
+            Field {
+                label: "Label, optional";
+                text <=> SettingsState.hol-label;
+            }
+        }
+
+        if SettingsState.hol-form-error != "": FormError {
+            text: SettingsState.hol-form-error;
+        }
+
+        HorizontalLayout {
+            alignment: start;
+            PrimaryButton {
+                text: "Add holiday";
+                clicked => {
+                    SettingsState.add-holiday();
+                }
+            }
+        }
+    }
+
+    SectionCard {
+        title: "Reminders";
+
+        HorizontalLayout {
+            spacing: Theme.space-md;
+            alignment: start;
+            Field {
+                label: "Class reminder (minutes before)";
+                text <=> SettingsState.reminder;
+                error: SettingsState.reminder-error;
+            }
+
+            Field {
+                label: "Upcoming window (days)";
+                text <=> SettingsState.window;
+                error: SettingsState.window-error;
+            }
+        }
+
+        Switch {
+            text: "Notifications";
+            checked <=> SettingsState.notifications;
+        }
+
+        if SettingsState.settings-form-error != "": FormError {
+            text: SettingsState.settings-form-error;
+        }
+
+        HorizontalLayout {
+            alignment: start;
+            PrimaryButton {
+                text: "Save settings";
+                clicked => {
+                    SettingsState.save-settings();
+                }
+            }
+        }
+    }
+
+    SectionCard {
+        title: "Backup and export";
+
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            alignment: start;
+            SecondaryButton {
+                text: "Backup…";
+                clicked => {
+                    SettingsState.backup();
+                }
+            }
+
+            SecondaryButton {
+                text: "Restore…";
+                clicked => {
+                    SettingsState.restore-pick();
+                }
+            }
+
+            SecondaryButton {
+                text: "Export CSV…";
+                clicked => {
+                    SettingsState.export-csv();
+                }
+            }
+        }
+
+        if SettingsState.confirm-restore: Rectangle {
+            background: Theme.surface-alt;
+            border-radius: Theme.radius-sm;
+
+            VerticalLayout {
+                padding: Theme.space-md;
+                spacing: Theme.space-sm;
+
+                BodyText {
+                    text: "Restoring replaces all current data with the backup. The current data is copied to the backups folder first.";
+                }
+
+                HorizontalLayout {
+                    spacing: Theme.space-sm;
+                    alignment: start;
+                    PrimaryButton {
+                        text: "Replace all data";
+                        clicked => {
+                            SettingsState.restore-confirm();
+                        }
+                    }
+
+                    SecondaryButton {
+                        text: "Cancel";
+                        clicked => {
+                            SettingsState.restore-cancel();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    SectionCard {
+        title: "Database file";
+
+        BodyText {
+            text: SettingsState.db-path;
+        }
     }
 }

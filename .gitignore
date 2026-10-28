@@ -4,3 +4,4 @@
 *.sqlite-shm
 .DS_Store
 *.rs.bk
+.claude/worktrees/

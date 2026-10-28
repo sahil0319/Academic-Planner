@@ -1268,3 +1268,59 @@ fn restored_message_names_copy_path() {
         "Backup restored. Previous data saved to /data/backups/pre-restore-20261029-1430.sqlite"
     );
 }
+
+// ---- Course form (T017) ----
+
+/// R2: the course edit form shows a stored target as plain digits, so saving it unchanged
+/// round-trips through `parse_target`.
+#[test]
+fn target_input_shows_digits_without_percent() {
+    assert_eq!(target_input(Some(75)), "75");
+    assert_eq!(parse_target(&target_input(Some(75))), Ok(Some(75)));
+}
+
+/// R2: no target leaves the edit field empty (not an em dash), which parses back to `None`.
+#[test]
+fn target_input_none_is_empty() {
+    assert_eq!(target_input(None), "");
+    assert_eq!(parse_target(&target_input(None)), Ok(None));
+}
+
+/// R21: the backup success message names the written file.
+#[test]
+fn backup_saved_message_names_file() {
+    let path = PathBuf::from("/home/u/academic-planner-backup-20261029-1430.json");
+    assert_eq!(
+        backup_saved_message(&path),
+        "Backup saved to /home/u/academic-planner-backup-20261029-1430.json"
+    );
+}
+
+/// R23: the export success message names both files and the folder.
+#[test]
+fn csv_exported_message_names_folder() {
+    let folder = PathBuf::from("/home/u/exports");
+    assert_eq!(
+        csv_exported_message(&folder),
+        "Exported attendance.csv and assessments.csv to /home/u/exports"
+    );
+}
+
+/// A failed file read or write names the path and the cause.
+#[test]
+fn file_error_message_names_path_and_cause() {
+    let path = PathBuf::from("/home/u/backup.json");
+    assert_eq!(
+        file_error_message(&path, "permission denied"),
+        "Could not access /home/u/backup.json: permission denied"
+    );
+}
+
+/// R22: a failed pre-restore copy says the restore was not started.
+#[test]
+fn pre_restore_failed_message_says_restore_not_started() {
+    assert_eq!(
+        pre_restore_failed_message("disk full"),
+        "Restore not started: could not copy the current data (disk full)"
+    );
+}

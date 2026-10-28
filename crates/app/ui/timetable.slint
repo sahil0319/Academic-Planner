@@ -1,10 +1,470 @@
-// Timetable page (docs/spec.md §6). Stub from T011; the page task fills it in.
+// Timetable page (docs/spec.md §6, contracts/ui-bridge.md "TimetableState"): a Week tab with the
+// sessions of one week and a Rules tab with the timetable slots. Bindings and callbacks only; every
+// data-derived string comes from src/viewmodel.rs through src/pages/timetable.rs.
+import { ComboBox } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { PageTitle, EmptyState } from "components.slint";
+import { SessionRow, DayGroup, SlotRow, StatusAction } from "types.slint";
+import {
+    NavItem,
+    PrimaryButton,
+    SecondaryButton,
+    Field,
+    StatusChip,
+    SectionCard,
+    ListRow,
+    EmptyState,
+    PageTitle,
+} from "components.slint";
 
 export global TimetableState {
     // Row-action errors and success notes.
     in property <string> message;
+    // 0 Week, 1 Rules.
+    in-out property <int> tab;
+
+    // Week tab.
+    in property <string> week-title;
+    in property <[DayGroup]> days;
+    in property <SessionRow> selected;
+    in property <bool> has-selected;
+
+    // Reschedule form of the selected session (R9).
+    in-out property <string> rs-date;
+    in-out property <string> rs-start;
+    in-out property <string> rs-end;
+    in-out property <string> rs-room;
+    in-out property <string> rs-note;
+    in property <string> rs-date-error;
+    in property <string> rs-start-error;
+    in property <string> rs-end-error;
+
+    // Rules tab.
+    in property <[SlotRow]> slots;
+    in property <[string]> course-options;
+
+    // Slot form (add, or edit from an effective date, R7).
+    in-out property <bool> slot-form-open;
+    in-out property <bool> slot-editing;
+    in-out property <int> slot-editing-id;
+    in-out property <int> slot-course: -1;
+    in-out property <int> slot-weekday: -1;
+    in-out property <string> slot-start;
+    in-out property <string> slot-end;
+    in-out property <string> slot-room;
+    in-out property <string> slot-from;
+    in-out property <string> slot-to;
+    in-out property <string> slot-effective;
+    in property <string> slot-course-error;
+    in property <string> slot-weekday-error;
+    in property <string> slot-start-error;
+    in property <string> slot-end-error;
+    in property <string> slot-from-error;
+    in property <string> slot-to-error;
+    in property <string> slot-effective-error;
+    in property <string> slot-form-error;
+
+    // End-slot form (last valid date, R5).
+    in-out property <bool> end-form-open;
+    in-out property <int> end-slot-id;
+    in-out property <string> end-date;
+    in property <string> end-date-error;
+    in property <string> end-form-error;
+
+    callback prev-week();
+    callback next-week();
+    callback this-week();
+    callback select-session(int);
+    callback set-status(int, StatusAction);
+    callback reschedule(int);
+    callback begin-add-slot();
+    callback begin-edit-slot(int);
+    callback save-slot();
+    callback begin-end-slot(int);
+    callback end-slot();
+}
+
+// Form error shown under a form, in the error color.
+component FormError inherits Text {
+    color: Theme.error;
+    wrap: word-wrap;
+    font-family: Theme.font-body;
+    font-size: Theme.body-sm-size;
+    font-weight: Theme.body-sm-weight;
+}
+
+// Body text in a row.
+component RowText inherits Text {
+    vertical-alignment: center;
+    color: Theme.on-surface;
+    font-family: Theme.font-body;
+    font-size: Theme.body-md-size;
+    font-weight: Theme.body-md-weight;
+}
+
+// Muted metadata in a row.
+component RowMeta inherits Text {
+    vertical-alignment: center;
+    color: Theme.on-surface-muted;
+    font-family: Theme.font-body;
+    font-size: Theme.body-md-size;
+    font-weight: Theme.body-md-weight;
+}
+
+// Labelled combo box matching `Field`.
+component ComboField inherits VerticalLayout {
+    in property <string> label;
+    in property <[string]> options;
+    in-out property <int> index;
+    in property <string> error;
+
+    spacing: Theme.space-xs;
+
+    Text {
+        text: root.label;
+        color: Theme.on-surface-muted;
+        font-family: Theme.font-body;
+        font-size: Theme.label-md-size;
+        font-weight: Theme.label-md-weight;
+    }
+
+    ComboBox {
+        model: root.options;
+        current-index <=> root.index;
+    }
+
+    if root.error != "": FormError {
+        text: root.error;
+    }
+}
+
+// Inline panel of the selected session: status actions, stored note, and reschedule form.
+component SessionPanel inherits Rectangle {
+    in property <SessionRow> session;
+
+    background: Theme.surface-alt;
+    border-radius: Theme.radius-sm;
+
+    VerticalLayout {
+        padding: Theme.space-md;
+        spacing: Theme.space-sm;
+
+        // R8, R11, R12: Attended / Absent only once the session has started.
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            alignment: start;
+            SecondaryButton {
+                text: "Attended";
+                enabled: root.session.can-mark;
+                clicked => {
+                    TimetableState.set-status(root.session.id, StatusAction.attended);
+                }
+            }
+            SecondaryButton {
+                text: "Absent";
+                enabled: root.session.can-mark;
+                clicked => {
+                    TimetableState.set-status(root.session.id, StatusAction.absent);
+                }
+            }
+            SecondaryButton {
+                text: "Pending";
+                clicked => {
+                    TimetableState.set-status(root.session.id, StatusAction.pending);
+                }
+            }
+            SecondaryButton {
+                text: "Cancel";
+                clicked => {
+                    TimetableState.set-status(root.session.id, StatusAction.cancelled);
+                }
+            }
+        }
+
+        // Stored note, read-only (human decision §6: notes are set through the reschedule form).
+        if root.session.note != "": HorizontalLayout {
+            spacing: Theme.space-sm;
+            RowMeta {
+                text: "Note";
+            }
+            RowText {
+                text: root.session.note;
+                wrap: word-wrap;
+                horizontal-stretch: 1;
+            }
+        }
+
+        // R9: reschedule creates a makeup and cancels this session.
+        Text {
+            text: "Reschedule";
+            color: Theme.on-surface;
+            font-family: Theme.font-body;
+            font-size: Theme.label-md-size;
+            font-weight: Theme.label-md-weight;
+        }
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            Field {
+                label: "Date (YYYY-MM-DD)";
+                text <=> TimetableState.rs-date;
+                error: TimetableState.rs-date-error;
+            }
+            Field {
+                label: "Start (HH:MM)";
+                text <=> TimetableState.rs-start;
+                error: TimetableState.rs-start-error;
+            }
+            Field {
+                label: "End (HH:MM)";
+                text <=> TimetableState.rs-end;
+                error: TimetableState.rs-end-error;
+            }
+            Field {
+                label: "Room";
+                text <=> TimetableState.rs-room;
+            }
+        }
+        Field {
+            label: "Note (optional)";
+            text <=> TimetableState.rs-note;
+        }
+        HorizontalLayout {
+            alignment: start;
+            PrimaryButton {
+                text: "Reschedule";
+                clicked => {
+                    TimetableState.reschedule(root.session.id);
+                }
+            }
+        }
+    }
+}
+
+// Week tab: previous / next / today over one Monday–Sunday week, grouped by day (R-D17).
+component WeekTab inherits VerticalLayout {
+    spacing: Theme.space-md;
+
+    HorizontalLayout {
+        spacing: Theme.space-sm;
+        alignment: start;
+        SecondaryButton {
+            text: "Previous";
+            clicked => {
+                TimetableState.prev-week();
+            }
+        }
+        SecondaryButton {
+            text: "Today";
+            clicked => {
+                TimetableState.this-week();
+            }
+        }
+        SecondaryButton {
+            text: "Next";
+            clicked => {
+                TimetableState.next-week();
+            }
+        }
+        RowText {
+            text: TimetableState.week-title;
+        }
+    }
+
+    if TimetableState.days.length == 0: SectionCard {
+        title: "This week";
+        EmptyState {
+            text: "No classes this week.";
+        }
+    }
+
+    for day in TimetableState.days: SectionCard {
+        title: day.title;
+        for row in day.rows: VerticalLayout {
+            ListRow {
+                RowText {
+                    text: row.time;
+                }
+                RowText {
+                    text: row.course;
+                    horizontal-stretch: 1;
+                }
+                RowMeta {
+                    text: row.room;
+                }
+                StatusChip {
+                    chip: row.chip;
+                    text: row.status-label;
+                }
+                SecondaryButton {
+                    text: "Select";
+                    clicked => {
+                        TimetableState.select-session(row.id);
+                    }
+                }
+            }
+            if TimetableState.has-selected && TimetableState.selected.id == row.id: SessionPanel {
+                session: TimetableState.selected;
+            }
+        }
+    }
+}
+
+// Rules tab: slots valid today, with add / edit (R7) / end (R5) forms.
+component RulesTab inherits VerticalLayout {
+    spacing: Theme.space-md;
+
+    HorizontalLayout {
+        alignment: start;
+        SecondaryButton {
+            text: "Add slot";
+            clicked => {
+                TimetableState.begin-add-slot();
+            }
+        }
+    }
+
+    if TimetableState.slot-form-open: SectionCard {
+        title: "Timetable slot";
+
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            ComboField {
+                label: "Course";
+                options: TimetableState.course-options;
+                index <=> TimetableState.slot-course;
+                error: TimetableState.slot-course-error;
+            }
+            ComboField {
+                label: "Weekday";
+                options: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+                index <=> TimetableState.slot-weekday;
+                error: TimetableState.slot-weekday-error;
+            }
+        }
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            Field {
+                label: "Start (HH:MM)";
+                text <=> TimetableState.slot-start;
+                error: TimetableState.slot-start-error;
+            }
+            Field {
+                label: "End (HH:MM)";
+                text <=> TimetableState.slot-end;
+                error: TimetableState.slot-end-error;
+            }
+            Field {
+                label: "Room";
+                text <=> TimetableState.slot-room;
+            }
+        }
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            if !TimetableState.slot-editing: Field {
+                label: "Valid from (YYYY-MM-DD)";
+                text <=> TimetableState.slot-from;
+                error: TimetableState.slot-from-error;
+            }
+            // R7: the change applies from this date; earlier sessions keep their values.
+            if TimetableState.slot-editing: Field {
+                label: "Effective from (YYYY-MM-DD)";
+                text <=> TimetableState.slot-effective;
+                error: TimetableState.slot-effective-error;
+            }
+            Field {
+                label: "Valid to (optional)";
+                text <=> TimetableState.slot-to;
+                error: TimetableState.slot-to-error;
+            }
+        }
+        if TimetableState.slot-form-error != "": FormError {
+            text: TimetableState.slot-form-error;
+        }
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            alignment: start;
+            PrimaryButton {
+                text: "Save";
+                clicked => {
+                    TimetableState.save-slot();
+                }
+            }
+            SecondaryButton {
+                text: "Cancel";
+                clicked => {
+                    TimetableState.slot-form-open = false;
+                }
+            }
+        }
+    }
+
+    // R5: sessions after the last date that are still pending are removed by sync.
+    if TimetableState.end-form-open: SectionCard {
+        title: "End slot";
+
+        Field {
+            label: "Last date (YYYY-MM-DD)";
+            text <=> TimetableState.end-date;
+            error: TimetableState.end-date-error;
+        }
+        if TimetableState.end-form-error != "": FormError {
+            text: TimetableState.end-form-error;
+        }
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            alignment: start;
+            PrimaryButton {
+                text: "End slot";
+                clicked => {
+                    TimetableState.end-slot();
+                }
+            }
+            SecondaryButton {
+                text: "Cancel";
+                clicked => {
+                    TimetableState.end-form-open = false;
+                }
+            }
+        }
+    }
+
+    SectionCard {
+        title: "Slots valid today";
+
+        if TimetableState.slots.length == 0: EmptyState {
+            text: "No timetable slots yet. Add a slot to generate classes.";
+        }
+
+        for slot in TimetableState.slots: ListRow {
+            RowText {
+                text: slot.weekday;
+            }
+            RowText {
+                text: slot.time;
+            }
+            RowText {
+                text: slot.course;
+                horizontal-stretch: 1;
+            }
+            RowMeta {
+                text: slot.room;
+            }
+            RowMeta {
+                text: slot.valid;
+            }
+            SecondaryButton {
+                text: "Edit";
+                clicked => {
+                    TimetableState.begin-edit-slot(slot.id);
+                }
+            }
+            SecondaryButton {
+                text: "End";
+                clicked => {
+                    TimetableState.begin-end-slot(slot.id);
+                }
+            }
+        }
+    }
 }
 
 export component TimetablePage inherits VerticalLayout {
@@ -15,7 +475,29 @@ export component TimetablePage inherits VerticalLayout {
         text: "Timetable";
     }
 
-    EmptyState {
-        text: "No classes this week.";
+    HorizontalLayout {
+        spacing: Theme.space-xs;
+        alignment: start;
+        NavItem {
+            text: "Week";
+            active: TimetableState.tab == 0;
+            clicked => {
+                TimetableState.tab = 0;
+            }
+        }
+        NavItem {
+            text: "Rules";
+            active: TimetableState.tab == 1;
+            clicked => {
+                TimetableState.tab = 1;
+            }
+        }
     }
+
+    if TimetableState.message != "": FormError {
+        text: TimetableState.message;
+    }
+
+    if TimetableState.tab == 0: WeekTab { }
+    if TimetableState.tab == 1: RulesTab { }
 }

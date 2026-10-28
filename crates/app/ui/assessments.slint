@@ -1,10 +1,134 @@
-// Assessments page (docs/spec.md §6). Stub from T011; the page task fills it in.
+// Assessments page (docs/spec.md §6, FR-020): filters upcoming / overdue / completed / all
+// (R18, R19), a complete checkbox per row, and a create / edit form with inline errors (FR-007, R2).
+// Rust (src/pages/assessments.rs) fills every data-derived string; this file only binds.
+import { CheckBox, ComboBox } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { PageTitle, EmptyState } from "components.slint";
+import { AssessmentRow } from "types.slint";
+import {
+    PageTitle,
+    EmptyState,
+    SectionCard,
+    ListRow,
+    Field,
+    PrimaryButton,
+    SecondaryButton,
+} from "components.slint";
 
 export global AssessmentsState {
     // Row-action errors and success notes.
     in property <string> message;
+
+    // 0 Upcoming, 1 Overdue, 2 Completed, 3 All (viewmodel::filter_from_index).
+    in-out property <int> filter;
+    in property <[AssessmentRow]> rows;
+    // Combo labels from viewmodel::course_option_label, active courses only.
+    in property <[string]> course-options;
+    // Combo labels from viewmodel::assessment_kind_label, index order of
+    // viewmodel::assessment_kind_from_index.
+    in property <[string]> kind-options;
+
+    // Form fields; `course` and `kind` are combo indexes (-1 = none chosen).
+    in-out property <int> course: -1;
+    in-out property <int> kind: -1;
+    in-out property <string> title;
+    in-out property <string> due-date;
+    in-out property <string> due-time;
+    in-out property <string> notes;
+    in-out property <string> remind;
+    // Id of the assessment being edited, or -1 when the form creates a new one.
+    in-out property <int> editing-id: -1;
+
+    // FR-007 field errors and R2 errors from core (shown as the form error).
+    in property <string> course-error;
+    in property <string> kind-error;
+    in property <string> due-date-error;
+    in property <string> due-time-error;
+    in property <string> remind-error;
+    in property <string> form-error;
+
+    callback set-filter(int);
+    callback begin-create();
+    callback begin-edit(int);
+    callback save();
+    callback set-completed(int, bool);
+    callback delete(int);
+}
+
+// One filter choice; the active one uses the selected fill (no accent, like navigation).
+component FilterTab inherits Rectangle {
+    in property <string> text;
+    in property <bool> active;
+    callback clicked();
+
+    height: Theme.input-height;
+    min-width: label.preferred-width + 2 * Theme.space-md;
+    horizontal-stretch: 0;
+    border-radius: Theme.radius-sm;
+    border-width: Theme.border-width;
+    border-color: Theme.border;
+    background: root.active || touch.has-hover ? Theme.surface-selected : Theme.surface;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    label := Text {
+        text: root.text;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        color: Theme.on-surface;
+        font-family: Theme.font-body;
+        font-size: Theme.label-md-size;
+        font-weight: root.active ? Theme.label-md-weight : Theme.body-md-weight;
+    }
+}
+
+// Labelled combo box with an error line, matching `Field`.
+component ComboField inherits VerticalLayout {
+    in property <string> label;
+    in property <[string]> model;
+    in-out property <int> current-index;
+    in property <string> error;
+
+    spacing: Theme.space-xs;
+
+    Text {
+        text: root.label;
+        color: Theme.on-surface-muted;
+        font-family: Theme.font-body;
+        font-size: Theme.label-md-size;
+        font-weight: Theme.label-md-weight;
+    }
+
+    ComboBox {
+        height: Theme.input-height;
+        model: root.model;
+        current-index <=> root.current-index;
+    }
+
+    if root.error != "": Text {
+        text: root.error;
+        color: Theme.error;
+        wrap: word-wrap;
+        font-family: Theme.font-body;
+        font-size: Theme.body-sm-size;
+        font-weight: Theme.body-sm-weight;
+    }
+}
+
+component RowText inherits Text {
+    in property <bool> muted;
+    in property <bool> strong;
+
+    vertical-alignment: center;
+    overflow: elide;
+    color: root.muted ? Theme.on-surface-muted : Theme.on-surface;
+    font-family: Theme.font-body;
+    font-size: Theme.body-md-size;
+    font-weight: root.strong ? Theme.label-md-weight : Theme.body-md-weight;
 }
 
 export component AssessmentsPage inherits VerticalLayout {
@@ -15,7 +139,193 @@ export component AssessmentsPage inherits VerticalLayout {
         text: "Assessments";
     }
 
-    EmptyState {
-        text: "No assessments yet.";
+    HorizontalLayout {
+        spacing: Theme.space-sm;
+        alignment: start;
+
+        FilterTab {
+            text: "Upcoming";
+            active: AssessmentsState.filter == 0;
+            clicked => {
+                AssessmentsState.set-filter(0);
+            }
+        }
+        FilterTab {
+            text: "Overdue";
+            active: AssessmentsState.filter == 1;
+            clicked => {
+                AssessmentsState.set-filter(1);
+            }
+        }
+        FilterTab {
+            text: "Completed";
+            active: AssessmentsState.filter == 2;
+            clicked => {
+                AssessmentsState.set-filter(2);
+            }
+        }
+        FilterTab {
+            text: "All";
+            active: AssessmentsState.filter == 3;
+            clicked => {
+                AssessmentsState.set-filter(3);
+            }
+        }
+    }
+
+    if AssessmentsState.message != "": Text {
+        text: AssessmentsState.message;
+        color: Theme.error;
+        wrap: word-wrap;
+        font-family: Theme.font-body;
+        font-size: Theme.body-md-size;
+        font-weight: Theme.body-md-weight;
+    }
+
+    SectionCard {
+        title: AssessmentsState.filter == 1 ? "Overdue"
+            : AssessmentsState.filter == 2 ? "Completed"
+            : AssessmentsState.filter == 3 ? "All assessments"
+            : "Upcoming";
+
+        if AssessmentsState.rows.length == 0: EmptyState {
+            text: AssessmentsState.filter == 1 ? "No overdue assessments."
+                : AssessmentsState.filter == 2 ? "No completed assessments."
+                : AssessmentsState.filter == 3 ? "No assessments yet."
+                : "No upcoming assessments.";
+        }
+
+        for row in AssessmentsState.rows: ListRow {
+            CheckBox {
+                horizontal-stretch: 0;
+                checked: row.completed;
+                toggled => {
+                    AssessmentsState.set-completed(row.id, self.checked);
+                }
+            }
+            RowText {
+                horizontal-stretch: 0;
+                text: row.course-code;
+                strong: true;
+            }
+            RowText {
+                horizontal-stretch: 0;
+                text: row.kind;
+                muted: true;
+            }
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                RowText {
+                    text: row.title;
+                    muted: row.completed;
+                }
+                if row.notes != "": RowText {
+                    text: row.notes;
+                    muted: true;
+                    font-size: Theme.body-sm-size;
+                }
+            }
+            RowText {
+                horizontal-stretch: 0;
+                text: row.due;
+                muted: true;
+            }
+            VerticalLayout {
+                horizontal-stretch: 0;
+                alignment: center;
+                SecondaryButton {
+                    text: "Edit";
+                    clicked => {
+                        AssessmentsState.begin-edit(row.id);
+                    }
+                }
+            }
+            VerticalLayout {
+                horizontal-stretch: 0;
+                alignment: center;
+                SecondaryButton {
+                    text: "Delete";
+                    clicked => {
+                        AssessmentsState.delete(row.id);
+                    }
+                }
+            }
+        }
+    }
+
+    SectionCard {
+        title: AssessmentsState.editing-id >= 0 ? "Edit assessment" : "New assessment";
+
+        HorizontalLayout {
+            spacing: Theme.space-md;
+            ComboField {
+                label: "Course";
+                model: AssessmentsState.course-options;
+                current-index <=> AssessmentsState.course;
+                error: AssessmentsState.course-error;
+            }
+            ComboField {
+                label: "Kind";
+                model: AssessmentsState.kind-options;
+                current-index <=> AssessmentsState.kind;
+                error: AssessmentsState.kind-error;
+            }
+        }
+
+        Field {
+            label: "Title";
+            text <=> AssessmentsState.title;
+        }
+
+        HorizontalLayout {
+            spacing: Theme.space-md;
+            Field {
+                label: "Due date (YYYY-MM-DD)";
+                text <=> AssessmentsState.due-date;
+                error: AssessmentsState.due-date-error;
+            }
+            Field {
+                label: "Due time (HH:MM)";
+                text <=> AssessmentsState.due-time;
+                error: AssessmentsState.due-time-error;
+            }
+            Field {
+                label: "Reminder (minutes before, optional)";
+                text <=> AssessmentsState.remind;
+                error: AssessmentsState.remind-error;
+            }
+        }
+
+        Field {
+            label: "Notes (optional)";
+            text <=> AssessmentsState.notes;
+        }
+
+        if AssessmentsState.form-error != "": Text {
+            text: AssessmentsState.form-error;
+            color: Theme.error;
+            wrap: word-wrap;
+            font-family: Theme.font-body;
+            font-size: Theme.body-sm-size;
+            font-weight: Theme.body-sm-weight;
+        }
+
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            alignment: start;
+            PrimaryButton {
+                text: "Save";
+                clicked => {
+                    AssessmentsState.save();
+                }
+            }
+            SecondaryButton {
+                text: AssessmentsState.editing-id >= 0 ? "Cancel" : "Clear";
+                clicked => {
+                    AssessmentsState.begin-create();
+                }
+            }
+        }
     }
 }

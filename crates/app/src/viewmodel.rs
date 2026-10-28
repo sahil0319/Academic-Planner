@@ -860,3 +860,36 @@ pub fn db_path_text(path: &Path) -> String {
 pub fn restored_message(copy: &Path) -> String {
     format!("Backup restored. Previous data saved to {}", copy.display())
 }
+
+// ---- Course form (T017) ----
+
+/// R2: a stored target as edit-form text (`75`, or empty when there is none), so saving the form
+/// unchanged parses back to the same value.
+pub fn target_input(target: Option<i64>) -> String {
+    target.map(|t| t.to_string()).unwrap_or_default()
+}
+
+// ---- Settings page messages ----
+
+/// R21: message shown after a backup file is written.
+pub fn backup_saved_message(path: &Path) -> String {
+    format!("Backup saved to {}", path.display())
+}
+
+/// R23: message shown after both CSV files are written to `folder`.
+pub fn csv_exported_message(folder: &Path) -> String {
+    format!(
+        "Exported attendance.csv and assessments.csv to {}",
+        folder.display()
+    )
+}
+
+/// Message for a file that could not be read or written.
+pub fn file_error_message(path: &Path, cause: &str) -> String {
+    format!("Could not access {}: {cause}", path.display())
+}
+
+/// R22: message when the pre-restore copy fails; the restore is not attempted.
+pub fn pre_restore_failed_message(cause: &str) -> String {
+    format!("Restore not started: could not copy the current data ({cause})")
+}

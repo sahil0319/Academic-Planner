@@ -1,10 +1,114 @@
-// Courses page (docs/spec.md §6). Stub from T011; the page task fills it in.
+// Courses page (docs/spec.md §6, contracts/ui-bridge.md "CoursesState"): course list with the
+// show-archived toggle (R3), course form (R2), and course detail with the attendance summary
+// (R13-R15), every session with status actions (R11, R12), and "Add makeup class" (R10).
+// Bindings only; every data-derived string comes from src/viewmodel.rs.
+import { CheckBox, ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { PageTitle, EmptyState } from "components.slint";
+import { Chip, CourseRow, SessionRow, StatusAction, SummaryView } from "types.slint";
+import {
+    PageTitle,
+    EmptyState,
+    PrimaryButton,
+    SecondaryButton,
+    Field,
+    StatusChip,
+    SectionCard,
+    ListRow,
+} from "components.slint";
 
 export global CoursesState {
     // Row-action errors and success notes.
     in property <string> message;
+
+    // R3: the list includes archived courses.
+    in-out property <bool> show-archived;
+    in property <[CourseRow]> courses;
+
+    // Course detail.
+    in property <bool> detail-open;
+    in property <string> detail-title;
+    in property <SummaryView> summary;
+    in property <[SessionRow]> sessions;
+    // R14: chip text, from viewmodel::BELOW_TARGET_LABEL.
+    in property <string> below-target-label;
+
+    // Course form; `editing-id` is -1 for a new course.
+    in-out property <bool> form-open;
+    in-out property <int> editing-id: -1;
+    in-out property <string> code;
+    in-out property <string> name;
+    in-out property <string> instructor;
+    in-out property <string> room;
+    in-out property <string> notes;
+    in-out property <string> target;
+    in property <string> target-error;
+    in property <string> course-form-error;
+
+    // R10: "Add makeup class" form.
+    in-out property <string> mk-date;
+    in-out property <string> mk-start;
+    in-out property <string> mk-end;
+    in-out property <string> mk-room;
+    in-out property <string> mk-note;
+    in property <string> mk-date-error;
+    in property <string> mk-start-error;
+    in property <string> mk-end-error;
+    in property <string> mk-form-error;
+
+    callback toggle-archived(bool);
+    callback begin-create();
+    callback begin-edit(int);
+    callback save-course();
+    callback set-archived(int, bool);
+    callback open-detail(int);
+    callback close-detail();
+    callback set-status(int, StatusAction);
+    callback add-makeup();
+}
+
+// Muted caption above a value.
+component Caption inherits Text {
+    color: Theme.on-surface-muted;
+    font-family: Theme.font-body;
+    font-size: Theme.label-sm-size;
+    font-weight: Theme.label-sm-weight;
+}
+
+// Body text in ink.
+component Body inherits Text {
+    color: Theme.on-surface;
+    vertical-alignment: center;
+    overflow: elide;
+    font-family: Theme.font-body;
+    font-size: Theme.body-md-size;
+    font-weight: Theme.body-md-weight;
+}
+
+// Muted metadata text.
+component Meta inherits Body {
+    color: Theme.on-surface-muted;
+}
+
+// Error line under a form.
+component FormError inherits Text {
+    color: Theme.error;
+    wrap: word-wrap;
+    font-family: Theme.font-body;
+    font-size: Theme.body-sm-size;
+    font-weight: Theme.body-sm-weight;
+}
+
+// One summary figure: caption above value.
+component Figure inherits VerticalLayout {
+    in property <string> caption;
+    in property <string> value;
+    spacing: Theme.space-xs;
+    Caption {
+        text: root.caption;
+    }
+    Body {
+        text: root.value;
+    }
 }
 
 export component CoursesPage inherits VerticalLayout {
@@ -15,7 +119,382 @@ export component CoursesPage inherits VerticalLayout {
         text: "Courses";
     }
 
-    EmptyState {
-        text: "No courses yet.";
+    if CoursesState.message != "": FormError {
+        text: CoursesState.message;
+    }
+
+    HorizontalLayout {
+        spacing: Theme.space-md;
+        alignment: start;
+        CheckBox {
+            text: "Show archived";
+            checked <=> CoursesState.show-archived;
+            toggled => {
+                CoursesState.toggle-archived(self.checked);
+            }
+        }
+        PrimaryButton {
+            text: "New course";
+            clicked => {
+                CoursesState.begin-create();
+            }
+        }
+    }
+
+    // R2: create / edit form; core validation errors show inline.
+    if CoursesState.form-open: SectionCard {
+        title: "Course";
+
+        HorizontalLayout {
+            spacing: Theme.space-md;
+            Field {
+                label: "Code";
+                text <=> CoursesState.code;
+            }
+            Field {
+                label: "Name";
+                text <=> CoursesState.name;
+                horizontal-stretch: 2;
+            }
+            Field {
+                label: "Target %";
+                text <=> CoursesState.target;
+                error: CoursesState.target-error;
+            }
+        }
+
+        HorizontalLayout {
+            spacing: Theme.space-md;
+            Field {
+                label: "Instructor";
+                text <=> CoursesState.instructor;
+            }
+            Field {
+                label: "Room";
+                text <=> CoursesState.room;
+            }
+        }
+
+        Field {
+            label: "Notes";
+            text <=> CoursesState.notes;
+        }
+
+        if CoursesState.course-form-error != "": FormError {
+            text: CoursesState.course-form-error;
+        }
+
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            alignment: start;
+            PrimaryButton {
+                text: "Save";
+                clicked => {
+                    CoursesState.save-course();
+                }
+            }
+            SecondaryButton {
+                text: "Cancel";
+                clicked => {
+                    CoursesState.form-open = false;
+                }
+            }
+        }
+    }
+
+    // R13-R15, R10-R12: course detail.
+    if CoursesState.detail-open: SectionCard {
+        title: CoursesState.detail-title;
+
+        HorizontalLayout {
+            spacing: Theme.space-xl;
+            alignment: start;
+            Figure {
+                caption: "Attended";
+                value: CoursesState.summary.attended;
+            }
+            Figure {
+                caption: "Absent";
+                value: CoursesState.summary.absent;
+            }
+            Figure {
+                caption: "Cancelled";
+                value: CoursesState.summary.cancelled;
+            }
+            Figure {
+                caption: "Pending";
+                value: CoursesState.summary.pending;
+            }
+            Figure {
+                caption: "Attendance";
+                value: CoursesState.summary.pct;
+            }
+            Figure {
+                caption: "Target";
+                value: CoursesState.summary.target;
+            }
+            if CoursesState.summary.below-target: VerticalLayout {
+                alignment: center;
+                Rectangle {
+                    border-radius: Theme.radius-full;
+                    background: Theme.below-target-bg;
+                    HorizontalLayout {
+                        padding-left: Theme.space-sm;
+                        padding-right: Theme.space-sm;
+                        padding-top: Theme.space-xs;
+                        padding-bottom: Theme.space-xs;
+                        Text {
+                            text: CoursesState.below-target-label;
+                            color: Theme.below-target;
+                            font-family: Theme.font-body;
+                            font-size: Theme.label-sm-size;
+                            font-weight: Theme.label-sm-weight;
+                        }
+                    }
+                }
+            }
+        }
+
+        Caption {
+            text: "Sessions";
+        }
+
+        if CoursesState.sessions.length == 0: EmptyState {
+            text: "No sessions yet.";
+        }
+
+        if CoursesState.sessions.length > 0: ScrollView {
+            height: 10 * Theme.row-height;
+            VerticalLayout {
+                alignment: start;
+                for s in CoursesState.sessions: ListRow {
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        alignment: center;
+                        HorizontalLayout {
+                            spacing: Theme.space-sm;
+                            Body {
+                                text: s.date;
+                                horizontal-stretch: 0;
+                            }
+                            Body {
+                                text: s.weekday;
+                                horizontal-stretch: 0;
+                            }
+                            Body {
+                                text: s.time;
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: Theme.space-sm;
+                            Meta {
+                                text: s.room;
+                                horizontal-stretch: 0;
+                            }
+                            Meta {
+                                text: s.note;
+                            }
+                        }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        StatusChip {
+                            chip: s.chip;
+                            text: s.status-label;
+                        }
+                    }
+                    // R12: Attended / Absent only once the session has started.
+                    VerticalLayout {
+                        alignment: center;
+                        SecondaryButton {
+                            text: "Attended";
+                            enabled: s.can-mark;
+                            clicked => {
+                                CoursesState.set-status(s.id, StatusAction.attended);
+                            }
+                        }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        SecondaryButton {
+                            text: "Absent";
+                            enabled: s.can-mark;
+                            clicked => {
+                                CoursesState.set-status(s.id, StatusAction.absent);
+                            }
+                        }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        SecondaryButton {
+                            text: "Cancelled";
+                            clicked => {
+                                CoursesState.set-status(s.id, StatusAction.cancelled);
+                            }
+                        }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        SecondaryButton {
+                            text: "Pending";
+                            clicked => {
+                                CoursesState.set-status(s.id, StatusAction.pending);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Caption {
+            text: "Add makeup class";
+        }
+
+        HorizontalLayout {
+            spacing: Theme.space-md;
+            Field {
+                label: "Date (YYYY-MM-DD)";
+                text <=> CoursesState.mk-date;
+                error: CoursesState.mk-date-error;
+            }
+            Field {
+                label: "Start (HH:MM)";
+                text <=> CoursesState.mk-start;
+                error: CoursesState.mk-start-error;
+            }
+            Field {
+                label: "End (HH:MM)";
+                text <=> CoursesState.mk-end;
+                error: CoursesState.mk-end-error;
+            }
+            Field {
+                label: "Room";
+                text <=> CoursesState.mk-room;
+            }
+        }
+
+        Field {
+            label: "Note";
+            text <=> CoursesState.mk-note;
+        }
+
+        if CoursesState.mk-form-error != "": FormError {
+            text: CoursesState.mk-form-error;
+        }
+
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            alignment: start;
+            PrimaryButton {
+                text: "Add makeup class";
+                clicked => {
+                    CoursesState.add-makeup();
+                }
+            }
+            SecondaryButton {
+                text: "Close";
+                clicked => {
+                    CoursesState.close-detail();
+                }
+            }
+        }
+    }
+
+    SectionCard {
+        title: "All courses";
+
+        if CoursesState.courses.length == 0: EmptyState {
+            text: "No courses yet. Add one with New course.";
+        }
+
+        for c in CoursesState.courses: ListRow {
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                HorizontalLayout {
+                    spacing: Theme.space-sm;
+                    Body {
+                        text: c.code;
+                        horizontal-stretch: 0;
+                        font-weight: Theme.label-md-weight;
+                    }
+                    Body {
+                        text: c.name;
+                    }
+                    // R3: archived courses are marked in the list.
+                    if c.archived: VerticalLayout {
+                        alignment: center;
+                        StatusChip {
+                            chip: Chip.cancelled;
+                            text: "Archived";
+                        }
+                    }
+                }
+                HorizontalLayout {
+                    spacing: Theme.space-xs;
+                    alignment: start;
+                    Caption {
+                        text: "Instructor";
+                        vertical-alignment: center;
+                    }
+                    Meta {
+                        text: c.instructor;
+                        horizontal-stretch: 0;
+                    }
+                    Caption {
+                        text: "Room";
+                        vertical-alignment: center;
+                    }
+                    Meta {
+                        text: c.room;
+                        horizontal-stretch: 0;
+                    }
+                    Caption {
+                        text: "Target";
+                        vertical-alignment: center;
+                    }
+                    Meta {
+                        text: c.target;
+                        horizontal-stretch: 0;
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                SecondaryButton {
+                    text: "Details";
+                    clicked => {
+                        CoursesState.open-detail(c.id);
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                SecondaryButton {
+                    text: "Edit";
+                    clicked => {
+                        CoursesState.begin-edit(c.id);
+                    }
+                }
+            }
+            if !c.archived: VerticalLayout {
+                alignment: center;
+                SecondaryButton {
+                    text: "Archive";
+                    clicked => {
+                        CoursesState.set-archived(c.id, true);
+                    }
+                }
+            }
+            if c.archived: VerticalLayout {
+                alignment: center;
+                SecondaryButton {
+                    text: "Unarchive";
+                    clicked => {
+                        CoursesState.set-archived(c.id, false);
+                    }
+                }
+            }
+        }
     }
 }

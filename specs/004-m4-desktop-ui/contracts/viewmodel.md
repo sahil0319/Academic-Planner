@@ -128,3 +128,12 @@ holidays have no core range call.
 | `pub fn date_rolled_over(last_sync: NaiveDate, now: NaiveDateTime) -> bool` | R6: `now.date() != last_sync` (23:59 same day → false; 00:00 next day → true) |
 | `pub fn db_path_text(path: &Path) -> String` | R24: the path's display text |
 | `pub fn restored_message(copy: &Path) -> String` | `"Backup restored. Previous data saved to {path}"` |
+
+## Settings page messages (added by T019 / T022)
+
+| Signature | Behavior |
+| --- | --- |
+| `pub fn backup_saved_message(path: &Path) -> String` | R21: `"Backup saved to {path}"` |
+| `pub fn csv_exported_message(folder: &Path) -> String` | R23: `"Exported attendance.csv and assessments.csv to {folder}"` |
+| `pub fn file_error_message(path: &Path, cause: &str) -> String` | `"Could not access {path}: {cause}"` |
+| `pub fn pre_restore_failed_message(cause: &str) -> String` | R22: `"Restore not started: could not copy the current data ({cause})"` |
