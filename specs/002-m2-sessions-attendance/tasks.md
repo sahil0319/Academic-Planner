@@ -119,9 +119,9 @@ frozen (crates/core/tests/api_surface.rs).
 
 ### Implementation
 
-- [ ] T026 [P] [US3] Add pure helpers in crates/core/src/attendance.rs: `pub(crate) fn pct(attended: u32, absent: u32) -> Option<f64>` = `(attended / (attended + absent) × 1000).round() / 10`, `None` when the denominator is 0 (R13); `pub(crate) fn below_target(pct: Option<f64>, target: Option<i64>) -> bool` = `target.is_some() && pct.is_some() && pct < target` on the rounded pct (R14, research R-D9); unit tests: 3/1 → 75.0, 0/0 → None, 2/1 → 66.7, (74.9, 75) → true, (75.0, 75) → false, (Some, None) → false
-- [ ] T027 [US3] Implement `attendance_summary(course_id)` in crates/core/src/attendance.rs: load the course (`NotFound { entity: "course" }`; archived allowed), count all its sessions (regular + makeup, past + future) by status, fill `pct`, `target = min_attendance_pct`, `below_target` (R13–R15)
-- [ ] T028 [US3] Implement `all_summaries()` in crates/core/src/attendance.rs: `attendance_summary` for each non-archived course of the active term, ordered by code; no active term → empty (R3, R15, research R-D9)
+- [X] T026 [P] [US3] Add pure helpers in crates/core/src/attendance.rs: `pub(crate) fn pct(attended: u32, absent: u32) -> Option<f64>` = `(attended / (attended + absent) × 1000).round() / 10`, `None` when the denominator is 0 (R13); `pub(crate) fn below_target(pct: Option<f64>, target: Option<i64>) -> bool` = `target.is_some() && pct.is_some() && pct < target` on the rounded pct (R14, research R-D9); unit tests: 3/1 → 75.0, 0/0 → None, 2/1 → 66.7, (74.9, 75) → true, (75.0, 75) → false, (Some, None) → false
+- [X] T027 [US3] Implement `attendance_summary(course_id)` in crates/core/src/attendance.rs: load the course (`NotFound { entity: "course" }`; archived allowed), count all its sessions (regular + makeup, past + future) by status, fill `pct`, `target = min_attendance_pct`, `below_target` (R13–R15)
+- [X] T028 [US3] Implement `all_summaries()` in crates/core/src/attendance.rs: `attendance_summary` for each non-archived course of the active term, ordered by code; no active term → empty (R3, R15, research R-D9)
 
 **Checkpoint**: m2_attendance passes. Commit "M2: attendance summaries R13–R15".
 
