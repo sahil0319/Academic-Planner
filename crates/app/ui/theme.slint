@@ -1,7 +1,73 @@
 // Design tokens from DESIGN.md. The only place colors and sizes are defined.
-// M0 holds just the window tokens; M4 fills in the rest.
+// Values are copied exactly from the DESIGN.md front matter (research R-D13).
 export global Theme {
+    // Colors
+    out property <color> primary: #B4532F;
+    out property <color> primary-hover: #9C4526;
+    out property <color> on-primary: #FFFFFF;
     out property <color> neutral: #F5F4ED;
+    out property <color> surface: #FDFCF9;
+    out property <color> surface-alt: #EFEDE5;
+    out property <color> surface-selected: #E4E1D6;
+    out property <color> border: #E3E0D5;
+    out property <color> on-surface: #1F1E1B;
+    out property <color> on-surface-muted: #68645B;
+    out property <color> error: #A8321F;
+    out property <color> status-attended: #2F6B3F;
+    out property <color> status-attended-bg: #E4EEE1;
+    out property <color> status-absent: #A8321F;
+    out property <color> status-absent-bg: #F8E4DE;
+    out property <color> status-cancelled: #68645B;
+    out property <color> status-cancelled-bg: #ECEAE2;
+    out property <color> status-pending: #7F5610;
+    out property <color> status-pending-bg: #F6ECD2;
+    out property <color> below-target: #8A3A1A;
+    out property <color> below-target-bg: #F6E3D6;
+
+    // Typography families. Empty string = platform default (system-ui, and the Georgia fallback).
+    out property <string> font-heading: "Georgia";
+    out property <string> font-body: "";
+
+    // Typography sizes and weights. Slint Text has no line-height, so line heights are comments.
+    // title-lg: Georgia, line height 1.25
+    out property <length> title-lg-size: 22px;
+    out property <int> title-lg-weight: 400;
+    // headline-md: Georgia, line height 1.3
+    out property <length> headline-md-size: 16px;
+    out property <int> headline-md-weight: 400;
+    // body-md: system-ui, line height 1.45
+    out property <length> body-md-size: 13px;
+    out property <int> body-md-weight: 400;
+    // body-sm: system-ui, line height 1.4
+    out property <length> body-sm-size: 12px;
+    out property <int> body-sm-weight: 400;
+    // label-md: system-ui, line height 1.2
+    out property <length> label-md-size: 12px;
+    out property <int> label-md-weight: 600;
+    // label-sm: system-ui, line height 1.2
+    out property <length> label-sm-size: 11px;
+    out property <int> label-sm-weight: 600;
+
+    // Radii
+    out property <length> radius-none: 0px;
+    out property <length> radius-sm: 6px;
+    out property <length> radius-md: 10px;
+    out property <length> radius-full: 9999px;
+
+    // Spacing
+    out property <length> space-xs: 4px;
+    out property <length> space-sm: 8px;
+    out property <length> space-md: 12px;
+    out property <length> space-lg: 16px;
+    out property <length> space-xl: 24px;
+    out property <length> space-xxl: 32px;
+
+    // Sizes
+    out property <length> nav-width: 208px;
+    out property <length> row-height: 34px;
+    out property <length> input-height: 30px;
     out property <length> window-width: 1100px;
     out property <length> window-height: 720px;
+    out property <length> divider-width: 1px;
+    out property <length> border-width: 1px;
 }
