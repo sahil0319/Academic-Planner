@@ -118,3 +118,37 @@ fn t22_standalone_makeup_counts_as_attended() {
     assert_eq!(summary.pending, 0);
     assert_pct(summary.pct, Some(100.0));
 }
+
+/// R5, R9, R12: a rescheduled original reset to pending is kept by sync even when its date
+/// becomes a holiday, because a makeup references it (human decision 2026-10-29).
+#[test]
+fn r5_sync_keeps_session_referenced_by_makeup() {
+    let (mut p, term, cse, _, _) = synced_fixture();
+    let original = regular_on(&p, cse.id, "2026-01-19");
+    let makeup = p
+        .reschedule(original.id, makeup_input(cse.id, "2026-01-20", "14:00"))
+        .unwrap();
+    mark(&mut p, original.id, Status::Pending, dt("2026-01-05T08:00"));
+    // 2026-01-21 is also a holiday: its unreferenced pending session is still deleted.
+    p.set_holidays(term.id, &holidays(&["2026-01-19", "2026-01-21"]))
+        .unwrap();
+
+    let report = p.sync_sessions(d("2026-01-05")).unwrap();
+    assert_eq!(
+        report,
+        SyncReport {
+            created: 0,
+            deleted: 1
+        }
+    );
+
+    let kept = regular_on(&p, cse.id, "2026-01-19");
+    assert_eq!(kept.id, original.id);
+    assert_eq!(kept.status, Status::Pending);
+    let makeup_after = sessions_of(&p, cse.id)
+        .into_iter()
+        .find(|s| s.id == makeup.id)
+        .expect("makeup still exists");
+    assert_eq!(makeup_after.replaces_session_id, Some(original.id));
+    assert!(!dates(&sessions_of(&p, cse.id)).contains(&"2026-01-21".to_string()));
+}

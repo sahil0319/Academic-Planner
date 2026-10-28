@@ -228,6 +228,9 @@ same mechanics as T06/T07; no new T-ID is added to `docs/spec.md` §8.
   that is no longer produced is deleted (R5: `date >= today`).
 - Sync never deletes: past sessions; attended, absent, or cancelled sessions; makeup sessions (R5).
 - A cancelled regular session is never recreated or reset to pending by sync (R8, T08).
+- A regular session that a makeup references (rescheduled, then reset to pending) is never deleted
+  by sync, even when its date becomes a holiday; it stays as is (R5, R9, R12, human decision
+  2026-10-29).
 - Marking attended/absent at exactly the session start moment is allowed (R12: `now >= start`).
 - Awaiting attendance includes a session at exactly its end moment and excludes one in progress
   (R20, T13).
@@ -266,8 +269,8 @@ same mechanics as T06/T07; no new T-ID is added to `docs/spec.md` §8.
 - **FR-002** (R4, T05): Sync MUST be idempotent: repeated runs with no input changes MUST leave the
   same sessions with the same identities and report zero created and zero deleted.
 - **FR-003** (R5, T07, T27): Sync MUST delete a session only if all hold: it is regular, it is
-  pending, its date is on or after today, and FR-001 no longer produces it. It MUST NOT delete any
-  other session.
+  pending, its date is on or after today, FR-001 no longer produces it, and no makeup session
+  references it (human decision 2026-10-29). It MUST NOT delete any other session.
 - **FR-004** (§5): Sync MUST report how many sessions it created and deleted.
 - **FR-005** (R6): Sync MUST be safe to run at any time (app start, after any term, holiday,
   course, or slot change, and on date rollover), because it is idempotent (FR-002) and only removes

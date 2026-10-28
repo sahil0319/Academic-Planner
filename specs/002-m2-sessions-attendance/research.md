@@ -125,3 +125,14 @@ the schema, or the API.
   values; both give the same result.
 - **Rationale**: stored times have no seconds; truncation makes `now = 10:00:30` behave like
   `10:00` for R12, R17, R20 boundaries.
+
+## R-D13. Sessions referenced by a makeup (R5, R9, R12; human decision 2026-10-29)
+
+- **Decision**: sync never deletes a session that any makeup references through
+  `replaces_session_id`; it stays as is. This is one more required condition in R5's "deletes
+  only if all hold".
+- **Rationale**: a rescheduled original can be reset to pending (R12) and later stop being produced
+  (e.g. its date becomes a holiday). Deleting it would break the makeup's reference: the foreign
+  key makes sync fail with `Error::Db`, which conflicts with FR-005 (sync is safe at any time).
+- **Alternatives**: clearing the makeup's `replaces_session_id` before deleting — rejected by the
+  human; it rewrites the makeup and loses the "Rescheduled →" link.

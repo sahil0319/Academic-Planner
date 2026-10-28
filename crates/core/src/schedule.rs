@@ -166,7 +166,8 @@ impl Planner {
 /// session copies start, end, and room (slot room, else course room) at creation time.
 ///
 /// R5: sync never deletes past or non-pending sessions; it deletes a session only when it
-/// is regular, pending, dated on or after `today`, and no longer produced by R4.
+/// is regular, pending, dated on or after `today`, no longer produced by R4, and not
+/// referenced by any makeup's `replaces_session_id` (R9, R12; research R-D13).
 /// FR-006: sessions of archived courses are never created or deleted.
 pub(crate) fn sync_in(conn: &Connection, today: NaiveDate) -> Result<SyncReport> {
     let Some(term_id) = active_term_id(conn)? else {
@@ -222,7 +223,8 @@ pub(crate) fn sync_in(conn: &Connection, today: NaiveDate) -> Result<SyncReport>
             "SELECT s.id, s.slot_id, s.date FROM session s
              JOIN course c ON c.id = s.course_id
              WHERE s.kind = 'regular' AND s.status = 'pending' AND s.date >= ?1
-               AND c.term_id = ?2 AND c.archived = 0",
+               AND c.term_id = ?2 AND c.archived = 0
+               AND NOT EXISTS (SELECT 1 FROM session m WHERE m.replaces_session_id = s.id)",
         )?;
         let rows = stmt
             .query_map(params![fmt_date(today), term_id], |r| {
