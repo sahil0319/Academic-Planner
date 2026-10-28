@@ -142,8 +142,8 @@ frozen (crates/core/tests/api_surface.rs).
 
 ### Implementation
 
-- [ ] T033 [US4] Implement `reschedule(id, makeup)` in crates/core/src/schedule.rs (research R-D7): in one transaction load the original (`NotFound { entity: "session" }`); `Attended`/`Absent` → `Error::Validation`, nothing written; makeup `end_time <= start_time` → `Error::Validation`; insert the makeup via the T006 helper with `replaces_session_id = id`; set the original to `cancelled`; commit; return the makeup. Doc comment `/// R9: …`
-- [ ] T034 [US4] Confirm T08 (cancel survives re-sync, R8) passes with no extra code: `INSERT OR IGNORE` keeps the cancelled row and deletion skips non-pending rows; if not, fix `sync_in` in crates/core/src/schedule.rs only
+- [X] T033 [US4] Implement `reschedule(id, makeup)` in crates/core/src/schedule.rs (research R-D7): in one transaction load the original (`NotFound { entity: "session" }`); `Attended`/`Absent` → `Error::Validation`, nothing written; makeup `end_time <= start_time` → `Error::Validation`; insert the makeup via the T006 helper with `replaces_session_id = id`; set the original to `cancelled`; commit; return the makeup. Doc comment `/// R9: …`
+- [X] T034 [US4] Confirm T08 (cancel survives re-sync, R8) passes with no extra code: `INSERT OR IGNORE` keeps the cancelled row and deletion skips non-pending rows; if not, fix `sync_in` in crates/core/src/schedule.rs only
 
 **Checkpoint**: m2_exceptions passes. Commit "M2: reschedule and makeups R8–R10".
 

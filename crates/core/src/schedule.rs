@@ -129,9 +129,23 @@ impl Planner {
 
     /// R9: creates a makeup that replaces session `id` and cancels the original, in one
     /// transaction. Rescheduling an attended or absent session is an error.
+    /// A pending or cancelled original may be rescheduled; on any error nothing is written.
     pub fn reschedule(&mut self, id: i64, makeup: MakeupInput) -> Result<Session> {
-        let _ = (id, makeup);
-        todo!("M2: R9")
+        let tx = self.conn.transaction()?;
+        let original = load_session(&tx, id)?;
+        if matches!(original.status, Status::Attended | Status::Absent) {
+            return Err(Error::Validation(format!(
+                "session {id} is already {}; only pending or cancelled sessions can be rescheduled",
+                original.status.as_db()
+            )));
+        }
+        let created = insert_makeup(&tx, &makeup, Some(id))?;
+        tx.execute(
+            "UPDATE session SET status = ?1 WHERE id = ?2",
+            params![Status::Cancelled.as_db(), id],
+        )?;
+        tx.commit()?;
+        Ok(created)
     }
 
     /// R10: adds a one-off makeup class (`replaces_session_id = NULL`), pending.
