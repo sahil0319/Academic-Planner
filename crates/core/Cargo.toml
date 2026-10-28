@@ -9,3 +9,8 @@ license.workspace = true
 name = "planner_core"
 
 [dependencies]
+chrono.workspace = true
+directories.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+thiserror.workspace = true
