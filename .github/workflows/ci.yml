@@ -20,6 +20,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Format
         run: cargo fmt --check
+      - name: Theme grep check
+        run: "! grep -rnE '#[0-9a-fA-F]{6}|[0-9]+px' crates/app/ui --include=*.slint | grep -v theme.slint"
       - name: Clippy
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Test
