@@ -1,12 +1,13 @@
 # Checkpoint
-- Milestone: M1 done (specs/001-m1-core-storage, T001–T028). Next milestone: M2
-- Last green gate: 92393f2 (fmt ok, clippy -D warnings ok, 48 tests pass incl. T20, T24, T26). GitHub CI run 40737933387 success on e40d076.
-- Next: /speckit-specify "Milestone M2 from docs/spec.md: rules R4-R20, tests T01-T19, T21-T23, T27-T29. Do not add requirements."
-- Decisions (human, 2026-10-28): assessment CRUD done in M1 (FR-013a); sessions_between/sessions_for_course take `now`, is_past = now >= start (docs/spec.md §5).
+
+- Milestone: M2 done (specs/002-m2-sessions-attendance, T001–T050). Next milestone: M3
+- Last green gate: ca28371 (fmt ok, clippy -D warnings ok, cargo test --workspace: 94 tests pass incl. T01–T19, T21–T23, T27–T29, m2_exam_periods, M1 T20/T24/T26).
+- Next: /speckit-specify for Milestone M3 from docs/spec.md (backup/restore R21–R22, CSV export R23). Do not add requirements.
 - M2 notes:
-  - Stubs: schedule.rs, attendance.rs, dashboard.rs; list_assessments Upcoming/Overdue arms (R18/R19) in db.rs.
-  - Remove `#[allow(dead_code, reason = ...)]` on Status/SessionKind codecs + col_status/col_session_kind in db.rs once used.
-  - change_slot/end_slot need SlotInput::validate (model.rs). R3 sync/dashboard parts: T15, T28.
-  - Reopen tests use shared-cache in-memory URIs (constitution II: no DB files in tests).
-- Notes: rustc 1.90; Slint 1.16; rusqlite 0.41; packages planner-core / app. App does not open the DB yet (M4 uses default_db_path).
-- Open questions: none
+  - sync_in(conn, today) in schedule.rs is shared by sync_sessions, change_slot (today = effective_from), end_slot (today = last_date + 1).
+  - query_views + ACTIVE_SCOPE in schedule.rs are reused by dashboard.rs.
+  - pct uses f64::round (ties away from zero, router clarification R-D9).
+  - Remaining stubs: backup.rs (M3 R21/R22, M5 reminders), export.rs (M3 R23).
+- Notes: rustc 1.90; Slint 1.16; rusqlite 0.41; packages planner-core / app.
+- Open questions:
+  - R5 vs FK (confirmed by probe): sync deleting a pending regular session that a makeup still references (replaces_session_id; reachable via reschedule, then set_status Pending, then holiday on that date) fails with Error::Db FOREIGN KEY. Needs a rule decision (skip deletion, or clear the reference).

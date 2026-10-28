@@ -214,7 +214,7 @@ frozen (crates/core/tests/api_surface.rs).
 - [X] T047 Grep crates/core/src for `todo!("M2` and confirm none remains (only M3/M5 stubs stay); run `cargo doc -p planner-core --no-deps` and confirm every new item has a doc comment citing its rule IDs
 - [X] T048 Run `/speckit-converge` for specs/002-m2-sessions-attendance and complete any tasks it appends to this file
 - [X] T049 Run the gate `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` and paste its summary; confirm T01–T19, T21–T23, T27–T29, the m2_exam_periods tests, and M1's T20, T24, T26 pass (§7 M2 done-when)
-- [ ] T050 Update .claude/state/progress.json (all tasks) and .claude/state/checkpoint.md (last green gate hash, next milestone M3); commit "M2: milestone complete"
+- [X] T050 Update .claude/state/progress.json (all tasks) and .claude/state/checkpoint.md (last green gate hash, next milestone M3); commit "M2: milestone complete"
 
 ---
 
