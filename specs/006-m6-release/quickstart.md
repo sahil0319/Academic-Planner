@@ -25,7 +25,7 @@ Expected: exit 0; the HTML lists the license overview and includes `slint` under
 ## 2. macOS package (FR-001)
 
 ```sh
-cargo packager -p app --release --formats dmg
+CI=true cargo packager -p app --release --formats app,dmg
 ls target/release/*.dmg
 ls "target/release/Academic Planner.app/Contents/Resources/"
 ```
@@ -34,6 +34,10 @@ Expected: one `Academic Planner_0.1.0_aarch64.dmg`; the `.app` resources hold
 `THIRD-PARTY-NOTICES.html`, `LICENSE`, `NOTICE`, and the converted icon. Optional: open the `.app`
 with `ACADEMIC_PLANNER_DB=/tmp/ap-m6-check.db` to avoid touching the real database. Contract:
 [contracts/packager-config.md](contracts/packager-config.md).
+
+`CI=true` skips the Finder AppleScript that styles the DMG window (it times out when the screen is
+locked or no one is logged in), and `app` keeps the intermediate `.app` so its resources can be
+listed; plain `--formats dmg` deletes it. CI runners already set `CI`, so the workflow is unchanged.
 
 ## 3. Workflow lint (FR-002)
 

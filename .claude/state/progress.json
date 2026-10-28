@@ -1,5 +1,5 @@
 {
-  "milestone": "M5",
+  "milestone": "M6",
   "phase": "done-pending-human",
   "tasks": {
     "specify": "done",
@@ -58,5 +58,32 @@
     "T014": "done",
     "converge": "done",
     "T012": "pending-human"
+  },
+  "m6": {
+    "specify": "done",
+    "plan": "done",
+    "tasks": "done",
+    "analyze": "done",
+    "T001": "done",
+    "T002": "done",
+    "T003": "done",
+    "T004": "done",
+    "T005": "done",
+    "T006": "done",
+    "T007": "done",
+    "T008": "done",
+    "T009": "done",
+    "T010": "done",
+    "T011": "done",
+    "T012": "done",
+    "T013": "done",
+    "T014": "done",
+    "T015": "done",
+    "T017": "done",
+    "T018": "done",
+    "T016": "pending-human",
+    "T019": "pending-human",
+    "T020": "pending-human",
+    "T021": "pending-human"
   }
 }
