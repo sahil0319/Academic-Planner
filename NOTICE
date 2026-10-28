@@ -1,0 +1,15 @@
+Academic Planner
+Copyright (C) 2026 Academic Planner contributors
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version. See LICENSE.
+
+This program uses Slint (https://slint.dev), used under the GNU General Public
+License version 3 (GPL-3.0-only), one of Slint's three license options
+(GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR
+LicenseRef-Slint-Software-3.0). Distributed builds are therefore licensed under
+GPL-3.0. No additional attribution is required under the GPL option.
+
+Third-party dependency notices are generated at release time (milestone M6).
