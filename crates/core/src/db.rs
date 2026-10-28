@@ -8,6 +8,7 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Weekday};
+use directories::ProjectDirs;
 use rusqlite::types::Type;
 use rusqlite::{Connection, Row};
 
@@ -20,8 +21,11 @@ pub const DB_ENV_VAR: &str = "ACADEMIC_PLANNER_DB";
 /// File name of the database inside the user data directory (R24).
 pub const DB_FILE_NAME: &str = "planner.sqlite";
 
+/// Embedded migrations; entry `i` upgrades the schema from version `i` to `i + 1`.
+const MIGRATIONS: &[&str] = &[include_str!("migrations/001_init.sql")];
+
 /// Schema version this app writes: the number of embedded migrations (R25).
-pub const SCHEMA_VERSION: i64 = 1;
+pub const SCHEMA_VERSION: i64 = MIGRATIONS.len() as i64;
 
 /// The planner: one open SQLite connection. Every mutation commits before returning.
 pub struct Planner {
@@ -34,25 +38,63 @@ pub fn resolve_db_path(
     env_override: Option<OsString>,
     data_dir: Option<PathBuf>,
 ) -> Result<PathBuf> {
-    let _ = (env_override, data_dir);
-    todo!("M1")
+    if let Some(path) = env_override.filter(|p| !p.is_empty()) {
+        return Ok(PathBuf::from(path));
+    }
+    data_dir
+        .map(|dir| dir.join(DB_FILE_NAME))
+        .ok_or(Error::NoDataDir)
 }
 
 /// R24: the database path for this user, from `ACADEMIC_PLANNER_DB` or the OS data directory.
 pub fn default_db_path() -> Result<PathBuf> {
-    todo!("M1")
+    let data_dir =
+        ProjectDirs::from("", "", "Academic Planner").map(|d| d.data_dir().to_path_buf());
+    resolve_db_path(std::env::var_os(DB_ENV_VAR), data_dir)
+}
+
+/// R24: creates the parent directory of `path` if it is missing.
+fn ensure_parent_dir(path: &Path) -> Result<()> {
+    if let Some(dir) = path.parent().filter(|d| !d.as_os_str().is_empty()) {
+        std::fs::create_dir_all(dir)?;
+    }
+    Ok(())
 }
 
 impl Planner {
     /// R24, R25: opens (creating if needed) the database at `path` and runs pending migrations.
     pub fn open(path: &Path) -> Result<Self> {
-        let _ = path;
-        todo!("M1")
+        ensure_parent_dir(path)?;
+        Self::init(Connection::open(path)?)
     }
 
     /// R25: opens a fresh in-memory database with the current schema.
     pub fn open_in_memory() -> Result<Self> {
-        todo!("M1")
+        Self::init(Connection::open_in_memory()?)
+    }
+
+    /// R25: sets pragmas and applies pending migrations. A database newer than
+    /// `SCHEMA_VERSION` is refused before anything is written; WAL is enabled only after
+    /// that check because switching to WAL rewrites the file header.
+    fn init(mut conn: Connection) -> Result<Self> {
+        conn.pragma_update(None, "foreign_keys", true)?;
+        let found: i64 = conn.pragma_query_value(None, "user_version", |r| r.get(0))?;
+        if found > SCHEMA_VERSION {
+            return Err(Error::SchemaTooNew {
+                found,
+                supported: SCHEMA_VERSION,
+            });
+        }
+        // In-memory databases report "memory"; either answer is fine.
+        let _mode: String =
+            conn.pragma_update_and_check(None, "journal_mode", "WAL", |r| r.get(0))?;
+        for (version, sql) in (1_i64..).zip(MIGRATIONS).skip(found as usize) {
+            let tx = conn.transaction()?;
+            tx.execute_batch(sql)?;
+            tx.pragma_update(None, "user_version", version)?;
+            tx.commit()?;
+        }
+        Ok(Planner { conn })
     }
 
     /// R1: the active term, if any.
@@ -343,6 +385,43 @@ pub(crate) fn col_assessment_kind(row: &Row, idx: usize) -> rusqlite::Result<Ass
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn r24_override_wins() {
+        let path = resolve_db_path(
+            Some(OsString::from("/tmp/custom.sqlite")),
+            Some(PathBuf::from("/data")),
+        )
+        .unwrap();
+        assert_eq!(path, PathBuf::from("/tmp/custom.sqlite"));
+    }
+
+    #[test]
+    fn r24_default_is_data_dir_planner_sqlite() {
+        let path = resolve_db_path(None, Some(PathBuf::from("/data"))).unwrap();
+        assert_eq!(path, PathBuf::from("/data").join("planner.sqlite"));
+        // An empty override counts as unset.
+        let path = resolve_db_path(Some(OsString::new()), Some(PathBuf::from("/data"))).unwrap();
+        assert_eq!(path, PathBuf::from("/data").join("planner.sqlite"));
+    }
+
+    #[test]
+    fn r24_no_override_no_data_dir_is_error() {
+        assert!(matches!(resolve_db_path(None, None), Err(Error::NoDataDir)));
+    }
+
+    #[test]
+    fn r24_ensure_parent_dir_creates_missing_dirs() {
+        let root = std::env::temp_dir().join(format!("planner-r24-{}", std::process::id()));
+        let file = root.join("a").join("b").join(DB_FILE_NAME);
+        assert!(!root.exists());
+        ensure_parent_dir(&file).unwrap();
+        assert!(file.parent().unwrap().is_dir());
+        assert!(!file.exists(), "only the directory is created");
+        std::fs::remove_dir_all(&root).unwrap();
+        // A bare file name or an SQLite URI has no directory to create.
+        ensure_parent_dir(Path::new("planner.sqlite")).unwrap();
+    }
 
     #[test]
     fn date_time_codecs_round_trip() {
