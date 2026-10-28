@@ -1,0 +1,18 @@
+[package]
+name = "app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "academic-planner"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+planner-core = { path = "../core" }
+slint.workspace = true
+
+[build-dependencies]
+slint-build.workspace = true

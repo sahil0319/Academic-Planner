@@ -1,0 +1,8 @@
+# Core never reads the system clock (docs/spec.md §1 "Clock"). Time-dependent
+# functions take `today`/`now` as parameters. The app crate's single clock read
+# is explicitly allowed at its call site.
+disallowed-methods = [
+  { path = "chrono::Local::now", reason = "pass `today`/`now` in instead of reading the clock" },
+  { path = "chrono::Utc::now", reason = "pass `today`/`now` in instead of reading the clock" },
+  { path = "std::time::SystemTime::now", reason = "pass `today`/`now` in instead of reading the clock" },
+]
