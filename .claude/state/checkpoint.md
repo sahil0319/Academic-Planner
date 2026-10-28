@@ -1,7 +1,7 @@
 # Checkpoint
 
 - Milestone: M2 done (specs/002-m2-sessions-attendance, T001–T050). Next milestone: M3
-- Last green gate: ca28371 (fmt ok, clippy -D warnings ok, cargo test --workspace: 95 tests pass incl. T01–T19, T21–T23, T27–T29, m2_exam_periods, M1 T20/T24/T26).
+- Last green gate: 7c9f2c3 (fmt ok, clippy -D warnings ok, cargo test --workspace: 95 tests pass incl. T01–T19, T21–T23, T27–T29, m2_exam_periods, M1 T20/T24/T26).
 - Next: /speckit-specify for Milestone M3 from docs/spec.md (backup/restore R21–R22, CSV export R23). Do not add requirements.
 - M2 notes:
   - sync_in(conn, today) in schedule.rs is shared by sync_sessions, change_slot (today = effective_from), end_slot (today = last_date + 1).
