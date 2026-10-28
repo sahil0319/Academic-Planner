@@ -261,7 +261,8 @@ same mechanics as T06/T07; no new T-ID is added to `docs/spec.md` §8.
   the active term, exactly one regular session on every date in the inclusive range
   [later of term start and slot valid-from, earlier of term end and slot valid-to (term end if
   open)] whose weekday equals the slot's weekday and which is not a holiday. Each created session
-  MUST copy start time, end time, and room from the slot at creation time.
+  MUST copy start time, end time, and room from the slot at creation time; a slot without a room
+  means "use the course room" (§3), so the course room is copied then (research R-D3).
 - **FR-002** (R4, T05): Sync MUST be idempotent: repeated runs with no input changes MUST leave the
   same sessions with the same identities and report zero created and zero deleted.
 - **FR-003** (R5, T07, T27): Sync MUST delete a session only if all hold: it is regular, it is
