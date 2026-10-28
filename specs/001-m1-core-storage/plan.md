@@ -22,7 +22,7 @@ start in parallel. `docs/spec.md` §1–§5 is the plan; nothing in §1 is re-de
 
 **Storage**: SQLite file, `PRAGMA foreign_keys=ON`, `journal_mode=WAL`; schema version in `PRAGMA user_version` (§1)
 
-**Testing**: `cargo test --workspace`; integration tests in `crates/core/tests/` on `Planner::open_in_memory()`; file-based tests (T20, T26) use a temp file under the OS temp dir, never the user DB
+**Testing**: `cargo test --workspace`; integration tests in `crates/core/tests/` on `Planner::open_in_memory()`; T20/T26 need a reopen, so they call `Planner::open` with a SQLite shared-cache in-memory URI (`file:<name>?mode=memory&cache=shared`) kept alive by a second connection. No test creates a DB file or touches the user DB
 
 **Target Platform**: macOS, Windows, Linux desktop (core is platform-independent; CI runs Linux)
 
@@ -41,7 +41,7 @@ start in parallel. `docs/spec.md` §1–§5 is the plan; nothing in §1 is re-de
 | Principle | Check | Status |
 | --- | --- | --- |
 | I. Spec is source of truth | Plan implements §3 schema verbatim and §5 signatures. Two human-approved spec decisions: assessment CRUD in M1 (FR-013a); `now` parameter on `sessions_between`/`sessions_for_course` for `is_past` (applied to `docs/spec.md` §5, 2026-10-28). No other additions. | PASS |
-| II. Test-first, traceable | T20, T24, T26 written before the code they cover; names `t20_…`, `t24_…`, `t26_…`; rule IDs in doc comments; tests use in-memory SQLite (temp file only where a file is required by the test) | PASS |
+| II. Test-first, traceable | T20, T24, T26 written before the code they cover; names `t20_…`, `t24_…`, `t26_…`; rule IDs in doc comments; all tests use in-memory SQLite (shared-cache URI where a reopen is needed) | PASS |
 | III. Pure, clock-free core | No Slint/clock/dialogs in core; `AssessmentFilter` carries `now` instead of reading the clock; R24 resolution is a pure function plus a thin env/`ProjectDirs` wrapper | PASS |
 | IV. Append-only migrations | `001_init.sql` is new; nothing previously applied is edited | PASS |
 | V. Gate before done | Milestone ends with the gate; summary pasted | PASS (pending run) |

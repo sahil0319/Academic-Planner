@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Rust 1.90+ (`rustup show`), repository root as working directory.
-- No user database is needed or touched: tests use `Planner::open_in_memory()` or a temp file.
+- No user database is needed or touched: all tests use in-memory SQLite (shared-cache URIs for reopen tests).
 
 ## Run the milestone tests
 

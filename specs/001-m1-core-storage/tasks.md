@@ -11,8 +11,10 @@ description: "Task list for M1 core storage and setup data"
 
 **Tests**: Required. The constitution (II) and `AGENTS.md` require T-tests to be written before the
 rule they cover. Test names follow `t20_fresh_db_reopen_is_noop`; tests for rules without a T-id use
-the rule id, e.g. `r01_second_term_becomes_only_active`. All tests use `Planner::open_in_memory()`
-except T20/T26, which need a real file and use a unique path under `std::env::temp_dir()`.
+the rule id, e.g. `r01_second_term_becomes_only_active`. All tests use in-memory SQLite (constitution
+II): `Planner::open_in_memory()`, or for T20/T26, which need a reopen, `Planner::open` on a
+shared-cache in-memory URI `file:<unique name>?mode=memory&cache=shared` kept alive by a "keeper"
+`rusqlite::Connection` held for the whole test. No test creates a DB file.
 
 **Organization**: Grouped by user story. Phase order differs from spec priority in one place:
 US3 (validation, T24) runs after US2 and US4 because T24 exercises the term, course, slot, and
@@ -63,13 +65,13 @@ Rust workspace. Core crate: `crates/core/src/`, integration tests: `crates/core/
 
 ### Tests for User Story 1 (write first, confirm they fail)
 
-- [ ] T008 [P] [US1] Write crates/core/tests/migrations.rs: `t20_fresh_db_migrated_and_reopen_is_noop` (temp file: open → `PRAGMA user_version` = 1 and all §3 tables exist; drop; record `sqlite_master` rows and `user_version`; reopen → both unchanged; same check for `open_in_memory`); `t26_newer_schema_version_refused` (temp file created with rusqlite and `PRAGMA user_version = 2`; `Planner::open` returns `Error::SchemaTooNew { found: 2, supported: 1 }` whose `to_string()` contains "newer"; afterwards the file still has `user_version` 2 and no tables). Delete temp files at the end
-- [ ] T009 [P] [US1] Write unit tests in crates/core/src/db.rs: `r24_override_wins`, `r24_default_is_data_dir_planner_sqlite`, `r24_no_override_no_data_dir_is_error` for `resolve_db_path`, and `r24_open_creates_missing_parent_dir` (unique temp dir path, removed afterwards)
+- [ ] T008 [P] [US1] Write crates/core/tests/migrations.rs: `t20_fresh_db_migrated_and_reopen_is_noop` (keeper connection on `file:t20?mode=memory&cache=shared`; `Planner::open` on that URI → keeper sees `PRAGMA user_version` = 1 and all §3 tables; drop the planner; record `sqlite_master` rows, `user_version`, and `setting` rows; open again → all unchanged; also `open_in_memory` reports version 1); `t26_newer_schema_version_refused` (keeper on `file:t26?mode=memory&cache=shared` sets `PRAGMA user_version = 2`; `Planner::open` returns `Error::SchemaTooNew { found: 2, supported: 1 }` whose `to_string()` contains "newer"; afterwards the keeper still sees `user_version` 2 and an empty `sqlite_master`)
+- [ ] T009 [P] [US1] Write unit tests in crates/core/src/db.rs: `r24_override_wins`, `r24_default_is_data_dir_planner_sqlite`, `r24_no_override_no_data_dir_is_error` for `resolve_db_path`, and `r24_ensure_parent_dir_creates_missing_dirs` for the private `ensure_parent_dir(path)` helper (unique nested path under `std::env::temp_dir()`, no SQLite file created, removed afterwards)
 
 ### Implementation for User Story 1
 
 - [ ] T010 [US1] Write crates/core/src/migrations/001_init.sql: the `docs/spec.md` §3 SQL verbatim, then `INSERT INTO setting (key, value) VALUES ('class_reminder_minutes','15'), ('upcoming_window_days','7'), ('notifications_enabled','1');`
-- [ ] T011 [US1] Implement in crates/core/src/db.rs per research D1/D2: `const MIGRATIONS: &[&str] = &[include_str!("migrations/001_init.sql")]`; on connect set `PRAGMA foreign_keys = ON` and `PRAGMA journal_mode = WAL`; read `user_version`; if greater than `MIGRATIONS.len()` return `SchemaTooNew` before any write; else apply each pending migration in its own transaction that also sets `user_version`; `open_in_memory()`; `open(path)` creates the parent dir (`std::fs::create_dir_all`) then connects. Doc comments cite R25
+- [ ] T011 [US1] Implement in crates/core/src/db.rs per research D1/D2: `const MIGRATIONS: &[&str] = &[include_str!("migrations/001_init.sql")]`; on connect, in this order: `PRAGMA foreign_keys = ON`; read `user_version`; if greater than `MIGRATIONS.len()` return `SchemaTooNew` (no write has happened); `PRAGMA journal_mode = WAL`; apply each pending migration in its own transaction that also sets `user_version`. `open_in_memory()`; `open(path)` calls `ensure_parent_dir(path)` (`std::fs::create_dir_all` on a non-empty parent) then connects. Doc comments cite R25
 - [ ] T012 [US1] Implement `resolve_db_path(env_override: Option<OsString>, data_dir: Option<PathBuf>) -> Result<PathBuf>` and `default_db_path()` (reads `ACADEMIC_PLANNER_DB`, `ProjectDirs::from("", "", "Academic Planner")`, file `planner.sqlite`) in crates/core/src/db.rs per research D5. Doc comments cite R24
 
 **Checkpoint**: T008, T009 pass. Commit "M1: migration 001 and open (R24, R25)".

@@ -6,7 +6,7 @@ decisions that §1–§5 leave open. No item re-decides §1.
 ## D1. Migration runner
 
 - **Decision**: `const MIGRATIONS: &[&str] = &[include_str!("migrations/001_init.sql")]`. On open:
-  set pragmas, read `user_version` (= `v`). If `v > MIGRATIONS.len()` return
+  set `foreign_keys`, read `user_version` (= `v`). If `v > MIGRATIONS.len()` return
   `Error::SchemaTooNew { found, supported }` before any write. Otherwise apply
   `MIGRATIONS[v..]` in order, each inside its own transaction that also sets `user_version` to its
   number. Applying nothing when `v == len` makes reopen a no-op (R25, T20).
@@ -16,8 +16,9 @@ decisions that §1–§5 leave open. No item re-decides §1.
 
 ## D2. Pragmas
 
-- **Decision**: `PRAGMA foreign_keys = ON` and `PRAGMA journal_mode = WAL` on every connection,
-  before migrations. For in-memory DBs SQLite reports `memory` for journal mode; that is accepted.
+- **Decision**: `PRAGMA foreign_keys = ON` first on every connection; `PRAGMA journal_mode = WAL`
+  only after the version check passes (WAL rewrites the file header, so a refused newer DB must
+  not get it), then migrations. For in-memory DBs SQLite reports `memory` for journal mode; that is accepted.
 - **Rationale**: §1. WAL is a per-file setting; `foreign_keys` is per-connection.
 
 ## D3. Setting defaults
@@ -44,6 +45,8 @@ decisions that §1–§5 leave open. No item re-decides §1.
   `ProjectDirs::from("", "", "Academic Planner")`). `Planner::open` creates the parent directory
   if missing. The app calls `default_db_path()` when it starts using the DB (M4); M1 does not
   change `crates/app`.
+- **Testing**: the directory step is a private `ensure_parent_dir(path)` helper unit-tested on a
+  temp directory (no SQLite file is created), keeping all DB tests in memory (constitution II).
 - **Rationale**: pure function is unit-testable without env-var races or touching the user DB.
   Creating the directory in `open` covers both the default and the override path.
 - **Alternatives**: put it in the app — rejected: core is where tested logic lives (§2 rule).
