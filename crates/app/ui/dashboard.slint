@@ -15,6 +15,8 @@ import {
 export global DashboardState {
     // Row-action errors and success notes.
     in property <string> message;
+    // False when there is no active term: the page shows only the "No term yet" card.
+    in property <bool> has-term: true;
     // R14: one line per course below its target; empty hides the banner.
     in property <[string]> banner;
     // R16: today's sessions, by start time.
@@ -126,107 +128,119 @@ export component DashboardPage inherits VerticalLayout {
         lines: DashboardState.banner;
     }
 
-    SectionCard {
-        title: "Awaiting attendance";
-        if DashboardState.awaiting.length > 0: VerticalLayout {
-            for row in DashboardState.awaiting: ListRow {
-                RowMeta {
-                    text: row.weekday;
-                }
-                RowMeta {
-                    text: row.date;
-                }
-                RowMeta {
-                    text: row.time;
-                }
-                RowText {
-                    text: row.course;
-                    horizontal-stretch: 1;
-                }
-                VerticalLayout {
-                    alignment: center;
-                    SecondaryButton {
-                        text: "Attended";
-                        // R12: attendance only once the session has started.
-                        enabled: row.can-mark;
-                        clicked => {
-                            DashboardState.set-status(row.id, StatusAction.attended);
+    // No active term: one card pointing to Settings instead of five empty sections (T028).
+    if !DashboardState.has-term: SectionCard {
+        title: "Getting started";
+        EmptyState {
+            text: "No term yet. Create one in Settings → Term.";
+        }
+    }
+
+    if DashboardState.has-term: VerticalLayout {
+        spacing: Theme.space-xl;
+
+        SectionCard {
+            title: "Awaiting attendance";
+            if DashboardState.awaiting.length > 0: VerticalLayout {
+                for row in DashboardState.awaiting: ListRow {
+                    RowMeta {
+                        text: row.weekday;
+                    }
+                    RowMeta {
+                        text: row.date;
+                    }
+                    RowMeta {
+                        text: row.time;
+                    }
+                    RowText {
+                        text: row.course;
+                        horizontal-stretch: 1;
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        SecondaryButton {
+                            text: "Attended";
+                            // R12: attendance only once the session has started.
+                            enabled: row.can-mark;
+                            clicked => {
+                                DashboardState.set-status(row.id, StatusAction.attended);
+                            }
+                        }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        SecondaryButton {
+                            text: "Absent";
+                            enabled: row.can-mark;
+                            clicked => {
+                                DashboardState.set-status(row.id, StatusAction.absent);
+                            }
+                        }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        SecondaryButton {
+                            // R12: cancelling is allowed at any time.
+                            text: "Cancelled";
+                            clicked => {
+                                DashboardState.set-status(row.id, StatusAction.cancelled);
+                            }
                         }
                     }
                 }
-                VerticalLayout {
-                    alignment: center;
-                    SecondaryButton {
-                        text: "Absent";
-                        enabled: row.can-mark;
-                        clicked => {
-                            DashboardState.set-status(row.id, StatusAction.absent);
-                        }
-                    }
-                }
-                VerticalLayout {
-                    alignment: center;
-                    SecondaryButton {
-                        // R12: cancelling is allowed at any time.
-                        text: "Cancelled";
-                        clicked => {
-                            DashboardState.set-status(row.id, StatusAction.cancelled);
-                        }
-                    }
+            }
+            if DashboardState.awaiting.length == 0: EmptyState {
+                text: "Nothing awaiting attendance. Classes that have ended appear here until you mark them Attended, Absent, or Cancelled.";
+            }
+        }
+
+        SectionCard {
+            title: "Today's classes";
+            // Rows sit flush, separated only by their own divider (DESIGN.md list row).
+            if DashboardState.today.length > 0: VerticalLayout {
+                for row in DashboardState.today: SessionLine {
+                    item: row;
                 }
             }
-        }
-        if DashboardState.awaiting.length == 0: EmptyState {
-            text: "Nothing awaiting attendance.";
-        }
-    }
-
-    SectionCard {
-        title: "Today's classes";
-        // Rows sit flush, separated only by their own divider (DESIGN.md list row).
-        if DashboardState.today.length > 0: VerticalLayout {
-            for row in DashboardState.today: SessionLine {
-                item: row;
+            if DashboardState.today.length == 0: EmptyState {
+                text: "No classes today. Add courses in Courses and weekly slots in Timetable → Rules.";
             }
         }
-        if DashboardState.today.length == 0: EmptyState {
-            text: "No classes today.";
-        }
-    }
 
-    // R17: hidden when the next class is already in Today's classes (viewmodel::show_next_card).
-    if DashboardState.show-next: SectionCard {
-        title: "Next class";
-        if DashboardState.has-next: SessionLine {
-            item: DashboardState.next-class;
-            show-date: true;
-        }
-        if !DashboardState.has-next: EmptyState {
-            text: "No upcoming classes.";
-        }
-    }
-
-    SectionCard {
-        title: "Overdue";
-        if DashboardState.overdue.length > 0: VerticalLayout {
-            for row in DashboardState.overdue: AssessmentLine {
-                item: row;
+        // R17: hidden when the next class is already in Today's classes (viewmodel::show_next_card).
+        if DashboardState.show-next: SectionCard {
+            title: "Next class";
+            if DashboardState.has-next: SessionLine {
+                item: DashboardState.next-class;
+                show-date: true;
+            }
+            if !DashboardState.has-next: EmptyState {
+                text: "No upcoming classes. Add weekly slots in Timetable → Rules to schedule them.";
             }
         }
-        if DashboardState.overdue.length == 0: EmptyState {
-            text: "No overdue assessments.";
-        }
-    }
 
-    SectionCard {
-        title: "Upcoming";
-        if DashboardState.upcoming.length > 0: VerticalLayout {
-            for row in DashboardState.upcoming: AssessmentLine {
-                item: row;
+        SectionCard {
+            title: "Overdue";
+            if DashboardState.overdue.length > 0: VerticalLayout {
+                for row in DashboardState.overdue: AssessmentLine {
+                    item: row;
+                }
+            }
+            if DashboardState.overdue.length == 0: EmptyState {
+                text: "No overdue assessments. Incomplete assessments past their due date appear here.";
             }
         }
-        if DashboardState.upcoming.length == 0: EmptyState {
-            text: "No assessments due soon.";
+
+        SectionCard {
+            title: "Upcoming";
+            if DashboardState.upcoming.length > 0: VerticalLayout {
+                for row in DashboardState.upcoming: AssessmentLine {
+                    item: row;
+                }
+            }
+            if DashboardState.upcoming.length == 0: EmptyState {
+                text: "No assessments due soon. Add them in Assessments with the New assessment form.";
+            }
         }
     }
 }

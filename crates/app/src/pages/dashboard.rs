@@ -9,14 +9,22 @@ use crate::controller::App;
 use crate::viewmodel::{self, DashboardView};
 use crate::{DashboardState, SessionRow};
 
-/// R14, R16–R20: reloads the dashboard relative to a fresh `now`. A core error or an id that does
-/// not fit a Slint `int` is shown in the page's `message`.
+/// R1, R14, R16–R20: reloads the dashboard relative to a fresh `now`. A core error or an id that
+/// does not fit a Slint `int` is shown in the page's `message`.
 pub fn refresh(app: &App) {
     let Some(window) = app.window() else {
         return;
     };
     let state = window.global::<DashboardState>();
     let now = app.now();
+    // T028: without an active term the page shows one "No term yet" card instead of the sections.
+    match app.planner().active_term() {
+        Ok(term) => state.set_has_term(term.is_some()),
+        Err(e) => {
+            state.set_message(viewmodel::error_text(&e).into());
+            return;
+        }
+    }
     let loaded = app.planner().dashboard(now);
     let view = match loaded {
         Ok(d) => viewmodel::dashboard_view(&d),

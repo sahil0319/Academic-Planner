@@ -729,13 +729,20 @@ pub fn filter_title(choice: FilterChoice) -> &'static str {
     }
 }
 
-/// FR-005, FR-008: empty-state sentence of the assessments list for the filter choice.
+/// FR-005, FR-008: empty-state sentence of the assessments list for the filter choice. Says what
+/// will appear and how to add it (DESIGN.md Layout, T028 critique).
 pub fn filter_empty_text(choice: FilterChoice) -> &'static str {
     match choice {
-        FilterChoice::Upcoming => "No upcoming assessments.",
-        FilterChoice::Overdue => "No overdue assessments.",
-        FilterChoice::Completed => "No completed assessments.",
-        FilterChoice::All => "No assessments yet.",
+        FilterChoice::Upcoming => {
+            "No upcoming assessments. Add one in the New assessment form below."
+        }
+        FilterChoice::Overdue => {
+            "No overdue assessments. Incomplete assessments past their due date appear here."
+        }
+        FilterChoice::Completed => {
+            "No completed assessments. Tick an assessment's checkbox to mark it complete."
+        }
+        FilterChoice::All => "No assessments yet. Add one in the New assessment form below.",
     }
 }
 

@@ -131,7 +131,7 @@ export component SettingsPage inherits VerticalLayout {
         title: "Holidays";
 
         if SettingsState.holidays.length == 0: EmptyState {
-            text: "No holidays yet.";
+            text: "No holidays yet. Add a date or a range below with Add holiday; no classes are scheduled on holidays.";
         }
 
         if SettingsState.holidays.length > 0: VerticalLayout {

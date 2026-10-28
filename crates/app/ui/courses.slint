@@ -261,7 +261,7 @@ export component CoursesPage inherits VerticalLayout {
         }
 
         if CoursesState.sessions.length == 0: EmptyState {
-            text: "No sessions yet.";
+            text: "No sessions yet. Classes appear here from this course's weekly slots in Timetable → Rules, or add a makeup class below.";
         }
 
         if CoursesState.sessions.length > 0: ScrollView {
@@ -398,7 +398,7 @@ export component CoursesPage inherits VerticalLayout {
         title: "All courses";
 
         if CoursesState.courses.length == 0: EmptyState {
-            text: "No courses yet. Add one with New course.";
+            text: "No courses yet. Your courses appear here; add one with New course above.";
         }
 
         if CoursesState.courses.length > 0: VerticalLayout {

@@ -60,7 +60,8 @@ Each page file exports `<Name>Page` and `global <Name>State`. Every page global 
 
 ### DashboardState (`ui/dashboard.slint`, `src/pages/dashboard.rs`)
 
-- In: `banner: [string]`, `today: [SessionRow]`, `has-next: bool`, `next-class: SessionRow`,
+- In: `has-term: bool` (T028: false shows only a "No term yet. Create one in Settings → Term."
+  card), `banner: [string]`, `today: [SessionRow]`, `has-next: bool`, `next-class: SessionRow`,
   `show-next: bool` (T028: false when the next class is already in `today`,
   `viewmodel::show_next_card`), `upcoming: [AssessmentRow]`, `overdue: [AssessmentRow]`,
   `awaiting: [SessionRow]`. Section order (T028): banner, awaiting, today, next class, overdue,

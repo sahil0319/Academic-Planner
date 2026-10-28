@@ -274,7 +274,7 @@ component WeekTab inherits VerticalLayout {
     if TimetableState.days.length == 0: SectionCard {
         title: "This week";
         EmptyState {
-            text: "No classes this week.";
+            text: "No classes this week. Add courses in Courses and weekly slots in Timetable → Rules.";
         }
     }
 
@@ -438,7 +438,7 @@ component RulesTab inherits VerticalLayout {
         title: "Slots valid today";
 
         if TimetableState.slots.length == 0: EmptyState {
-            text: "No timetable slots yet. Add a slot to generate classes.";
+            text: "No timetable slots yet. Use Add slot above to add a weekly class; courses come from the Courses page.";
         }
 
         if TimetableState.slots.length > 0: VerticalLayout {

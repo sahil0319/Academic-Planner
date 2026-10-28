@@ -1012,22 +1012,26 @@ fn filter_title_per_choice() {
     assert_eq!(filter_title(FilterChoice::All), "All assessments");
 }
 
-/// FR-005: the empty-state sentence per filter choice is built in Rust.
+/// FR-005, T028 (DESIGN.md Layout): the empty-state sentence per filter choice says what will
+/// appear and how to add it.
 #[test]
 fn filter_empty_text_per_choice() {
     assert_eq!(
         filter_empty_text(FilterChoice::Upcoming),
-        "No upcoming assessments."
+        "No upcoming assessments. Add one in the New assessment form below."
     );
     assert_eq!(
         filter_empty_text(FilterChoice::Overdue),
-        "No overdue assessments."
+        "No overdue assessments. Incomplete assessments past their due date appear here."
     );
     assert_eq!(
         filter_empty_text(FilterChoice::Completed),
-        "No completed assessments."
+        "No completed assessments. Tick an assessment's checkbox to mark it complete."
     );
-    assert_eq!(filter_empty_text(FilterChoice::All), "No assessments yet.");
+    assert_eq!(
+        filter_empty_text(FilterChoice::All),
+        "No assessments yet. Add one in the New assessment form below."
+    );
 }
 
 // ---- Week view ----
