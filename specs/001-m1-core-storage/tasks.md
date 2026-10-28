@@ -153,7 +153,7 @@ Rust workspace. Core crate: `crates/core/src/`, integration tests: `crates/core/
 
 - [X] T025 Run `cargo doc -p planner-core --no-deps` and fix any broken doc links; confirm every public item has a doc comment
 - [X] T026 Run the gate `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` and paste its summary; confirm T20, T24, T26 pass (§7 M1 done-when)
-- [ ] T027 Update .claude/state/progress.json (all tasks) and .claude/state/checkpoint.md (last green gate hash, next milestone M2); commit "M1: milestone complete"
+- [X] T027 Update .claude/state/progress.json (all tasks) and .claude/state/checkpoint.md (last green gate hash, next milestone M2); commit "M1: milestone complete"
 
 ---
 

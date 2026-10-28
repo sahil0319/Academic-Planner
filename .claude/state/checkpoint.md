@@ -1,12 +1,12 @@
 # Checkpoint
-- Milestone: M1 in progress. Feature dir: specs/001-m1-core-storage (spec, plan, tasks.md T001–T027 done)
-- Last green gate: 0f5b6bd (M0)
-- Decision 2026-10-28 (human): M1 implements assessment CRUD so T24 covers the empty-title case (FR-013a).
-- Spec assumptions: change_slot/end_slot are M2 (R7, T10/T11/T27) so stubs in M1; R3 dashboard/sync parts verified in M2.
-- Decision 2026-10-28 (human): sessions_between/sessions_for_course take `now`; is_past = now >= start (docs/spec.md §5 updated).
-- Next: /speckit-analyze
-- Then: /speckit-implement, /speckit-converge, gate. (No checklist step for M1.)
-- Notes:
-  - Local rustc 1.90; Slint pinned to 1.16. Package names: planner-core (lib planner_core), app (bin academic-planner).
-  - clippy.toml clock ban is workspace-wide.
+- Milestone: M1 done (specs/001-m1-core-storage, T001–T028). Next milestone: M2
+- Last green gate: 92393f2 (fmt ok, clippy -D warnings ok, 48 tests pass incl. T20, T24, T26). CI not yet run (not pushed).
+- Next: /speckit-specify "Milestone M2 from docs/spec.md: rules R4-R20, tests T01-T19, T21-T23, T27-T29. Do not add requirements."
+- Decisions (human, 2026-10-28): assessment CRUD done in M1 (FR-013a); sessions_between/sessions_for_course take `now`, is_past = now >= start (docs/spec.md §5).
+- M2 notes:
+  - Stubs: schedule.rs, attendance.rs, dashboard.rs; list_assessments Upcoming/Overdue arms (R18/R19) in db.rs.
+  - Remove `#[allow(dead_code, reason = ...)]` on Status/SessionKind codecs + col_status/col_session_kind in db.rs once used.
+  - change_slot/end_slot need SlotInput::validate (model.rs). R3 sync/dashboard parts: T15, T28.
+  - Reopen tests use shared-cache in-memory URIs (constitution II: no DB files in tests).
+- Notes: rustc 1.90; Slint 1.16; rusqlite 0.41; packages planner-core / app. App does not open the DB yet (M4 uses default_db_path).
 - Open questions: none

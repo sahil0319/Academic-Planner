@@ -1,6 +1,6 @@
 {
   "milestone": "M1",
-  "phase": "implement",
+  "phase": "done",
   "tasks": {
     "specify": "done",
     "plan": "done",
@@ -31,6 +31,7 @@
     "T024": "done",
     "T025": "done",
     "T026": "done",
-    "T028": "done"
+    "T028": "done",
+    "T027": "done"
   }
 }
