@@ -44,7 +44,7 @@ Every builder task ends with `cargo build -p app` and
 
 **Purpose**: everything later phases compile against.
 
-- [ ] T001 [builder] In crates/app/Cargo.toml add `rfd` (latest release that builds on Rust 1.90, default features; record the exact version), `chrono = { workspace = true, features = ["clock"] }`, and `rusqlite.workspace = true` (research R-D1, R-D2, R-D3); in crates/app/build.rs switch to `slint_build::compile_with_config("ui/app-window.slint", slint_build::CompilerConfiguration::new().with_style("fluent-light".into()))` (research R-D7); let `Cargo.lock` update; run `cargo build -p app`. If the Linux CI build later fails for a missing system library, add it to the existing `apt-get install` line in .github/workflows/ci.yml
+- [X] T001 [builder] In crates/app/Cargo.toml add `rfd` (latest release that builds on Rust 1.90, default features; record the exact version), `chrono = { workspace = true, features = ["clock"] }`, and `rusqlite.workspace = true` (research R-D1, R-D2, R-D3); in crates/app/build.rs switch to `slint_build::compile_with_config("ui/app-window.slint", slint_build::CompilerConfiguration::new().with_style("fluent-light".into()))` (research R-D7); let `Cargo.lock` update; run `cargo build -p app`. If the Linux CI build later fails for a missing system library, add it to the existing `apt-get install` line in .github/workflows/ci.yml
 
 ---
 

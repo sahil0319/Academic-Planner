@@ -11,7 +11,10 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
+chrono = { workspace = true, features = ["clock"] }
 planner-core = { path = "../core" }
+rfd = "0.17.2"
+rusqlite.workspace = true
 slint.workspace = true
 
 [build-dependencies]
