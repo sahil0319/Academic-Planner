@@ -1,7 +1,11 @@
 {
   "milestone": "M2",
-  "phase": "specify",
+  "phase": "implement",
   "tasks": {
-    "specify": "done"
+    "specify": "done",
+    "plan": "done",
+    "checklist": "in_review",
+    "tasks": "done",
+    "analyze": "done"
   }
 }
