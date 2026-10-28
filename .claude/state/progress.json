@@ -1,0 +1,14 @@
+{
+  "milestone": "M0",
+  "phase": "done-pending-approval",
+  "tasks": {
+    "workspace": "done",
+    "clippy-toml": "done",
+    "agents-md": "done",
+    "license": "done",
+    "ci": "done",
+    "empty-window": "done",
+    "design-md": "awaiting-human-approval",
+    "constitution": "done"
+  }
+}
