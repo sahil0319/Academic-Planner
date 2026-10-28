@@ -204,6 +204,7 @@ export component SectionCard inherits Rectangle {
 }
 
 // One list row: paper background, bottom divider; children are laid out left to right.
+// The vertical inset keeps a row holding a field-height button at the row height (DESIGN.md).
 export component ListRow inherits Rectangle {
     min-height: Theme.row-height;
     background: Theme.surface;
@@ -211,8 +212,8 @@ export component ListRow inherits Rectangle {
     HorizontalLayout {
         padding-left: Theme.space-sm;
         padding-right: Theme.space-sm;
-        padding-top: Theme.space-xs;
-        padding-bottom: Theme.space-xs;
+        padding-top: (Theme.row-height - Theme.input-height) / 2;
+        padding-bottom: (Theme.row-height - Theme.input-height) / 2;
         spacing: Theme.space-sm;
         alignment: stretch;
         @children
@@ -237,7 +238,8 @@ export component EmptyState inherits Text {
     min-height: Theme.row-height;
 }
 
-// R14: tinted card listing each course below its attendance target.
+// R14: tinted card listing each course below its attendance target. The "Below target" label
+// is always shown with the color (DESIGN.md: meaning is never carried by color alone).
 export component Banner inherits Rectangle {
     in property <[string]> lines;
 
@@ -247,13 +249,20 @@ export component Banner inherits Rectangle {
     VerticalLayout {
         padding: Theme.space-md;
         spacing: Theme.space-xs;
+        Text {
+            text: "Below target";
+            color: Theme.below-target;
+            font-family: Theme.font-body;
+            font-size: Theme.label-md-size;
+            font-weight: Theme.label-md-weight;
+        }
         for line in root.lines: Text {
             text: line;
             color: Theme.below-target;
             wrap: word-wrap;
             font-family: Theme.font-body;
             font-size: Theme.body-md-size;
-            font-weight: Theme.label-md-weight;
+            font-weight: Theme.body-md-weight;
         }
     }
 }

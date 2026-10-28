@@ -95,6 +95,7 @@ component FormError inherits Text {
 // Body text in a row.
 component RowText inherits Text {
     vertical-alignment: center;
+    overflow: elide;
     color: Theme.on-surface;
     font-family: Theme.font-body;
     font-size: Theme.body-md-size;
@@ -128,6 +129,7 @@ component ComboField inherits VerticalLayout {
     }
 
     ComboBox {
+        height: Theme.input-height;
         model: root.options;
         current-index <=> root.index;
     }
@@ -173,7 +175,7 @@ component SessionPanel inherits Rectangle {
                 }
             }
             SecondaryButton {
-                text: "Cancel";
+                text: "Cancelled";
                 clicked => {
                     TimetableState.set-status(root.session.id, StatusAction.cancelled);
                 }
@@ -278,31 +280,36 @@ component WeekTab inherits VerticalLayout {
 
     for day in TimetableState.days: SectionCard {
         title: day.title;
-        for row in day.rows: VerticalLayout {
-            ListRow {
-                RowText {
-                    text: row.time;
-                }
-                RowText {
-                    text: row.course;
-                    horizontal-stretch: 1;
-                }
-                RowMeta {
-                    text: row.room;
-                }
-                StatusChip {
-                    chip: row.chip;
-                    text: row.status-label;
-                }
-                SecondaryButton {
-                    text: TimetableState.has-selected && TimetableState.selected.id == row.id ? "Close" : "Select";
-                    clicked => {
-                        TimetableState.select-session(row.id);
+        if day.rows.length > 0: VerticalLayout {
+            for row in day.rows: VerticalLayout {
+                ListRow {
+                    RowText {
+                        text: row.time;
+                    }
+                    RowText {
+                        text: row.course;
+                        horizontal-stretch: 1;
+                    }
+                    RowMeta {
+                        text: row.room;
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        StatusChip {
+                            chip: row.chip;
+                            text: row.status-label;
+                        }
+                    }
+                    SecondaryButton {
+                        text: TimetableState.has-selected && TimetableState.selected.id == row.id ? "Close" : "Select";
+                        clicked => {
+                            TimetableState.select-session(row.id);
+                        }
                     }
                 }
-            }
-            if TimetableState.has-selected && TimetableState.selected.id == row.id: SessionPanel {
-                session: TimetableState.selected;
+                if TimetableState.has-selected && TimetableState.selected.id == row.id: SessionPanel {
+                    session: TimetableState.selected;
+                }
             }
         }
     }
@@ -434,33 +441,35 @@ component RulesTab inherits VerticalLayout {
             text: "No timetable slots yet. Add a slot to generate classes.";
         }
 
-        for slot in TimetableState.slots: ListRow {
-            RowText {
-                text: slot.weekday;
-            }
-            RowText {
-                text: slot.time;
-            }
-            RowText {
-                text: slot.course;
-                horizontal-stretch: 1;
-            }
-            RowMeta {
-                text: slot.room;
-            }
-            RowMeta {
-                text: slot.valid;
-            }
-            SecondaryButton {
-                text: "Edit";
-                clicked => {
-                    TimetableState.begin-edit-slot(slot.id);
+        if TimetableState.slots.length > 0: VerticalLayout {
+            for slot in TimetableState.slots: ListRow {
+                RowText {
+                    text: slot.weekday;
                 }
-            }
-            SecondaryButton {
-                text: "End";
-                clicked => {
-                    TimetableState.begin-end-slot(slot.id);
+                RowText {
+                    text: slot.time;
+                }
+                RowText {
+                    text: slot.course;
+                    horizontal-stretch: 1;
+                }
+                RowMeta {
+                    text: slot.room;
+                }
+                RowMeta {
+                    text: slot.valid;
+                }
+                SecondaryButton {
+                    text: "Edit";
+                    clicked => {
+                        TimetableState.begin-edit-slot(slot.id);
+                    }
+                }
+                SecondaryButton {
+                    text: "End";
+                    clicked => {
+                        TimetableState.begin-end-slot(slot.id);
+                    }
                 }
             }
         }
@@ -468,7 +477,7 @@ component RulesTab inherits VerticalLayout {
 }
 
 export component TimetablePage inherits VerticalLayout {
-    spacing: Theme.space-lg;
+    spacing: Theme.space-xl;
     alignment: start;
 
     PageTitle {

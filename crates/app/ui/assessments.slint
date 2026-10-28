@@ -137,7 +137,7 @@ component RowText inherits Text {
 }
 
 export component AssessmentsPage inherits VerticalLayout {
-    spacing: Theme.space-lg;
+    spacing: Theme.space-xl;
     alignment: start;
 
     PageTitle {
@@ -194,59 +194,61 @@ export component AssessmentsPage inherits VerticalLayout {
             text: AssessmentsState.empty-text;
         }
 
-        for row in AssessmentsState.rows: ListRow {
-            CheckBox {
-                horizontal-stretch: 0;
-                checked: row.completed;
-                toggled => {
-                    AssessmentsState.set-completed(row.id, self.checked);
-                }
-            }
-            RowText {
-                horizontal-stretch: 0;
-                text: row.course-code;
-                strong: true;
-            }
-            RowText {
-                horizontal-stretch: 0;
-                text: row.kind;
-                muted: true;
-            }
-            VerticalLayout {
-                horizontal-stretch: 1;
-                alignment: center;
-                RowText {
-                    text: row.title;
-                    muted: row.completed;
-                }
-                if row.notes != "": RowText {
-                    text: row.notes;
-                    muted: true;
-                    font-size: Theme.body-sm-size;
-                }
-            }
-            RowText {
-                horizontal-stretch: 0;
-                text: row.due;
-                muted: true;
-            }
-            VerticalLayout {
-                horizontal-stretch: 0;
-                alignment: center;
-                SecondaryButton {
-                    text: "Edit";
-                    clicked => {
-                        AssessmentsState.begin-edit(row.id);
+        if AssessmentsState.rows.length > 0: VerticalLayout {
+            for row in AssessmentsState.rows: ListRow {
+                CheckBox {
+                    horizontal-stretch: 0;
+                    checked: row.completed;
+                    toggled => {
+                        AssessmentsState.set-completed(row.id, self.checked);
                     }
                 }
-            }
-            VerticalLayout {
-                horizontal-stretch: 0;
-                alignment: center;
-                SecondaryButton {
-                    text: "Delete";
-                    clicked => {
-                        AssessmentsState.delete(row.id);
+                RowText {
+                    horizontal-stretch: 0;
+                    text: row.course-code;
+                    strong: true;
+                }
+                RowText {
+                    horizontal-stretch: 0;
+                    text: row.kind;
+                    muted: true;
+                }
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    alignment: center;
+                    RowText {
+                        text: row.title;
+                        muted: row.completed;
+                    }
+                    if row.notes != "": RowText {
+                        text: row.notes;
+                        muted: true;
+                        font-size: Theme.body-sm-size;
+                    }
+                }
+                RowText {
+                    horizontal-stretch: 0;
+                    text: row.due;
+                    muted: true;
+                }
+                VerticalLayout {
+                    horizontal-stretch: 0;
+                    alignment: center;
+                    SecondaryButton {
+                        text: "Edit";
+                        clicked => {
+                            AssessmentsState.begin-edit(row.id);
+                        }
+                    }
+                }
+                VerticalLayout {
+                    horizontal-stretch: 0;
+                    alignment: center;
+                    SecondaryButton {
+                        text: "Delete";
+                        clicked => {
+                            AssessmentsState.delete(row.id);
+                        }
                     }
                 }
             }

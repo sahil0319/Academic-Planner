@@ -66,12 +66,12 @@ export global CoursesState {
     callback add-makeup();
 }
 
-// Muted caption above a value.
+// Muted caption above a value; label type (label-sm is reserved for status chips).
 component Caption inherits Text {
     color: Theme.on-surface-muted;
     font-family: Theme.font-body;
-    font-size: Theme.label-sm-size;
-    font-weight: Theme.label-sm-weight;
+    font-size: Theme.label-md-size;
+    font-weight: Theme.label-md-weight;
 }
 
 // Body text in ink.
@@ -112,7 +112,7 @@ component Figure inherits VerticalLayout {
 }
 
 export component CoursesPage inherits VerticalLayout {
-    spacing: Theme.space-lg;
+    spacing: Theme.space-xl;
     alignment: start;
 
     PageTitle {
@@ -133,7 +133,8 @@ export component CoursesPage inherits VerticalLayout {
                 CoursesState.toggle-archived(self.checked);
             }
         }
-        PrimaryButton {
+        // Secondary, like "Add slot": terracotta stays on the form's Save.
+        SecondaryButton {
             text: "New course";
             clicked => {
                 CoursesState.begin-create();
@@ -400,91 +401,93 @@ export component CoursesPage inherits VerticalLayout {
             text: "No courses yet. Add one with New course.";
         }
 
-        for c in CoursesState.courses: ListRow {
-            VerticalLayout {
-                horizontal-stretch: 1;
-                alignment: center;
-                HorizontalLayout {
-                    spacing: Theme.space-sm;
-                    Body {
-                        text: c.code;
-                        horizontal-stretch: 0;
-                        font-weight: Theme.label-md-weight;
+        if CoursesState.courses.length > 0: VerticalLayout {
+            for c in CoursesState.courses: ListRow {
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    alignment: center;
+                    HorizontalLayout {
+                        spacing: Theme.space-sm;
+                        Body {
+                            text: c.code;
+                            horizontal-stretch: 0;
+                            font-weight: Theme.label-md-weight;
+                        }
+                        Body {
+                            text: c.name;
+                        }
+                        // R3: archived courses are marked in the list.
+                        if c.archived: VerticalLayout {
+                            alignment: center;
+                            StatusChip {
+                                chip: Chip.cancelled;
+                                text: "Archived";
+                            }
+                        }
                     }
-                    Body {
-                        text: c.name;
-                    }
-                    // R3: archived courses are marked in the list.
-                    if c.archived: VerticalLayout {
-                        alignment: center;
-                        StatusChip {
-                            chip: Chip.cancelled;
-                            text: "Archived";
+                    HorizontalLayout {
+                        spacing: Theme.space-xs;
+                        alignment: start;
+                        Caption {
+                            text: "Instructor";
+                            vertical-alignment: center;
+                        }
+                        Meta {
+                            text: c.instructor;
+                            horizontal-stretch: 0;
+                        }
+                        Caption {
+                            text: "Room";
+                            vertical-alignment: center;
+                        }
+                        Meta {
+                            text: c.room;
+                            horizontal-stretch: 0;
+                        }
+                        Caption {
+                            text: "Target";
+                            vertical-alignment: center;
+                        }
+                        Meta {
+                            text: c.target;
+                            horizontal-stretch: 0;
                         }
                     }
                 }
-                HorizontalLayout {
-                    spacing: Theme.space-xs;
-                    alignment: start;
-                    Caption {
-                        text: "Instructor";
-                        vertical-alignment: center;
-                    }
-                    Meta {
-                        text: c.instructor;
-                        horizontal-stretch: 0;
-                    }
-                    Caption {
-                        text: "Room";
-                        vertical-alignment: center;
-                    }
-                    Meta {
-                        text: c.room;
-                        horizontal-stretch: 0;
-                    }
-                    Caption {
-                        text: "Target";
-                        vertical-alignment: center;
-                    }
-                    Meta {
-                        text: c.target;
-                        horizontal-stretch: 0;
+                VerticalLayout {
+                    alignment: center;
+                    SecondaryButton {
+                        text: "Details";
+                        clicked => {
+                            CoursesState.open-detail(c.id);
+                        }
                     }
                 }
-            }
-            VerticalLayout {
-                alignment: center;
-                SecondaryButton {
-                    text: "Details";
-                    clicked => {
-                        CoursesState.open-detail(c.id);
+                VerticalLayout {
+                    alignment: center;
+                    SecondaryButton {
+                        text: "Edit";
+                        clicked => {
+                            CoursesState.begin-edit(c.id);
+                        }
                     }
                 }
-            }
-            VerticalLayout {
-                alignment: center;
-                SecondaryButton {
-                    text: "Edit";
-                    clicked => {
-                        CoursesState.begin-edit(c.id);
+                if !c.archived: VerticalLayout {
+                    alignment: center;
+                    SecondaryButton {
+                        text: "Archive";
+                        clicked => {
+                            CoursesState.set-archived(c.id, true);
+                        }
                     }
                 }
-            }
-            if !c.archived: VerticalLayout {
-                alignment: center;
-                SecondaryButton {
-                    text: "Archive";
-                    clicked => {
-                        CoursesState.set-archived(c.id, true);
-                    }
-                }
-            }
-            if c.archived: VerticalLayout {
-                alignment: center;
-                SecondaryButton {
-                    text: "Unarchive";
-                    clicked => {
-                        CoursesState.set-archived(c.id, false);
+                if c.archived: VerticalLayout {
+                    alignment: center;
+                    SecondaryButton {
+                        text: "Unarchive";
+                        clicked => {
+                            CoursesState.set-archived(c.id, false);
+                        }
                     }
                 }
             }

@@ -35,6 +35,7 @@ export global DashboardState {
 // Primary row text.
 component RowText inherits Text {
     vertical-alignment: center;
+    overflow: elide;
     color: Theme.on-surface;
     font-family: Theme.font-body;
     font-size: Theme.body-md-size;
@@ -100,7 +101,7 @@ component AssessmentLine inherits ListRow {
 }
 
 export component DashboardPage inherits VerticalLayout {
-    spacing: Theme.space-lg;
+    spacing: Theme.space-xl;
     alignment: start;
 
     PageTitle {
@@ -123,8 +124,11 @@ export component DashboardPage inherits VerticalLayout {
 
     SectionCard {
         title: "Today's classes";
-        for row in DashboardState.today: SessionLine {
-            item: row;
+        // Rows sit flush, separated only by their own divider (DESIGN.md list row).
+        if DashboardState.today.length > 0: VerticalLayout {
+            for row in DashboardState.today: SessionLine {
+                item: row;
+            }
         }
         if DashboardState.today.length == 0: EmptyState {
             text: "No classes today.";
@@ -144,8 +148,10 @@ export component DashboardPage inherits VerticalLayout {
 
     SectionCard {
         title: "Upcoming";
-        for row in DashboardState.upcoming: AssessmentLine {
-            item: row;
+        if DashboardState.upcoming.length > 0: VerticalLayout {
+            for row in DashboardState.upcoming: AssessmentLine {
+                item: row;
+            }
         }
         if DashboardState.upcoming.length == 0: EmptyState {
             text: "No assessments due soon.";
@@ -154,8 +160,10 @@ export component DashboardPage inherits VerticalLayout {
 
     SectionCard {
         title: "Overdue";
-        for row in DashboardState.overdue: AssessmentLine {
-            item: row;
+        if DashboardState.overdue.length > 0: VerticalLayout {
+            for row in DashboardState.overdue: AssessmentLine {
+                item: row;
+            }
         }
         if DashboardState.overdue.length == 0: EmptyState {
             text: "No overdue assessments.";
@@ -164,48 +172,50 @@ export component DashboardPage inherits VerticalLayout {
 
     SectionCard {
         title: "Awaiting attendance";
-        for row in DashboardState.awaiting: ListRow {
-            RowMeta {
-                text: row.weekday;
-            }
-            RowMeta {
-                text: row.date;
-            }
-            RowMeta {
-                text: row.time;
-            }
-            RowText {
-                text: row.course;
-                horizontal-stretch: 1;
-            }
-            VerticalLayout {
-                alignment: center;
-                SecondaryButton {
-                    text: "Attended";
-                    // R12: attendance only once the session has started.
-                    enabled: row.can-mark;
-                    clicked => {
-                        DashboardState.set-status(row.id, StatusAction.attended);
+        if DashboardState.awaiting.length > 0: VerticalLayout {
+            for row in DashboardState.awaiting: ListRow {
+                RowMeta {
+                    text: row.weekday;
+                }
+                RowMeta {
+                    text: row.date;
+                }
+                RowMeta {
+                    text: row.time;
+                }
+                RowText {
+                    text: row.course;
+                    horizontal-stretch: 1;
+                }
+                VerticalLayout {
+                    alignment: center;
+                    SecondaryButton {
+                        text: "Attended";
+                        // R12: attendance only once the session has started.
+                        enabled: row.can-mark;
+                        clicked => {
+                            DashboardState.set-status(row.id, StatusAction.attended);
+                        }
                     }
                 }
-            }
-            VerticalLayout {
-                alignment: center;
-                SecondaryButton {
-                    text: "Absent";
-                    enabled: row.can-mark;
-                    clicked => {
-                        DashboardState.set-status(row.id, StatusAction.absent);
+                VerticalLayout {
+                    alignment: center;
+                    SecondaryButton {
+                        text: "Absent";
+                        enabled: row.can-mark;
+                        clicked => {
+                            DashboardState.set-status(row.id, StatusAction.absent);
+                        }
                     }
                 }
-            }
-            VerticalLayout {
-                alignment: center;
-                SecondaryButton {
-                    // R12: cancelling is allowed at any time.
-                    text: "Cancelled";
-                    clicked => {
-                        DashboardState.set-status(row.id, StatusAction.cancelled);
+                VerticalLayout {
+                    alignment: center;
+                    SecondaryButton {
+                        // R12: cancelling is allowed at any time.
+                        text: "Cancelled";
+                        clicked => {
+                            DashboardState.set-status(row.id, StatusAction.cancelled);
+                        }
                     }
                 }
             }

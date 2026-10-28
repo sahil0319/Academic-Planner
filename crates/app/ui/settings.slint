@@ -74,7 +74,7 @@ component BodyText inherits Text {
 }
 
 export component SettingsPage inherits VerticalLayout {
-    spacing: Theme.space-lg;
+    spacing: Theme.space-xl;
     alignment: start;
 
     PageTitle {
@@ -94,7 +94,6 @@ export component SettingsPage inherits VerticalLayout {
 
         HorizontalLayout {
             spacing: Theme.space-md;
-            alignment: start;
             Field {
                 label: "Name";
                 text <=> SettingsState.term-name;
@@ -135,37 +134,38 @@ export component SettingsPage inherits VerticalLayout {
             text: "No holidays yet.";
         }
 
-        for row in SettingsState.holidays: ListRow {
-            Text {
-                text: row.date;
-                vertical-alignment: center;
-                color: Theme.on-surface;
-                font-family: Theme.font-body;
-                font-size: Theme.body-md-size;
-                font-weight: Theme.body-md-weight;
-            }
+        if SettingsState.holidays.length > 0: VerticalLayout {
+            for row in SettingsState.holidays: ListRow {
+                Text {
+                    text: row.date;
+                    vertical-alignment: center;
+                    color: Theme.on-surface;
+                    font-family: Theme.font-body;
+                    font-size: Theme.body-md-size;
+                    font-weight: Theme.body-md-weight;
+                }
 
-            Text {
-                text: row.label;
-                horizontal-stretch: 1;
-                vertical-alignment: center;
-                color: Theme.on-surface-muted;
-                font-family: Theme.font-body;
-                font-size: Theme.body-md-size;
-                font-weight: Theme.body-md-weight;
-            }
+                Text {
+                    text: row.label;
+                    horizontal-stretch: 1;
+                    vertical-alignment: center;
+                    color: Theme.on-surface-muted;
+                    font-family: Theme.font-body;
+                    font-size: Theme.body-md-size;
+                    font-weight: Theme.body-md-weight;
+                }
 
-            SecondaryButton {
-                text: "Remove";
-                clicked => {
-                    SettingsState.remove-holiday(row.date);
+                SecondaryButton {
+                    text: "Remove";
+                    clicked => {
+                        SettingsState.remove-holiday(row.date);
+                    }
                 }
             }
         }
 
         HorizontalLayout {
             spacing: Theme.space-md;
-            alignment: start;
             Field {
                 label: "Date or first day (YYYY-MM-DD)";
                 text <=> SettingsState.hol-start;
@@ -204,7 +204,6 @@ export component SettingsPage inherits VerticalLayout {
 
         HorizontalLayout {
             spacing: Theme.space-md;
-            alignment: start;
             Field {
                 label: "Class reminder (minutes before)";
                 text <=> SettingsState.reminder;
