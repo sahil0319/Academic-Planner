@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Weekday};
 use directories::ProjectDirs;
 use rusqlite::types::Type;
-use rusqlite::{Connection, Row};
+use rusqlite::{params, Connection, OptionalExtension, Row};
 
 use crate::error::{Error, Result};
 use crate::model::*;
@@ -99,43 +99,148 @@ impl Planner {
 
     /// R1: the active term, if any.
     pub fn active_term(&self) -> Result<Option<Term>> {
-        todo!("M1")
+        match active_term_id(&self.conn)? {
+            Some(id) => load_term(&self.conn, id).map(Some),
+            None => Ok(None),
+        }
     }
 
-    /// R1, R2: creates or updates a term and makes it the only active term.
+    /// R1, R2: creates (`input.id = None`) or updates a term and makes it the only active
+    /// term, in one transaction.
     pub fn save_term(&mut self, input: TermInput) -> Result<Term> {
-        let _ = input;
-        todo!("M1")
+        let tx = self.conn.transaction()?;
+        tx.execute("UPDATE term SET is_active = 0 WHERE is_active = 1", [])?;
+        let (start, end) = (fmt_date(input.start_date), fmt_date(input.end_date));
+        let id = match input.id {
+            Some(id) => {
+                let changed = tx.execute(
+                    "UPDATE term SET name = ?1, start_date = ?2, end_date = ?3, is_active = 1
+                     WHERE id = ?4",
+                    params![input.name, start, end, id],
+                )?;
+                if changed == 0 {
+                    return Err(Error::NotFound { entity: "term", id });
+                }
+                id
+            }
+            None => {
+                tx.execute(
+                    "INSERT INTO term (name, start_date, end_date, is_active)
+                     VALUES (?1, ?2, ?3, 1)",
+                    params![input.name, start, end],
+                )?;
+                tx.last_insert_rowid()
+            }
+        };
+        let term = load_term(&tx, id)?;
+        tx.commit()?;
+        Ok(term)
     }
 
-    /// Replaces the holidays of a term with `days`.
+    /// Replaces the holidays of a term with `days`, in one transaction.
     pub fn set_holidays(&mut self, term_id: i64, days: &[Holiday]) -> Result<()> {
-        let _ = (term_id, days);
-        todo!("M1")
+        let tx = self.conn.transaction()?;
+        let exists: bool = tx.query_row(
+            "SELECT EXISTS (SELECT 1 FROM term WHERE id = ?1)",
+            [term_id],
+            |r| r.get(0),
+        )?;
+        if !exists {
+            return Err(Error::NotFound {
+                entity: "term",
+                id: term_id,
+            });
+        }
+        tx.execute("DELETE FROM holiday WHERE term_id = ?1", [term_id])?;
+        {
+            let mut insert =
+                tx.prepare("INSERT INTO holiday (term_id, date, label) VALUES (?1, ?2, ?3)")?;
+            for day in days {
+                insert.execute(params![term_id, fmt_date(day.date), day.label])?;
+            }
+        }
+        tx.commit()?;
+        Ok(())
     }
 
     /// R1, R2: creates a course in the active term.
     pub fn create_course(&mut self, input: CourseInput) -> Result<Course> {
-        let _ = input;
-        todo!("M1")
+        let tx = self.conn.transaction()?;
+        let term_id = active_term_id(&tx)?.ok_or(Error::NoActiveTerm)?;
+        tx.execute(
+            "INSERT INTO course (term_id, code, name, instructor, room, notes, min_attendance_pct)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                term_id,
+                input.code,
+                input.name,
+                input.instructor,
+                input.room,
+                input.notes,
+                input.min_attendance_pct
+            ],
+        )?;
+        let course = load_course(&tx, tx.last_insert_rowid())?;
+        tx.commit()?;
+        Ok(course)
     }
 
-    /// R2: updates a course.
+    /// R2: updates a course; its term and archived flag are unchanged.
     pub fn update_course(&mut self, id: i64, input: CourseInput) -> Result<Course> {
-        let _ = (id, input);
-        todo!("M1")
+        let tx = self.conn.transaction()?;
+        let changed = tx.execute(
+            "UPDATE course SET code = ?1, name = ?2, instructor = ?3, room = ?4, notes = ?5,
+                 min_attendance_pct = ?6
+             WHERE id = ?7",
+            params![
+                input.code,
+                input.name,
+                input.instructor,
+                input.room,
+                input.notes,
+                input.min_attendance_pct,
+                id
+            ],
+        )?;
+        if changed == 0 {
+            return Err(Error::NotFound {
+                entity: "course",
+                id,
+            });
+        }
+        let course = load_course(&tx, id)?;
+        tx.commit()?;
+        Ok(course)
     }
 
     /// R3: archives or unarchives a course. Its sessions and assessments are kept.
     pub fn set_archived(&mut self, id: i64, archived: bool) -> Result<()> {
-        let _ = (id, archived);
-        todo!("M1")
+        let changed = self.conn.execute(
+            "UPDATE course SET archived = ?1 WHERE id = ?2",
+            params![archived, id],
+        )?;
+        if changed == 0 {
+            return Err(Error::NotFound {
+                entity: "course",
+                id,
+            });
+        }
+        Ok(())
     }
 
-    /// R1, R3: courses of the active term, ordered by code.
+    /// R1, R3: courses of the active term, ordered by code. Archived courses are included
+    /// only when `include_archived` is set.
     pub fn list_courses(&self, include_archived: bool) -> Result<Vec<Course>> {
-        let _ = include_archived;
-        todo!("M1")
+        let mut stmt = self.conn.prepare(&format!(
+            "SELECT {COURSE_COLS} FROM course
+             WHERE term_id = (SELECT id FROM term WHERE is_active = 1)
+               AND (?1 OR archived = 0)
+             ORDER BY code"
+        ))?;
+        let courses = stmt
+            .query_map([include_archived], course_from_row)?
+            .collect::<rusqlite::Result<_>>()?;
+        Ok(courses)
     }
 
     /// R2: adds a recurring timetable slot.
@@ -190,6 +295,77 @@ impl Planner {
         let _ = filter;
         todo!("M1")
     }
+}
+
+// ---- row loaders (take `&Connection` so they also work inside a transaction) ----
+
+/// R1: id of the active term, if any.
+fn active_term_id(conn: &Connection) -> Result<Option<i64>> {
+    let id = conn
+        .query_row("SELECT id FROM term WHERE is_active = 1", [], |r| r.get(0))
+        .optional()?;
+    Ok(id)
+}
+
+fn load_term(conn: &Connection, id: i64) -> Result<Term> {
+    let term = conn
+        .query_row(
+            "SELECT id, name, start_date, end_date, is_active FROM term WHERE id = ?1",
+            [id],
+            |r| {
+                Ok(Term {
+                    id: r.get(0)?,
+                    name: r.get(1)?,
+                    start_date: col_date(r, 2)?,
+                    end_date: col_date(r, 3)?,
+                    is_active: r.get(4)?,
+                    holidays: Vec::new(),
+                })
+            },
+        )
+        .optional()?
+        .ok_or(Error::NotFound { entity: "term", id })?;
+    let mut stmt =
+        conn.prepare("SELECT date, label FROM holiday WHERE term_id = ?1 ORDER BY date")?;
+    let holidays = stmt
+        .query_map([id], |r| {
+            Ok(Holiday {
+                date: col_date(r, 0)?,
+                label: r.get(1)?,
+            })
+        })?
+        .collect::<rusqlite::Result<_>>()?;
+    Ok(Term { holidays, ..term })
+}
+
+const COURSE_COLS: &str =
+    "id, term_id, code, name, instructor, room, notes, min_attendance_pct, archived";
+
+fn course_from_row(r: &Row) -> rusqlite::Result<Course> {
+    Ok(Course {
+        id: r.get(0)?,
+        term_id: r.get(1)?,
+        code: r.get(2)?,
+        name: r.get(3)?,
+        instructor: r.get(4)?,
+        room: r.get(5)?,
+        notes: r.get(6)?,
+        min_attendance_pct: r.get(7)?,
+        archived: r.get(8)?,
+    })
+}
+
+fn load_course(conn: &Connection, id: i64) -> Result<Course> {
+    conn.query_row(
+        &format!("SELECT {COURSE_COLS} FROM course WHERE id = ?1"),
+        [id],
+        course_from_row,
+    )
+    .optional()?
+    .ok_or(Error::NotFound {
+        entity: "course",
+        id,
+    })
 }
 
 // ---- text codecs (docs/spec.md §1: YYYY-MM-DD, HH:MM, YYYY-MM-DDTHH:MM) ----
