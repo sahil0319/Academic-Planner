@@ -79,6 +79,7 @@ Each `parse_*_form` turns the form's text fields into the matching §5 input typ
 | `filter: FilterChoice` | Upcoming | assessments filter |
 | `selected_session: Option<i64>` | None | week view selection |
 | `course_ids: Vec<i64>` | from `list_courses(false)` | each refresh (combo index → id) |
+| `assessment_course_ids: Vec<i64>` | from `list_courses(false)`, plus the edited assessment's archived course (R3) | each assessments refresh and form open (combo index → id) |
 | `pending_restore: Option<PathBuf>` | None | restore pick / cancel / confirm |
 
 ## Files written by the app (user action only)

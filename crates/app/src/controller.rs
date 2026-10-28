@@ -33,6 +33,8 @@ pub struct UiState {
     pub selected_session: Option<i64>,
     /// Combo box index to course id, rebuilt on each refresh.
     pub course_ids: Vec<i64>,
+    /// Assessments form combo index to course id, rebuilt on each assessments refresh.
+    pub assessment_course_ids: Vec<i64>,
     /// R22: backup file picked for restore, waiting for confirmation.
     pub pending_restore: Option<PathBuf>,
 }
@@ -48,6 +50,7 @@ impl UiState {
             filter: FilterChoice::Upcoming,
             selected_session: None,
             course_ids: Vec::new(),
+            assessment_course_ids: Vec::new(),
             pending_restore: None,
         }
     }

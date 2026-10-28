@@ -25,7 +25,8 @@ export global AssessmentsState {
     in property <string> list-title: "Upcoming";
     in property <string> empty-text: "No upcoming assessments.";
     in property <[AssessmentRow]> rows;
-    // Combo labels from viewmodel::course_option_label, active courses only.
+    // Combo labels from viewmodel::course_option_label: active courses, plus the archived course
+    // of the assessment being edited (R3).
     in property <[string]> course-options;
     // Combo labels from viewmodel::assessment_kind_label, index order of
     // viewmodel::assessment_kind_from_index.

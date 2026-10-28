@@ -54,11 +54,12 @@ pub fn refresh(app: &App) {
         }
     }
 
-    match active_courses(app) {
-        Ok(courses) => {
-            let labels: Vec<String> = courses.iter().map(vm::course_option_label).collect();
-            st.set_course_options(bridge::strings(&labels));
-        }
+    // Keep the chosen course across refreshes by id, not combo index: the course list may have
+    // changed (created, archived) while the form was open.
+    let chosen = selected_course_id(app, st.get_course());
+    let keep = chosen.filter(|_| st.get_editing_id() >= 0);
+    match fill_course_options(app, &st, keep) {
+        Ok(()) => st.set_course(course_index(app, chosen)),
         Err(e) => problems.push(e),
     }
 
@@ -133,6 +134,48 @@ fn active_courses(app: &App) -> Result<Vec<Course>, String> {
         .map_err(|e| vm::error_text(&e))
 }
 
+/// Sets the course combo to the active courses plus, when `keep` names an archived course, that
+/// course at the end, so an assessment of an archived course (R3) can be saved unchanged. Stores
+/// the index-to-id map in `UiState::assessment_course_ids`.
+fn fill_course_options(
+    app: &App,
+    st: &AssessmentsState<'_>,
+    keep: Option<i64>,
+) -> Result<(), String> {
+    let mut courses = active_courses(app)?;
+    if let Some(id) = keep {
+        if !courses.iter().any(|c| c.id == id) {
+            let all = app
+                .planner()
+                .list_courses(true)
+                .map_err(|e| vm::error_text(&e))?;
+            courses.extend(all.into_iter().filter(|c| c.id == id));
+        }
+    }
+    let labels: Vec<String> = courses.iter().map(vm::course_option_label).collect();
+    st.set_course_options(bridge::strings(&labels));
+    app.state().assessment_course_ids = courses.iter().map(|c| c.id).collect();
+    Ok(())
+}
+
+/// Course id behind combo `index` in the current options, if any.
+fn selected_course_id(app: &App, index: i32) -> Option<i64> {
+    let i = usize::try_from(index).ok()?;
+    app.state().assessment_course_ids.get(i).copied()
+}
+
+/// Combo index of course `id` in the current options, or `NONE`.
+fn course_index(app: &App, id: Option<i64>) -> i32 {
+    id.and_then(|id| {
+        app.state()
+            .assessment_course_ids
+            .iter()
+            .position(|&c| c == id)
+    })
+    .and_then(|i| i32::try_from(i).ok())
+    .unwrap_or(NONE)
+}
+
 /// After a row action: on success refreshes every page; on error refreshes this page (so a
 /// toggled checkbox shows the stored value again) and shows the error.
 fn finish_row_action(app: &App, result: planner_core::Result<()>) {
@@ -159,32 +202,32 @@ fn clear_form(app: &App) {
     st.set_due_time(SharedString::new());
     st.set_notes(SharedString::new());
     st.set_remind(SharedString::new());
-    show_errors(&st, &FormErrors::default(), "");
+    // A new assessment offers active courses only; drop an archived course kept for editing.
+    let problem = fill_course_options(app, &st, None)
+        .err()
+        .unwrap_or_default();
+    show_errors(&st, &FormErrors::default(), &problem);
 }
 
-/// Fills the form with the stored assessment `id`. A course that is archived is not in the combo,
-/// so the course must be chosen again before saving.
+/// Fills the form with the stored assessment `id`. Its course is shown even when archived (R3),
+/// so saving unchanged works.
 fn begin_edit(app: &App, id: i32) {
     let Some(window) = app.window() else {
         return;
     };
     let st = window.global::<AssessmentsState>();
-    let found = find_assessment(app, i64::from(id));
-    let (assessment, courses) = match found {
+    let found = find_assessment(app, i64::from(id))
+        .and_then(|a| fill_course_options(app, &st, Some(a.course_id)).map(|()| a));
+    let assessment = match found {
         Ok(found) => found,
         Err(e) => {
             st.set_message(e.into());
             return;
         }
     };
-    let course_index = courses
-        .iter()
-        .position(|c| c.id == assessment.course_id)
-        .and_then(|i| i32::try_from(i).ok())
-        .unwrap_or(NONE);
 
     st.set_editing_id(id);
-    st.set_course(course_index);
+    st.set_course(course_index(app, Some(assessment.course_id)));
     st.set_kind(vm::assessment_kind_index(assessment.kind));
     st.set_title(assessment.title.as_str().into());
     st.set_due_date(vm::format_date(assessment.due_at.date()).into());
@@ -200,18 +243,16 @@ fn begin_edit(app: &App, id: i32) {
     show_errors(&st, &FormErrors::default(), "");
 }
 
-/// The stored assessment `id` and the combo's course list. Core has no single-assessment getter,
-/// so the full list is searched.
-fn find_assessment(app: &App, id: i64) -> Result<(Assessment, Vec<Course>), String> {
+/// The stored assessment `id`. Core has no single-assessment getter, so the full list is
+/// searched.
+fn find_assessment(app: &App, id: i64) -> Result<Assessment, String> {
     let all = app
         .planner()
         .list_assessments(AssessmentFilter::All)
         .map_err(|e| vm::error_text(&e))?;
-    let assessment = all
-        .into_iter()
+    all.into_iter()
         .find(|a| a.id == id)
-        .ok_or_else(|| "This assessment no longer exists".to_string())?;
-    Ok((assessment, active_courses(app)?))
+        .ok_or_else(|| "This assessment no longer exists".to_string())
 }
 
 /// FR-007 field checks, then create or update; R2 errors from core are shown as the form error
@@ -222,17 +263,7 @@ fn save(app: &App) {
     };
     let st = window.global::<AssessmentsState>();
 
-    let courses = match active_courses(app) {
-        Ok(courses) => courses,
-        Err(e) => {
-            show_errors(&st, &FormErrors::default(), &e);
-            return;
-        }
-    };
-    let course_id = usize::try_from(st.get_course())
-        .ok()
-        .and_then(|i| courses.get(i))
-        .map(|c| c.id);
+    let course_id = selected_course_id(app, st.get_course());
 
     let input = match vm::parse_assessment_form(
         course_id,

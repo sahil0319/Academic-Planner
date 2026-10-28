@@ -100,7 +100,7 @@ Each page file exports `<Name>Page` and `global <Name>State`. Every page global 
 
 ### AssessmentsState (`ui/assessments.slint`, `src/pages/assessments.rs`)
 
-- In: `filter: int` (in-out), `rows: [AssessmentRow]`, `course-options: [string]`.
+- In: `filter: int` (in-out), `list-title: string`, `empty-text: string`, `rows: [AssessmentRow]`, `course-options: [string]`.
 - In-out form text: `course`, `kind` (indexes), `title`, `due-date`, `due-time`, `notes`, `remind`,
   `editing-id`.
 - In: `course-error`, `kind-error`, `due-date-error`, `due-time-error`, `remind-error`, `form-error`.
