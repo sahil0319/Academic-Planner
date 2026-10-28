@@ -6,6 +6,7 @@ slint::include_modules!();
 mod bridge;
 mod controller;
 mod pages;
+mod restore;
 mod viewmodel;
 
 use std::rc::Rc;
