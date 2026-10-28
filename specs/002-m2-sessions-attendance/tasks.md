@@ -184,7 +184,7 @@ frozen (crates/core/tests/api_surface.rs).
 
 ### Implementation
 
-- [ ] T043 [US7] Confirm m2_exam_periods passes with no new code (exam periods are holidays, R4/R5); any fix goes in `sync_in` in crates/core/src/schedule.rs, with no schema, API, or rule change
+- [X] T043 [US7] Confirm m2_exam_periods passes with no new code (exam periods are holidays, R4/R5); any fix goes in `sync_in` in crates/core/src/schedule.rs, with no schema, API, or rule change
 
 **Checkpoint**: m2_exam_periods passes. Commit only if T043 changed code ("M2: exam periods as holidays").
 
@@ -203,7 +203,7 @@ frozen (crates/core/tests/api_surface.rs).
 
 ### Implementation
 
-- [ ] T046 [US6] Confirm m2_archive passes: archived courses are excluded in `sync_in` generation and deletion (T012, T013), `sessions_between`, `dashboard`, and `all_summaries`, while `attendance_summary` and `sessions_for_course` still work for them; fix only in crates/core/src/{schedule.rs, attendance.rs, dashboard.rs}
+- [X] T046 [US6] Confirm m2_archive passes: archived courses are excluded in `sync_in` generation and deletion (T012, T013), `sessions_between`, `dashboard`, and `all_summaries`, while `attendance_summary` and `sessions_for_course` still work for them; fix only in crates/core/src/{schedule.rs, attendance.rs, dashboard.rs}
 
 **Checkpoint**: m2_archive passes. Commit only if T046 changed code ("M2: archived courses R3").
 
@@ -211,9 +211,9 @@ frozen (crates/core/tests/api_surface.rs).
 
 ## Phase 10: Polish, converge & gate
 
-- [ ] T047 Grep crates/core/src for `todo!("M2` and confirm none remains (only M3/M5 stubs stay); run `cargo doc -p planner-core --no-deps` and confirm every new item has a doc comment citing its rule IDs
-- [ ] T048 Run `/speckit-converge` for specs/002-m2-sessions-attendance and complete any tasks it appends to this file
-- [ ] T049 Run the gate `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` and paste its summary; confirm T01–T19, T21–T23, T27–T29, the m2_exam_periods tests, and M1's T20, T24, T26 pass (§7 M2 done-when)
+- [X] T047 Grep crates/core/src for `todo!("M2` and confirm none remains (only M3/M5 stubs stay); run `cargo doc -p planner-core --no-deps` and confirm every new item has a doc comment citing its rule IDs
+- [X] T048 Run `/speckit-converge` for specs/002-m2-sessions-attendance and complete any tasks it appends to this file
+- [X] T049 Run the gate `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` and paste its summary; confirm T01–T19, T21–T23, T27–T29, the m2_exam_periods tests, and M1's T20, T24, T26 pass (§7 M2 done-when)
 - [ ] T050 Update .claude/state/progress.json (all tasks) and .claude/state/checkpoint.md (last green gate hash, next milestone M3); commit "M2: milestone complete"
 
 ---

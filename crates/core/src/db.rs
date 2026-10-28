@@ -621,6 +621,7 @@ fn load_assessment(conn: &Connection, id: i64) -> Result<Assessment> {
     })
 }
 
+/// §3: the `session s` columns `session_from_row` decodes, in order.
 pub(crate) const SESSION_COLS: &str = "s.id, s.course_id, s.slot_id, s.kind, s.date, \
      s.start_time, s.end_time, s.room, s.status, s.replaces_session_id, s.note";
 
@@ -641,6 +642,7 @@ pub(crate) fn session_from_row(r: &Row) -> rusqlite::Result<Session> {
     })
 }
 
+/// One session by id; `Error::NotFound` when it does not exist.
 pub(crate) fn load_session(conn: &Connection, id: i64) -> Result<Session> {
     conn.query_row(
         &format!("SELECT {SESSION_COLS} FROM session s WHERE s.id = ?1"),
