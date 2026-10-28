@@ -39,7 +39,7 @@ start in parallel. `docs/spec.md` §1–§5 is the plan; nothing in §1 is re-de
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 | Principle | Check | Status |
-|---|---|---|
+| --- | --- | --- |
 | I. Spec is source of truth | Plan implements §3 schema verbatim and §5 signatures. Two human-approved spec decisions: assessment CRUD in M1 (FR-013a); `now` parameter on `sessions_between`/`sessions_for_course` for `is_past` (applied to `docs/spec.md` §5, 2026-10-28). No other additions. | PASS |
 | II. Test-first, traceable | T20, T24, T26 written before the code they cover; names `t20_…`, `t24_…`, `t26_…`; rule IDs in doc comments; tests use in-memory SQLite (temp file only where a file is required by the test) | PASS |
 | III. Pure, clock-free core | No Slint/clock/dialogs in core; `AssessmentFilter` carries `now` instead of reading the clock; R24 resolution is a pure function plus a thin env/`ProjectDirs` wrapper | PASS |
@@ -88,9 +88,12 @@ crates/core/
 │   └── export.rs              # stubs: export_attendance_csv, export_assessments_csv (M3)
 └── tests/
     ├── common/mod.rs          # fixture helpers (§8 fixture term/course/slots)
-    ├── migrations.rs          # t20, t26
-    ├── validation.rs          # t24
-    └── setup_crud.rs          # R1, R3, holidays, slots list, settings, assessments CRUD
+    ├── migrations.rs          # t20, t26 (R25)
+    ├── terms_courses.rs       # R1, R3, holidays, courses
+    ├── slots_settings.rs      # slots add/list, settings
+    ├── assessments.rs         # assessment storage (FR-013a)
+    ├── validation.rs          # t24 (R2)
+    └── api_surface.rs         # compile-time check of every §5 signature
 crates/app/                    # unchanged in M1
 ```
 

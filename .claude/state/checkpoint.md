@@ -1,11 +1,11 @@
 # Checkpoint
-- Milestone: M1 in progress. Feature dir: specs/001-m1-core-storage (spec + plan done)
+- Milestone: M1 in progress. Feature dir: specs/001-m1-core-storage (spec, plan, tasks.md T001–T027 done)
 - Last green gate: 0f5b6bd (M0)
 - Decision 2026-10-28 (human): M1 implements assessment CRUD so T24 covers the empty-title case (FR-013a).
 - Spec assumptions: change_slot/end_slot are M2 (R7, T10/T11/T27) so stubs in M1; R3 dashboard/sync parts verified in M2.
 - Decision 2026-10-28 (human): sessions_between/sessions_for_course take `now`; is_past = now >= start (docs/spec.md §5 updated).
-- Next: /speckit-tasks
-- Then: /speckit-analyze, /speckit-implement, /speckit-converge, gate. (No checklist step for M1.)
+- Next: /speckit-analyze
+- Then: /speckit-implement, /speckit-converge, gate. (No checklist step for M1.)
 - Notes:
   - Local rustc 1.90; Slint pinned to 1.16. Package names: planner-core (lib planner_core), app (bin academic-planner).
   - clippy.toml clock ban is workspace-wide.
