@@ -1,6 +1,6 @@
 # Checkpoint
 - Milestone: M1 done (specs/001-m1-core-storage, T001–T028). Next milestone: M2
-- Last green gate: 92393f2 (fmt ok, clippy -D warnings ok, 48 tests pass incl. T20, T24, T26). CI not yet run (not pushed).
+- Last green gate: 92393f2 (fmt ok, clippy -D warnings ok, 48 tests pass incl. T20, T24, T26). GitHub CI run 40737933387 success on e40d076.
 - Next: /speckit-specify "Milestone M2 from docs/spec.md: rules R4-R20, tests T01-T19, T21-T23, T27-T29. Do not add requirements."
 - Decisions (human, 2026-10-28): assessment CRUD done in M1 (FR-013a); sessions_between/sessions_for_course take `now`, is_past = now >= start (docs/spec.md §5).
 - M2 notes:
