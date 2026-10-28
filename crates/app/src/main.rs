@@ -60,6 +60,22 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
+    // R6: every 60 seconds, sync when the date has rolled over and refresh the now-dependent
+    // lists. The timer stops when it is dropped after the window closes.
+    let timer = slint::Timer::default();
+    if let Some(app) = &_app {
+        let weak = Rc::downgrade(app);
+        timer.start(
+            slint::TimerMode::Repeated,
+            std::time::Duration::from_secs(60),
+            move || {
+                if let Some(app) = weak.upgrade() {
+                    app.tick();
+                }
+            },
+        );
+    }
+
     window.run()?;
     Ok(())
 }

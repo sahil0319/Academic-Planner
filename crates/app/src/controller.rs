@@ -140,6 +140,27 @@ impl App {
         }
     }
 
+    /// R6: called by the 60-second timer. When the date has changed since the last sync, syncs
+    /// with the new date and refreshes every page; otherwise refreshes only the pages whose lists
+    /// depend on `now` (awaiting attendance, Attended/Absent enablement, overdue), leaving the
+    /// Settings forms untouched while the student types.
+    pub fn tick(&self) {
+        let now = self.now();
+        let last_sync = self.state().last_sync;
+        if viewmodel::date_rolled_over(last_sync, now) {
+            let sync_error = self.sync(now.date()).err();
+            self.refresh_all();
+            if let Some(e) = sync_error {
+                self.show_message(&viewmodel::error_text(&e));
+            }
+        } else {
+            pages::dashboard::refresh(self);
+            pages::timetable::refresh(self);
+            pages::courses::refresh(self);
+            pages::assessments::refresh(self);
+        }
+    }
+
     /// Reloads every page from the database with a fresh `now` (research R-D14).
     pub fn refresh_all(&self) {
         pages::dashboard::refresh(self);
