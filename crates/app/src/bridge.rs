@@ -1,6 +1,5 @@
 //! Bridge: view-model rows to the Slint structs of `ui/types.slint` (contracts/ui-bridge.md,
 //! research R-D18). Field copies only; all formatting happens in `viewmodel.rs`.
-#![allow(dead_code)] // removed in T026 once pages use every item
 
 use planner_core::Status;
 use slint::{ModelRc, SharedString, VecModel};

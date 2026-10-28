@@ -2,7 +2,6 @@
 //!
 //! No Slint types, no clock, no database, no file access. Every function here is unit tested
 //! in `viewmodel/tests.rs`. Contract: `specs/004-m4-desktop-ui/contracts/viewmodel.md`.
-#![allow(dead_code)] // removed in T026 once pages use every item
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -42,16 +41,6 @@ pub enum ChipKind {
 /// Label shown when a course is below its attendance target.
 /// R14: below-target indicator.
 pub const BELOW_TARGET_LABEL: &str = "Below target";
-
-/// R11: display label of a session status.
-pub fn status_label(status: Status) -> &'static str {
-    match status {
-        Status::Pending => "Pending",
-        Status::Attended => "Attended",
-        Status::Absent => "Absent",
-        Status::Cancelled => "Cancelled",
-    }
-}
 
 /// R11: chip kind of a status; a rescheduled original (status `Cancelled`) shows as `Cancelled`.
 pub fn chip_kind(status: Status) -> ChipKind {

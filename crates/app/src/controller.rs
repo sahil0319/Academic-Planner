@@ -1,7 +1,6 @@
 //! Controller: the one `App` on the UI thread that owns the database, the clock function, and the
 //! UI state, and refreshes every page after a change (research R-D5, R-D14;
 //! contracts/ui-bridge.md "Controller").
-#![allow(dead_code)] // removed in T026 once pages use every item
 
 use std::cell::{Ref, RefCell, RefMut};
 use std::path::{Path, PathBuf};

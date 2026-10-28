@@ -18,7 +18,6 @@ times (`09:00–10:30`) and with spaces for date ranges (`2026-10-26 – 2026-11
 | Signature | Behavior (examples are test cases) |
 | --- | --- |
 | `pub enum ChipKind { Attended, Absent, Cancelled, Pending }` | Picks chip colors; derive `Debug, Clone, Copy, PartialEq, Eq` |
-| `pub fn status_label(status: Status) -> &'static str` | R11: `"Pending"`, `"Attended"`, `"Absent"`, `"Cancelled"` |
 | `pub fn chip_kind(status: Status) -> ChipKind` | One-to-one. A rescheduled original has status `Cancelled` → `Cancelled` |
 | `pub const BELOW_TARGET_LABEL: &str` | `"Below target"` (R14, DESIGN.md) |
 | `pub fn format_pct(pct: Option<f64>) -> String` | R13: `Some(50.0)`→`"50.0%"`, `Some(66.666…)`→`"66.7%"`, `Some(100.0)`→`"100.0%"`, `Some(0.0)`→`"0.0%"`, `None`→`"—"` (never `"0%"` or `"NaN"`) |

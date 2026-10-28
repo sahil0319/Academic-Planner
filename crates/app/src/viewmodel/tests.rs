@@ -119,15 +119,6 @@ fn slot(valid_to: Option<NaiveDate>, room: Option<&str>) -> Slot {
 
 // ---- Status and percentages ----
 
-/// R11: one label per status.
-#[test]
-fn status_label_covers_all_four_statuses() {
-    assert_eq!(status_label(Status::Pending), "Pending");
-    assert_eq!(status_label(Status::Attended), "Attended");
-    assert_eq!(status_label(Status::Absent), "Absent");
-    assert_eq!(status_label(Status::Cancelled), "Cancelled");
-}
-
 /// R11: chip kind is one-to-one with status.
 #[test]
 fn chip_kind_is_one_to_one_with_status() {

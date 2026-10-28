@@ -1,7 +1,6 @@
 //! R22 pre-restore copy: before a restore replaces all data, the current database is copied to
 //! `{data_dir}/backups/pre-restore-{YYYYMMDD-HHMM}.sqlite` (research R-D3, R-D4;
 //! contracts/ui-bridge.md "Restore flow").
-#![allow(dead_code)] // removed in T026 once the restore flow uses every item
 
 use std::fs;
 use std::path::{Path, PathBuf};
