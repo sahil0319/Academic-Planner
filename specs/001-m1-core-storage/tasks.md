@@ -105,12 +105,12 @@ Rust workspace. Core crate: `crates/core/src/`, integration tests: `crates/core/
 
 ### Tests for User Story 4 (write first)
 
-- [ ] T016 [US4] Write crates/core/tests/slots_settings.rs using the §8 fixture: `add_slot_returns_stored_values`; `list_slots_inclusive_validity` (slot with `valid_from` 2026-01-12, `valid_to` 2026-01-19: listed on 01-12 and 01-19, not on 01-11 or 01-20); `list_slots_open_end_until_term_end` (`valid_to = None`: listed on 2026-01-25, not on 2026-01-26); `list_slots_excludes_archived_course`; `list_slots_ordered_by_weekday_then_start`; `settings_defaults_on_fresh_db` (15, 7, true); `save_settings_round_trip`
+- [X] T016 [US4] Write crates/core/tests/slots_settings.rs using the §8 fixture: `add_slot_returns_stored_values`; `list_slots_inclusive_validity` (slot with `valid_from` 2026-01-12, `valid_to` 2026-01-19: listed on 01-12 and 01-19, not on 01-11 or 01-20); `list_slots_open_end_until_term_end` (`valid_to = None`: listed on 2026-01-25, not on 2026-01-26); `list_slots_excludes_archived_course`; `list_slots_ordered_by_weekday_then_start`; `settings_defaults_on_fresh_db` (15, 7, true); `save_settings_round_trip`
 
 ### Implementation for User Story 4
 
-- [ ] T017 [US4] Implement `add_slot` (insert; unknown course surfaces the FK error) and `list_slots(on)` per research D9 (`valid_from <= on AND on <= coalesce(valid_to, term.end_date)`, active term, non-archived courses, ordered by weekday, start_time) in crates/core/src/db.rs
-- [ ] T018 [US4] Implement `settings()` (read the three keys; missing key → §3 default; unparsable value → `Corrupt`) and `save_settings` (one transaction, upsert the three keys; bool as `'1'`/`'0'`) in crates/core/src/db.rs
+- [X] T017 [US4] Implement `add_slot` (insert; unknown course surfaces the FK error) and `list_slots(on)` per research D9 (`valid_from <= on AND on <= coalesce(valid_to, term.end_date)`, active term, non-archived courses, ordered by weekday, start_time) in crates/core/src/db.rs
+- [X] T018 [US4] Implement `settings()` (read the three keys; missing key → §3 default; unparsable value → `Corrupt`) and `save_settings` (one transaction, upsert the three keys; bool as `'1'`/`'0'`) in crates/core/src/db.rs
 
 **Checkpoint**: T016 passes. Commit "M1: slots and settings".
 

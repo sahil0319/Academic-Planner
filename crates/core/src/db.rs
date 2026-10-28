@@ -245,25 +245,106 @@ impl Planner {
 
     /// R2: adds a recurring timetable slot.
     pub fn add_slot(&mut self, input: SlotInput) -> Result<Slot> {
-        let _ = input;
-        todo!("M1")
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "INSERT INTO slot (course_id, weekday, start_time, end_time, room, valid_from, valid_to)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                input.course_id,
+                weekday_to_db(input.weekday),
+                fmt_time(input.start_time),
+                fmt_time(input.end_time),
+                input.room,
+                fmt_date(input.valid_from),
+                input.valid_to.map(fmt_date)
+            ],
+        )?;
+        let slot = load_slot(&tx, tx.last_insert_rowid())?;
+        tx.commit()?;
+        Ok(slot)
     }
 
-    /// Slots of non-archived active-term courses valid on `on` (both ends inclusive).
+    /// R3: slots of non-archived active-term courses valid on `on`. Both validity ends are
+    /// inclusive; a slot without `valid_to` runs until the term ends. Ordered by weekday,
+    /// then start time.
     pub fn list_slots(&self, on: NaiveDate) -> Result<Vec<Slot>> {
-        let _ = on;
-        todo!("M1")
+        let mut stmt = self.conn.prepare(&format!(
+            "SELECT {SLOT_COLS} FROM slot s
+             JOIN course c ON c.id = s.course_id
+             JOIN term t ON t.id = c.term_id
+             WHERE t.is_active = 1 AND c.archived = 0
+               AND s.valid_from <= ?1 AND ?1 <= coalesce(s.valid_to, t.end_date)
+             ORDER BY s.weekday, s.start_time, s.id"
+        ))?;
+        let slots = stmt
+            .query_map([fmt_date(on)], slot_from_row)?
+            .collect::<rusqlite::Result<_>>()?;
+        Ok(slots)
     }
 
-    /// Current settings; missing keys fall back to the §3 defaults.
+    /// Current settings; a missing key falls back to its §3 default.
     pub fn settings(&self) -> Result<Settings> {
-        todo!("M1")
+        let defaults = Settings::default();
+        let get = |key: &str| -> Result<Option<String>> {
+            let value = self
+                .conn
+                .query_row("SELECT value FROM setting WHERE key = ?1", [key], |r| {
+                    r.get(0)
+                })
+                .optional()?;
+            Ok(value)
+        };
+        let number = |key: &str, default: u32| -> Result<u32> {
+            match get(key)? {
+                Some(v) => v
+                    .parse()
+                    .map_err(|_| Error::Corrupt(format!("setting {key} = {v:?}"))),
+                None => Ok(default),
+            }
+        };
+        let notifications_enabled = match get(SETTING_NOTIFICATIONS)?.as_deref() {
+            Some("1") => true,
+            Some("0") => false,
+            Some(v) => {
+                return Err(Error::Corrupt(format!(
+                    "setting {SETTING_NOTIFICATIONS} = {v:?}"
+                )))
+            }
+            None => defaults.notifications_enabled,
+        };
+        Ok(Settings {
+            class_reminder_minutes: number(
+                SETTING_CLASS_REMINDER,
+                defaults.class_reminder_minutes,
+            )?,
+            upcoming_window_days: number(SETTING_UPCOMING_WINDOW, defaults.upcoming_window_days)?,
+            notifications_enabled,
+        })
     }
 
-    /// Stores all settings.
+    /// Stores all settings in one transaction.
     pub fn save_settings(&mut self, s: &Settings) -> Result<()> {
-        let _ = s;
-        todo!("M1")
+        let tx = self.conn.transaction()?;
+        {
+            let mut upsert = tx.prepare(
+                "INSERT INTO setting (key, value) VALUES (?1, ?2)
+                 ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+            )?;
+            upsert.execute(params![
+                SETTING_CLASS_REMINDER,
+                s.class_reminder_minutes.to_string()
+            ])?;
+            upsert.execute(params![
+                SETTING_UPCOMING_WINDOW,
+                s.upcoming_window_days.to_string()
+            ])?;
+            upsert.execute(params![
+                SETTING_NOTIFICATIONS,
+                if s.notifications_enabled { "1" } else { "0" }
+            ])?;
+        }
+        tx.commit()?;
+        Ok(())
     }
 
     /// R2: creates an assessment.
@@ -367,6 +448,38 @@ fn load_course(conn: &Connection, id: i64) -> Result<Course> {
         id,
     })
 }
+
+const SLOT_COLS: &str = "s.id, s.course_id, s.weekday, s.start_time, s.end_time, s.room, \
+     s.valid_from, s.valid_to";
+
+fn slot_from_row(r: &Row) -> rusqlite::Result<Slot> {
+    Ok(Slot {
+        id: r.get(0)?,
+        course_id: r.get(1)?,
+        weekday: col_weekday(r, 2)?,
+        start_time: col_time(r, 3)?,
+        end_time: col_time(r, 4)?,
+        room: r.get(5)?,
+        valid_from: col_date(r, 6)?,
+        valid_to: col_date_opt(r, 7)?,
+    })
+}
+
+fn load_slot(conn: &Connection, id: i64) -> Result<Slot> {
+    conn.query_row(
+        &format!("SELECT {SLOT_COLS} FROM slot s WHERE s.id = ?1"),
+        [id],
+        slot_from_row,
+    )
+    .optional()?
+    .ok_or(Error::NotFound { entity: "slot", id })
+}
+
+// ---- setting keys (docs/spec.md §3) ----
+
+const SETTING_CLASS_REMINDER: &str = "class_reminder_minutes";
+const SETTING_UPCOMING_WINDOW: &str = "upcoming_window_days";
+const SETTING_NOTIFICATIONS: &str = "notifications_enabled";
 
 // ---- text codecs (docs/spec.md §1: YYYY-MM-DD, HH:MM, YYYY-MM-DDTHH:MM) ----
 
