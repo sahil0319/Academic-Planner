@@ -108,6 +108,7 @@ impl Planner {
     /// R1, R2: creates (`input.id = None`) or updates a term and makes it the only active
     /// term, in one transaction.
     pub fn save_term(&mut self, input: TermInput) -> Result<Term> {
+        input.validate()?;
         let tx = self.conn.transaction()?;
         tx.execute("UPDATE term SET is_active = 0 WHERE is_active = 1", [])?;
         let (start, end) = (fmt_date(input.start_date), fmt_date(input.end_date));
@@ -165,8 +166,10 @@ impl Planner {
 
     /// R1, R2: creates a course in the active term.
     pub fn create_course(&mut self, input: CourseInput) -> Result<Course> {
+        input.validate()?;
         let tx = self.conn.transaction()?;
         let term_id = active_term_id(&tx)?.ok_or(Error::NoActiveTerm)?;
+        ensure_code_free(&tx, term_id, &input.code, None)?;
         tx.execute(
             "INSERT INTO course (term_id, code, name, instructor, room, notes, min_attendance_pct)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
@@ -187,8 +190,11 @@ impl Planner {
 
     /// R2: updates a course; its term and archived flag are unchanged.
     pub fn update_course(&mut self, id: i64, input: CourseInput) -> Result<Course> {
+        input.validate()?;
         let tx = self.conn.transaction()?;
-        let changed = tx.execute(
+        let term_id = load_course(&tx, id)?.term_id;
+        ensure_code_free(&tx, term_id, &input.code, Some(id))?;
+        tx.execute(
             "UPDATE course SET code = ?1, name = ?2, instructor = ?3, room = ?4, notes = ?5,
                  min_attendance_pct = ?6
              WHERE id = ?7",
@@ -202,12 +208,6 @@ impl Planner {
                 id
             ],
         )?;
-        if changed == 0 {
-            return Err(Error::NotFound {
-                entity: "course",
-                id,
-            });
-        }
         let course = load_course(&tx, id)?;
         tx.commit()?;
         Ok(course)
@@ -245,6 +245,7 @@ impl Planner {
 
     /// R2: adds a recurring timetable slot.
     pub fn add_slot(&mut self, input: SlotInput) -> Result<Slot> {
+        input.validate()?;
         let tx = self.conn.transaction()?;
         tx.execute(
             "INSERT INTO slot (course_id, weekday, start_time, end_time, room, valid_from, valid_to)
@@ -349,33 +350,125 @@ impl Planner {
 
     /// R2: creates an assessment.
     pub fn create_assessment(&mut self, input: AssessmentInput) -> Result<Assessment> {
-        let _ = input;
-        todo!("M1")
+        input.validate()?;
+        let tx = self.conn.transaction()?;
+        tx.execute(
+            "INSERT INTO assessment (course_id, kind, title, due_at, notes, remind_minutes_before)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                input.course_id,
+                input.kind.as_db(),
+                input.title,
+                fmt_datetime(input.due_at),
+                input.notes,
+                input.remind_minutes_before
+            ],
+        )?;
+        let assessment = load_assessment(&tx, tx.last_insert_rowid())?;
+        tx.commit()?;
+        Ok(assessment)
     }
 
-    /// R2: updates an assessment.
+    /// R2: updates an assessment; its completed flag is unchanged.
     pub fn update_assessment(&mut self, id: i64, input: AssessmentInput) -> Result<Assessment> {
-        let _ = (id, input);
-        todo!("M1")
+        input.validate()?;
+        let tx = self.conn.transaction()?;
+        let changed = tx.execute(
+            "UPDATE assessment SET course_id = ?1, kind = ?2, title = ?3, due_at = ?4, notes = ?5,
+                 remind_minutes_before = ?6
+             WHERE id = ?7",
+            params![
+                input.course_id,
+                input.kind.as_db(),
+                input.title,
+                fmt_datetime(input.due_at),
+                input.notes,
+                input.remind_minutes_before,
+                id
+            ],
+        )?;
+        if changed == 0 {
+            return Err(Error::NotFound {
+                entity: "assessment",
+                id,
+            });
+        }
+        let assessment = load_assessment(&tx, id)?;
+        tx.commit()?;
+        Ok(assessment)
     }
 
     /// Marks an assessment completed or not completed.
     pub fn set_completed(&mut self, id: i64, done: bool) -> Result<()> {
-        let _ = (id, done);
-        todo!("M1")
+        let changed = self.conn.execute(
+            "UPDATE assessment SET completed = ?1 WHERE id = ?2",
+            params![done, id],
+        )?;
+        if changed == 0 {
+            return Err(Error::NotFound {
+                entity: "assessment",
+                id,
+            });
+        }
+        Ok(())
     }
 
     /// Deletes an assessment.
     pub fn delete_assessment(&mut self, id: i64) -> Result<()> {
-        let _ = id;
-        todo!("M1")
+        let changed = self
+            .conn
+            .execute("DELETE FROM assessment WHERE id = ?1", [id])?;
+        if changed == 0 {
+            return Err(Error::NotFound {
+                entity: "assessment",
+                id,
+            });
+        }
+        Ok(())
     }
 
-    /// Assessments of non-archived active-term courses matching `filter`, sorted by due date.
+    /// R3: assessments of non-archived active-term courses matching `filter`, sorted by
+    /// due date.
     pub fn list_assessments(&self, filter: AssessmentFilter) -> Result<Vec<Assessment>> {
-        let _ = filter;
-        todo!("M1")
+        let completed_only = match filter {
+            AssessmentFilter::All => false,
+            AssessmentFilter::Completed => true,
+            AssessmentFilter::Upcoming { .. } => todo!("M2: R18"),
+            AssessmentFilter::Overdue { .. } => todo!("M2: R19"),
+        };
+        let mut stmt = self.conn.prepare(&format!(
+            "SELECT {ASSESSMENT_COLS} FROM assessment a
+             JOIN course c ON c.id = a.course_id
+             JOIN term t ON t.id = c.term_id
+             WHERE t.is_active = 1 AND c.archived = 0
+               AND (?1 = 0 OR a.completed = 1)
+             ORDER BY a.due_at, a.id"
+        ))?;
+        let assessments = stmt
+            .query_map([completed_only], assessment_from_row)?
+            .collect::<rusqlite::Result<_>>()?;
+        Ok(assessments)
     }
+}
+
+/// R2: course codes are unique within a term. `except` is the course being updated.
+fn ensure_code_free(
+    conn: &Connection,
+    term_id: i64,
+    code: &str,
+    except: Option<i64>,
+) -> Result<()> {
+    let taken: bool = conn.query_row(
+        "SELECT EXISTS (SELECT 1 FROM course WHERE term_id = ?1 AND code = ?2 AND id IS NOT ?3)",
+        params![term_id, code, except],
+        |r| r.get(0),
+    )?;
+    if taken {
+        return Err(Error::Validation(format!(
+            "course code {code:?} already exists in this term"
+        )));
+    }
+    Ok(())
 }
 
 // ---- row loaders (take `&Connection` so they also work inside a transaction) ----
@@ -473,6 +566,39 @@ fn load_slot(conn: &Connection, id: i64) -> Result<Slot> {
     )
     .optional()?
     .ok_or(Error::NotFound { entity: "slot", id })
+}
+
+const ASSESSMENT_COLS: &str = "a.id, a.course_id, c.code, a.kind, a.title, a.due_at, a.notes, \
+     a.completed, a.remind_minutes_before";
+
+fn assessment_from_row(r: &Row) -> rusqlite::Result<Assessment> {
+    Ok(Assessment {
+        id: r.get(0)?,
+        course_id: r.get(1)?,
+        course_code: r.get(2)?,
+        kind: col_assessment_kind(r, 3)?,
+        title: r.get(4)?,
+        due_at: col_datetime(r, 5)?,
+        notes: r.get(6)?,
+        completed: r.get(7)?,
+        remind_minutes_before: r.get(8)?,
+    })
+}
+
+fn load_assessment(conn: &Connection, id: i64) -> Result<Assessment> {
+    conn.query_row(
+        &format!(
+            "SELECT {ASSESSMENT_COLS} FROM assessment a JOIN course c ON c.id = a.course_id
+             WHERE a.id = ?1"
+        ),
+        [id],
+        assessment_from_row,
+    )
+    .optional()?
+    .ok_or(Error::NotFound {
+        entity: "assessment",
+        id,
+    })
 }
 
 // ---- setting keys (docs/spec.md §3) ----

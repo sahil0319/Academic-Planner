@@ -4,6 +4,8 @@
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Weekday};
 use serde::{Deserialize, Serialize};
 
+use crate::error::{Error, Result};
+
 /// R11: attendance status of a session (`session.status`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Status {
@@ -270,4 +272,64 @@ pub struct Reminder {
     pub ref_id: i64,
     pub fire_at: NaiveDateTime,
     pub title: String,
+}
+
+// ---- R2 input validation: every check runs before anything is written ----
+
+fn require_text(value: &str, field: &str) -> Result<()> {
+    if value.trim().is_empty() {
+        return Err(Error::Validation(format!("{field} must not be empty")));
+    }
+    Ok(())
+}
+
+impl TermInput {
+    /// R2: the term must not end before it starts.
+    pub(crate) fn validate(&self) -> Result<()> {
+        if self.end_date < self.start_date {
+            return Err(Error::Validation(format!(
+                "term end date {} is before its start date {}",
+                self.end_date, self.start_date
+            )));
+        }
+        Ok(())
+    }
+}
+
+impl CourseInput {
+    /// R2: code and name are required; the attendance target is 0–100. Duplicate codes
+    /// are checked against the database in `db.rs`.
+    pub(crate) fn validate(&self) -> Result<()> {
+        require_text(&self.code, "course code")?;
+        require_text(&self.name, "course name")?;
+        if let Some(pct) = self.min_attendance_pct {
+            if !(0..=100).contains(&pct) {
+                return Err(Error::Validation(format!(
+                    "attendance target {pct}% is outside 0–100"
+                )));
+            }
+        }
+        Ok(())
+    }
+}
+
+impl SlotInput {
+    /// R2: a slot must end after it starts.
+    pub(crate) fn validate(&self) -> Result<()> {
+        if self.end_time <= self.start_time {
+            return Err(Error::Validation(format!(
+                "slot end time {} is not after its start time {}",
+                self.end_time.format("%H:%M"),
+                self.start_time.format("%H:%M")
+            )));
+        }
+        Ok(())
+    }
+}
+
+impl AssessmentInput {
+    /// R2: the title is required.
+    pub(crate) fn validate(&self) -> Result<()> {
+        require_text(&self.title, "assessment title")
+    }
 }
