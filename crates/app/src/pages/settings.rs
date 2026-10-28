@@ -1,5 +1,5 @@
-//! Settings page: term, holidays, reminder settings, backup, CSV export, and the database path
-//! (docs/spec.md §6; contracts/ui-bridge.md "SettingsState").
+//! Settings page: term, holidays, reminder settings, backup, restore, CSV export, and the database
+//! path (docs/spec.md §6; contracts/ui-bridge.md "SettingsState", "Restore flow").
 
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -11,7 +11,7 @@ use slint::{ComponentHandle, SharedString};
 
 use crate::controller::App;
 use crate::viewmodel as vm;
-use crate::{bridge, SettingsState};
+use crate::{bridge, restore, SettingsState};
 
 const TERM_SAVED: &str = "Term saved.";
 const HOLIDAYS_SAVED: &str = "Holidays saved.";
@@ -91,10 +91,9 @@ pub fn wire(app: &Rc<App>) {
     page.on_save_settings(with(app, save_settings));
     page.on_backup(with(app, backup));
     page.on_export_csv(with(app, export_csv));
-    // R22: restore is wired in T022.
-    page.on_restore_pick(|| {});
-    page.on_restore_confirm(|| {});
-    page.on_restore_cancel(|| {});
+    page.on_restore_pick(with(app, restore_pick));
+    page.on_restore_confirm(with(app, restore_confirm));
+    page.on_restore_cancel(with(app, restore_cancel));
 }
 
 /// A callback that runs `f` while the app is alive.
@@ -290,6 +289,64 @@ fn backup(app: &App) {
         Err(e) => vm::error_text(&e),
     };
     message(app, &text);
+}
+
+/// Shows or hides the inline restore confirm panel.
+fn show_confirm(app: &App, shown: bool) {
+    if let Some(window) = app.window() {
+        window.global::<SettingsState>().set_confirm_restore(shown);
+    }
+}
+
+/// R22 step 1: picks a backup file and shows the inline confirm panel warning that all current
+/// data will be replaced. Cancel does nothing.
+fn restore_pick(app: &App) {
+    let Some(path) = rfd::FileDialog::new()
+        .add_filter("JSON", &["json"])
+        .pick_file()
+    else {
+        return;
+    };
+    app.state().pending_restore = Some(path);
+    message(app, "");
+    show_confirm(app, true);
+}
+
+/// R22 step 2: forgets the picked file and hides the panel; nothing is copied.
+fn restore_cancel(app: &App) {
+    app.state().pending_restore = None;
+    show_confirm(app, false);
+}
+
+/// R22 step 3: reads the picked file, copies the current database to the backups folder, and only
+/// then replaces all data. A failed copy means the restore is not attempted; a failed restore
+/// leaves the data unchanged. R6: a successful restore re-syncs sessions.
+fn restore_confirm(app: &App) {
+    let pending = app.state().pending_restore.take();
+    show_confirm(app, false);
+    let Some(path) = pending else {
+        return;
+    };
+    let json = match std::fs::read_to_string(&path) {
+        Ok(json) => json,
+        Err(e) => return message(app, &vm::file_error_message(&path, &e.to_string())),
+    };
+    let copy = match restore::pre_restore_copy(app.db_path(), app.now()) {
+        Ok(copy) => copy,
+        Err(e) => return message(app, &vm::pre_restore_failed_message(&format!("{e:#}"))),
+    };
+    let restored = app.planner_mut().restore_json(&json);
+    if let Err(e) = restored {
+        return message(app, &vm::error_text(&e));
+    }
+    {
+        // Ids from before the restore may no longer exist.
+        let mut state = app.state();
+        state.detail_course = None;
+        state.selected_session = None;
+    }
+    changed_with_note(app, true, &vm::restored_message(&copy));
+    load_forms(app);
 }
 
 /// R23: writes `attendance.csv` and `assessments.csv` to a folder picked in a dialog. Cancel does
