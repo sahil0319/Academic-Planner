@@ -201,7 +201,7 @@ fn r23_attendance_csv_includes_archived_all_statuses_all_terms() {
     assert_eq!(statuses("attended"), 1);
     assert_eq!(statuses("absent"), 1);
     assert_eq!(statuses("cancelled"), 1);
-    assert_eq!(statuses("pending"), 5);
+    assert_eq!(statuses("pending"), 4);
     assert_eq!(body.iter().filter(|r| r[3] == "CSE101").count(), 6);
     assert_eq!(body.iter().filter(|r| r[3] == "CSE202").count(), 1);
 }

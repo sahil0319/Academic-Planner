@@ -89,14 +89,19 @@ the schema, or the API. R-D2, R-D3, R-D4, R-D5, R-D8, and R-D9 are router decisi
 
 ## R-D8. CSV encoding
 
-- **Decision**: `csv::WriterBuilder::new().from_writer(w)` with its defaults: comma delimiter, quote
-  only when needed (comma, double quote, line break), quotes doubled, record terminator CRLF.
+- **Decision**: `csv::WriterBuilder::new().terminator(csv::Terminator::CRLF).from_writer(w)`:
+  comma delimiter, quote only when needed (comma, double quote, line break), quotes doubled (crate
+  defaults), and record terminator CRLF set explicitly (the crate default is LF).
   Header written explicitly as the first record. `completed` is `true` / `false`. `due_at` is the
   stored `YYYY-MM-DDTHH:MM`. A missing value (NULL note, NULL notes, no replaced session) is an empty
   field. The writer is flushed before returning; write errors map to `Error::Io`.
-- **Rationale**: spec FR-010–FR-013; CRLF is the `csv` crate default and what spreadsheets accept.
+- **Rationale**: spec FR-010–FR-013; CRLF is the RFC 4180 terminator and what spreadsheets accept.
   `true`/`false` matches the JSON booleans of R-D3.
-- **Alternatives**: LF terminator, `1`/`0` — rejected, no benefit, and CRLF is the default.
+- **Alternatives**: LF terminator (the crate default), `1`/`0` — rejected; CRLF was fixed before
+  tests were written, and the T25 expected text uses it.
+- **Implementation note**: restore requires every nullable key to be present (`null` allowed); a
+  missing key is `Error::Validation`, per the "missing field" case of R-D4. Exports always emit
+  every key, so the round trip is unaffected.
 
 ## R-D9. CSV scope and sort
 
