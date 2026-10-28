@@ -20,3 +20,24 @@ slint.workspace = true
 
 [build-dependencies]
 slint-build.workspace = true
+
+# Release packaging (M6). `cargo packager -p app --release --formats <fmt>` from the repo root;
+# formats per OS are chosen on the command line (dmg / nsis / deb,appimage).
+[package.metadata.packager]
+product-name = "Academic Planner"
+identifier = "io.github.sahil0319.academic-planner"
+description = "Local-first planner for university courses, weekly timetables, assessments, and attendance."
+publisher = "Academic Planner contributors"
+copyright = "Copyright (C) 2026 Academic Planner contributors"
+category = "Education"
+license-file = "../../LICENSE"
+before-packaging-command = "cargo build --release --locked -p app"
+icons = ["icons/icon.png"]
+resources = [
+    { src = "../../THIRD-PARTY-NOTICES.html", target = "THIRD-PARTY-NOTICES.html" },
+    { src = "../../LICENSE", target = "LICENSE" },
+    { src = "../../NOTICE", target = "NOTICE" },
+]
+
+[package.metadata.packager.deb]
+depends = ["libfontconfig1", "libxkbcommon0"]

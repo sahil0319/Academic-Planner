@@ -1,6 +1,8 @@
 //! Academic Planner desktop app (docs/spec.md §2, §6): opens the database, syncs sessions, and runs
 //! the Slint window. The only place that reads the system clock (§1).
 
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 slint::include_modules!();
 
 mod bridge;
