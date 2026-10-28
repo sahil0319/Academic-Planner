@@ -113,8 +113,9 @@ signature already exists, so they do not wait for T007 to compile, but the manua
 ## Phase 6: Polish & Gate
 
 - [ ] T012 (human) Manual notification check per [quickstart.md](quickstart.md) "Manual notification check" with a throwaway `ACADEMIC_PLANNER_DB`: one notification appears within 60 seconds of `start - 15 minutes`, none repeats for the same class. Record OS and time in `.claude/state/checkpoint.md` (router). If unattended, leave pending for the human (FR-010). Needs T007, T011
-- [ ] T013 (builder) Run `speckit-converge` against spec.md, plan.md, and tasks.md; confirm no `todo!(` remains in crates/core/src, every new item has an FR/§ doc comment, `tests/api_surface.rs` is unchanged; append any leftover work as new tasks and do it. Needs T007, T011
-- [ ] T014 (builder) Run the gate `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` and paste the summary; run the automated commands in [quickstart.md](quickstart.md). Do not edit `.claude/state/` (the router does). Needs T013
+  - Status 2026-10-29: the router's automated end-to-end check ran the app and the 60-second tick logged a session reminder in `reminder_log` (session 9, `fire_at` 2026-10-29T03:34). Visual confirmation of the desktop notification is pending the human.
+- [X] T013 (builder) Run `speckit-converge` against spec.md, plan.md, and tasks.md; confirm no `todo!(` remains in crates/core/src, every new item has an FR/§ doc comment, `tests/api_surface.rs` is unchanged; append any leftover work as new tasks and do it. Needs T007, T011
+- [X] T014 (builder) Run the gate `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` and paste the summary; run the automated commands in [quickstart.md](quickstart.md). Do not edit `.claude/state/` (the router does). Needs T013
 
 ---
 

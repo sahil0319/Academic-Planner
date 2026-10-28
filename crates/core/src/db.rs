@@ -789,7 +789,6 @@ impl AssessmentKind {
     }
 }
 
-#[allow(dead_code, reason = "M5 reminder log uses the kind codec")]
 impl ReminderKind {
     pub(crate) fn as_db(self) -> &'static str {
         match self {
@@ -798,6 +797,10 @@ impl ReminderKind {
         }
     }
 
+    #[allow(
+        dead_code,
+        reason = "reminder_log kinds are only written; the codec round-trip test reads them back"
+    )]
     pub(crate) fn from_db(s: &str) -> Option<Self> {
         match s {
             "session" => Some(ReminderKind::Session),

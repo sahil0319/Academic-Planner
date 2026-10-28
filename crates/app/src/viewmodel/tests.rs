@@ -1,5 +1,5 @@
 //! Unit tests for the view model (contracts/viewmodel.md). No database: core types are built
-//! directly. Every test is red until the builder replaces the `todo!()` bodies.
+//! directly; each test checks one formatting or mapping function against its contract.
 
 use std::path::PathBuf;
 

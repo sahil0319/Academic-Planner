@@ -1,8 +1,11 @@
 # Core never reads the system clock (docs/spec.md §1 "Clock"). Time-dependent
 # functions take `today`/`now` as parameters. The app crate's single clock read
 # is explicitly allowed at its call site.
+# `allow-invalid = true` silences the "not a reachable function" warning when
+# core is checked alone (chrono's `clock` feature is off there, so the methods
+# cannot be called); the ban still applies wherever the methods exist.
 disallowed-methods = [
-  { path = "chrono::Local::now", reason = "pass `today`/`now` in instead of reading the clock" },
-  { path = "chrono::Utc::now", reason = "pass `today`/`now` in instead of reading the clock" },
+  { path = "chrono::Local::now", allow-invalid = true, reason = "pass `today`/`now` in instead of reading the clock" },
+  { path = "chrono::Utc::now", allow-invalid = true, reason = "pass `today`/`now` in instead of reading the clock" },
   { path = "std::time::SystemTime::now", reason = "pass `today`/`now` in instead of reading the clock" },
 ]
