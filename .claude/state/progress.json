@@ -1,6 +1,6 @@
 {
   "milestone": "M0",
-  "phase": "done-pending-design-approval",
+  "phase": "done",
   "tasks": {
     "workspace": "done",
     "clippy-toml": "done",
@@ -8,7 +8,7 @@
     "license": "done",
     "ci": "done",
     "empty-window": "done",
-    "design-md": "awaiting-human-approval",
+    "design-md": "approved",
     "constitution": "done"
   }
 }

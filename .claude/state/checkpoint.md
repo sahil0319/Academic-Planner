@@ -1,8 +1,8 @@
 # Checkpoint
-- Milestone: M0 (all checks green; awaiting human approval of DESIGN.md before M1)
+- Milestone: M0 done (DESIGN.md approved by human 2026-10-28). Next milestone: M1
 - Last green gate: 0f5b6bd (local gate + GitHub CI run 40720326799 success)
 - Window verified: macOS reports window "Academic Planner" for the app process.
-- Next: after approval, M1 via /speckit-specify "Milestone M1 from docs/spec.md: rules R1-R3, R24-R25, tests T20, T24, T26. Do not add requirements."
+- Next: M1 via /speckit-specify "Milestone M1 from docs/spec.md: rules R1-R3, R24-R25, tests T20, T24, T26. Do not add requirements."
 - Notes:
   - DESIGN.md: warm cream/terracotta theme, Georgia headings, system-font body (user asked for a Claude-like light theme).
   - Local rustc 1.90; Slint pinned to 1.16 by resolver 3 + rust-version 1.90 (Slint 1.18 needs 1.92).
