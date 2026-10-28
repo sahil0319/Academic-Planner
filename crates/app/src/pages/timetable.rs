@@ -175,13 +175,18 @@ fn move_week(app: &App, weeks: Option<i64>) {
 }
 
 /// Opens the inline panel of session `id` and pre-fills the reschedule form with its date, times,
-/// and room (research R-D16).
+/// and room (research R-D16). Selecting the open session again closes its panel.
 fn select_session(app: &App, id: i32) {
     let Some(window) = app.window() else {
         return;
     };
     let g = window.global::<TimetableState>();
     g.set_message(SharedString::new());
+    if app.state().selected_session == Some(i64::from(id)) {
+        app.state().selected_session = None;
+        refresh(app);
+        return;
+    }
     let Some(view) = week_session(app, i64::from(id), &g) else {
         return;
     };

@@ -295,7 +295,7 @@ component WeekTab inherits VerticalLayout {
                     text: row.status-label;
                 }
                 SecondaryButton {
-                    text: "Select";
+                    text: TimetableState.has-selected && TimetableState.selected.id == row.id ? "Close" : "Select";
                     clicked => {
                         TimetableState.select-session(row.id);
                     }
