@@ -1,44 +1,45 @@
 ---
 version: alpha
 name: Academic Planner
-description: Quiet, dense, light-theme desktop UI for tracking courses, timetables, assessments, and attendance.
+description: Warm, quiet, dense light-theme desktop UI for tracking courses, timetables, assessments, and attendance.
 colors:
-  primary: "#1F3A5F"
-  primary-hover: "#2B4C78"
+  primary: "#B4532F"
+  primary-hover: "#9C4526"
   on-primary: "#FFFFFF"
-  neutral: "#F6F7F9"
-  surface: "#FFFFFF"
-  surface-alt: "#EEF0F3"
-  border: "#D9DDE3"
-  on-surface: "#1B1F24"
-  on-surface-muted: "#5B6470"
-  error: "#B42318"
-  status-attended: "#1E7A46"
-  status-attended-bg: "#E6F4EC"
-  status-absent: "#B42318"
-  status-absent-bg: "#FDECEA"
-  status-cancelled: "#5B6470"
-  status-cancelled-bg: "#EEF0F3"
-  status-pending: "#8A5A00"
-  status-pending-bg: "#FFF4DB"
-  below-target: "#9A3412"
-  below-target-bg: "#FFF1E6"
+  neutral: "#F5F4ED"
+  surface: "#FDFCF9"
+  surface-alt: "#EFEDE5"
+  surface-selected: "#E4E1D6"
+  border: "#E3E0D5"
+  on-surface: "#1F1E1B"
+  on-surface-muted: "#68645B"
+  error: "#A8321F"
+  status-attended: "#2F6B3F"
+  status-attended-bg: "#E4EEE1"
+  status-absent: "#A8321F"
+  status-absent-bg: "#F8E4DE"
+  status-cancelled: "#68645B"
+  status-cancelled-bg: "#ECEAE2"
+  status-pending: "#7F5610"
+  status-pending-bg: "#F6ECD2"
+  below-target: "#8A3A1A"
+  below-target-bg: "#F6E3D6"
 typography:
   title-lg:
-    fontFamily: system-ui
-    fontSize: 20px
-    fontWeight: 600
-    lineHeight: 1.3
+    fontFamily: Georgia
+    fontSize: 22px
+    fontWeight: 400
+    lineHeight: 1.25
   headline-md:
-    fontFamily: system-ui
-    fontSize: 15px
-    fontWeight: 600
+    fontFamily: Georgia
+    fontSize: 16px
+    fontWeight: 400
     lineHeight: 1.3
   body-md:
     fontFamily: system-ui
     fontSize: 13px
     fontWeight: 400
-    lineHeight: 1.4
+    lineHeight: 1.45
   body-sm:
     fontFamily: system-ui
     fontSize: 12px
@@ -56,8 +57,8 @@ typography:
     lineHeight: 1.2
 rounded:
   none: 0px
-  sm: 4px
-  md: 6px
+  sm: 6px
+  md: 10px
   full: 9999px
 spacing:
   xs: 4px
@@ -66,9 +67,9 @@ spacing:
   lg: 16px
   xl: 24px
   xxl: 32px
-  nav-width: 200px
-  row-height: 32px
-  input-height: 28px
+  nav-width: 208px
+  row-height: 34px
+  input-height: 30px
   window-width: 1100px
   window-height: 720px
 components:
@@ -80,8 +81,9 @@ components:
     height: "{spacing.row-height}"
     padding: "{spacing.sm}"
   nav-item-active:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.on-primary}"
+    backgroundColor: "{colors.surface-selected}"
+    textColor: "{colors.on-surface}"
+    typography: "{typography.label-md}"
   button-primary:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.on-primary}"
@@ -91,6 +93,7 @@ components:
     padding: "{spacing.md}"
   button-primary-hover:
     backgroundColor: "{colors.primary-hover}"
+    textColor: "{colors.on-primary}"
   button-secondary:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.on-surface}"
@@ -123,6 +126,10 @@ components:
     textColor: "{colors.on-surface}"
     rounded: "{rounded.md}"
     padding: "{spacing.lg}"
+  section-meta:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.on-surface-muted}"
+    typography: "{typography.body-sm}"
   status-chip-attended:
     backgroundColor: "{colors.status-attended-bg}"
     textColor: "{colors.status-attended}"
@@ -164,102 +171,111 @@ components:
 
 ## Overview
 
-A quiet, dense productivity tool for university students. It should feel like a well-kept paper
-planner: calm, legible, and fast to scan. Information density matters more than decoration. A student
+A warm, quiet, dense productivity tool for university students. It should feel like a good paper
+notebook on a desk: cream pages, ink-dark text, a single terracotta accent, and serif headings that
+give it a literary, calm character. Information density matters more than decoration. A student
 opens it between classes, marks attendance in two clicks, checks what is due, and closes it.
 
-- **Personality:** calm, precise, unobtrusive. No illustrations, gradients, or animation beyond
-  basic hover feedback.
-- **Density:** compact rows (32px), small body text (13px), tight spacing on a 4px grid.
-- **Theme:** light only. A cool off-white page with white content cards.
+- **Personality:** warm, calm, thoughtful, unobtrusive. No illustrations, gradients, or animation
+  beyond basic hover feedback.
+- **Density:** compact rows (34px), small body text (13px), tight spacing on a 4px grid.
+- **Theme:** light only. A cream page with slightly lighter, near-white content cards.
 - **Meaning is never carried by color alone.** Every status color is always paired with its text
   label ("Attended", "Absent", "Cancelled", "Pending", "Below target").
 
 ## Colors
 
-A cool neutral base with one deep navy accent. Status colors are muted and only appear inside chips
-and banners, always next to a text label.
+Warm, paper-like neutrals with one terracotta accent. Status colors are earthy and muted and only
+appear inside chips and banners, always next to a text label.
 
-- **Primary (#1F3A5F) "Planner Navy":** the only interactive accent. Used for the active nav item
-  and the one primary button per panel. Hover uses #2B4C78.
-- **Neutral (#F6F7F9):** the page background behind cards.
-- **Surface (#FFFFFF):** cards, list rows, inputs.
-- **Surface Alt (#EEF0F3):** the left nav background and table header rows.
-- **Border (#D9DDE3):** 1px dividers between rows and around inputs and cards.
-- **On Surface (#1B1F24) / On Surface Muted (#5B6470):** primary text and secondary text
-  (metadata, times, rooms, empty states).
-- **Error (#B42318):** inline validation messages under text fields.
-- **Attended (#1E7A46 on #E6F4EC):** status chip for attended sessions.
-- **Absent (#B42318 on #FDECEA):** status chip for absent sessions.
-- **Cancelled (#5B6470 on #EEF0F3):** status chip for cancelled and rescheduled sessions.
-- **Pending (#8A5A00 on #FFF4DB):** status chip for sessions awaiting attendance.
-- **Below target (#9A3412 on #FFF1E6):** the dashboard banner and course badge when attendance is
+- **Primary (#B4532F) "Terracotta":** the only accent color. Used for the one primary button per
+  panel and for focus rings. Hover deepens to #9C4526.
+- **Neutral (#F5F4ED) "Cream":** the page background behind cards.
+- **Surface (#FDFCF9) "Paper":** cards, list rows, inputs.
+- **Surface Alt (#EFEDE5) "Oat":** the left nav background and list header rows.
+- **Surface Selected (#E4E1D6):** the active nav item and selected rows. Selection is shown by a
+  tonal fill, not by the accent color.
+- **Border (#E3E0D5):** 1px dividers between rows and around inputs and cards.
+- **On Surface (#1F1E1B) "Ink" / On Surface Muted (#68645B) "Graphite":** primary text and
+  secondary text (metadata, times, rooms, empty states).
+- **Error (#A8321F):** inline validation messages under text fields.
+- **Attended (#2F6B3F on #E4EEE1):** sage-green status chip.
+- **Absent (#A8321F on #F8E4DE):** brick-red status chip.
+- **Cancelled (#68645B on #ECEAE2):** warm-grey status chip for cancelled and rescheduled sessions.
+- **Pending (#7F5610 on #F6ECD2):** ochre status chip for sessions awaiting attendance.
+- **Below target (#8A3A1A on #F6E3D6):** the dashboard banner and course badge when attendance is
   below the course's minimum.
 
 All text/background pairs meet WCAG AA (4.5:1) for normal text.
 
 ## Typography
 
-The platform system font throughout (`system-ui`), so the app feels native on macOS, Windows, and
-Linux. Two weights only: 400 and 600.
+Two families: a serif for page and section headings, and the platform system font for everything
+else so controls feel native on macOS, Windows, and Linux.
 
-- **Title (20px / 600):** page titles ("Dashboard", "Timetable"). One per page.
-- **Headline (15px / 600):** section headings inside a page ("Today's classes", "Overdue").
-- **Body (13px / 400):** list rows, form fields, banner text.
-- **Body small (12px / 400):** metadata lines, inline validation errors.
-- **Label (12px / 600):** button text, form field labels.
-- **Label small (11px / 600):** status chip text.
+- **Title (Georgia, 22px / 400):** page titles ("Dashboard", "Timetable"). One per page.
+- **Headline (Georgia, 16px / 400):** section headings inside a page ("Today's classes", "Overdue").
+- **Body (system, 13px / 400):** list rows, form fields, banner text.
+- **Body small (system, 12px / 400):** metadata lines, inline validation errors.
+- **Label (system, 12px / 600):** button text, form field labels, active nav item.
+- **Label small (system, 11px / 600):** status chip text.
 
-Percentages and times are shown as plain text; the missing-value placeholder is an em dash "—".
+Headings use regular weight; the serif carries the hierarchy on its own. Percentages and times are
+plain text; the missing-value placeholder is an em dash "—". If Georgia is unavailable, headings
+fall back to the platform default font.
 
 ## Layout
 
-One window, default 1100 × 720. A fixed 200px left navigation column with five items (Dashboard,
-Timetable, Courses, Assessments, Settings), and a scrollable content area on the right.
+One window, default 1100 × 720. A fixed 208px left navigation column on the oat background with five
+items (Dashboard, Timetable, Courses, Assessments, Settings), and a scrollable cream content area on
+the right.
 
 - A strict 4px spacing scale: 4, 8, 12, 16, 24, 32.
 - Content area padding: 24px. Gap between sections: 24px. Gap inside a section: 8px.
-- Lists are single-column rows, 32px tall, separated by 1px borders. No visual time grid; the
+- Lists are single-column rows, 34px tall, separated by 1px borders. No visual time grid; the
   timetable is a list grouped by weekday.
-- Forms are inline panels or dialogs: label above field, 28px fields, error text directly below
+- Forms are inline panels or dialogs: label above field, 30px fields, error text directly below
   the field.
 - Every list has an empty state: one muted sentence explaining what will appear and how to add it.
 
 ## Elevation & Depth
 
-Flat. Hierarchy comes from tonal layers (neutral page, white cards) and 1px borders, not shadows.
-Dialogs are the only elevated surface and use a single soft shadow over a dimmed backdrop.
+Flat. Hierarchy comes from tonal layers (cream page, paper cards, oat nav) and 1px warm borders, not
+shadows. Dialogs are the only elevated surface and use a single soft shadow over a dimmed backdrop.
 
 ## Shapes
 
-Small, consistent radii: 4px for buttons, inputs, and nav items; 6px for cards and banners;
-fully rounded pills for status chips.
+Soft, consistent radii: 6px for buttons, inputs, and nav items; 10px for cards and banners; fully
+rounded pills for status chips.
 
 ## Components
 
-- **Nav item:** 32px tall, 8px padding, body text. The active item uses the primary background
-  with white text.
-- **Primary button:** navy background, white label, 28px tall, 12px horizontal padding. At most one
-  per panel (e.g. "Save").
-- **Secondary button:** white background, 1px border, dark label. Used for row actions such as
+- **Nav item:** 34px tall, 8px padding, body text on the oat background. The active item uses the
+  surface-selected fill with label-weight text; the accent color is not used for navigation.
+- **Primary button:** terracotta background, white label, 30px tall, 12px horizontal padding. At
+  most one per panel (e.g. "Save").
+- **Secondary button:** paper background, 1px border, ink label. Used for row actions such as
   Attended / Absent / Cancelled.
-- **Input field:** white, 1px border, 28px tall. On invalid input the border and helper text
-  switch to the error color, and the message states the expected format (`YYYY-MM-DD`, `HH:MM`).
-- **List row:** 32px, white, 1px bottom border. Primary text left, muted metadata next to it,
-  status chip and actions right-aligned.
+- **Input field:** paper background, 1px border, 30px tall; the border turns terracotta on focus.
+  On invalid input the border and helper text switch to the error color, and the message states
+  the expected format (`YYYY-MM-DD`, `HH:MM`).
+- **List row:** 34px, paper background, 1px bottom border. Primary text left, muted metadata next
+  to it, status chip and actions right-aligned.
 - **Status chip:** pill with the status text label in label-small type on its tinted background.
   The text is always present.
 - **Below-target banner:** tinted card at the top of the dashboard listing each course below its
   attendance target, e.g. "CSE101 — 66.7% (target 75%)".
-- **Section card:** white card, 6px radius, 16px padding, with a headline-md title.
+- **Section card:** paper card, 10px radius, 1px border, 16px padding, with a serif headline title.
 - **Empty state:** muted body text centered in the section, e.g. "No classes today."
 
 ## Do's and Don'ts
 
 - Do pair every status color with its text label; never show a colored dot or bar alone.
-- Do use the primary color only for the active nav item and one primary button per panel.
-- Do keep rows at 32px and text at 13px so a full week fits on screen without scrolling.
+- Do reserve terracotta for one primary button per panel and focus rings.
+- Do use the serif only for page titles and section headings; everything else uses the system font.
+- Do keep rows at 34px and text at 13px so a full week fits on screen without scrolling.
 - Do show "—" for a missing percentage, never "0%" or "NaN".
+- Don't use pure white (#FFFFFF) as a background or pure black for text; stay on the warm neutrals.
 - Don't hardcode colors or sizes in `.slint` files; reference `Theme.*` from `ui/theme.slint`.
 - Don't add shadows, gradients, or decorative icons.
 - Don't use more than two font weights on a single screen.
