@@ -1,14 +1,7 @@
 {
-  "milestone": "M0",
-  "phase": "done",
+  "milestone": "M1",
+  "phase": "plan",
   "tasks": {
-    "workspace": "done",
-    "clippy-toml": "done",
-    "agents-md": "done",
-    "license": "done",
-    "ci": "done",
-    "empty-window": "done",
-    "design-md": "approved",
-    "constitution": "done"
+    "specify": "done"
   }
 }

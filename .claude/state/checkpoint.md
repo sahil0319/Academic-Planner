@@ -1,12 +1,11 @@
 # Checkpoint
-- Milestone: M0 done (DESIGN.md approved by human 2026-10-28). Next milestone: M1
-- Last green gate: 0f5b6bd (local gate + GitHub CI run 40720326799 success)
-- Window verified: macOS reports window "Academic Planner" for the app process.
-- Next: M1 via /speckit-specify "Milestone M1 from docs/spec.md: rules R1-R3, R24-R25, tests T20, T24, T26. Do not add requirements."
+- Milestone: M1 in progress. Feature dir: specs/001-m1-core-storage (spec.md done, checklist passes)
+- Last green gate: 0f5b6bd (M0)
+- Decision 2026-10-28 (human): M1 implements assessment CRUD so T24 covers the empty-title case (FR-013a).
+- Spec assumptions: change_slot/end_slot are M2 (R7, T10/T11/T27) so stubs in M1; R3 dashboard/sync parts verified in M2.
+- Next: /speckit-plan "Use docs/spec.md §1–§5 as the plan; do not re-decide anything in §1."
+- Then: /speckit-tasks, /speckit-analyze, /speckit-implement, /speckit-converge, gate. (No checklist step for M1.)
 - Notes:
-  - DESIGN.md: warm cream/terracotta theme, Georgia headings, system-font body (user asked for a Claude-like light theme).
-  - Local rustc 1.90; Slint pinned to 1.16 by resolver 3 + rust-version 1.90 (Slint 1.18 needs 1.92).
-  - Package names: planner-core (lib planner_core), app (bin academic-planner).
-  - clippy.toml clock ban is workspace-wide; app allows it at its one clock call site (M4/M5).
-  - Screenshots need Screen Recording permission for VS Code (needed for M4 impeccable review).
+  - Local rustc 1.90; Slint pinned to 1.16. Package names: planner-core (lib planner_core), app (bin academic-planner).
+  - clippy.toml clock ban is workspace-wide.
 - Open questions: none
