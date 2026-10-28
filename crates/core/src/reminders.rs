@@ -3,9 +3,9 @@
 use chrono::{Duration, NaiveDateTime};
 use rusqlite::{params, Connection};
 
-use crate::db::{col_date, col_time, fmt_datetime, Planner};
+use crate::db::{col_assessment_kind, col_date, col_datetime, col_time, fmt_datetime, Planner};
 use crate::error::Result;
-use crate::model::{Reminder, ReminderKind};
+use crate::model::{AssessmentKind, Reminder, ReminderKind};
 
 /// One reminder that may be due: its key parts, event time `T`, lead, and title.
 struct Candidate {
@@ -19,7 +19,8 @@ struct Candidate {
 impl Planner {
     /// §5, FR-001: reminders due at `now`, logged in `reminder_log` so none is returned twice.
     ///
-    /// Candidates are pending sessions (FR-002) of non-archived courses in the active term;
+    /// Candidates are pending sessions (FR-002) and incomplete assessments with
+    /// `remind_minutes_before` set (FR-003), of non-archived courses in the active term;
     /// with no active term the result is empty. A candidate is due when
     /// `fire_at <= now < max(T, fire_at + 1 minute)` with `fire_at = T - lead` (FR-004); anything
     /// outside that window is neither returned nor logged, so missed reminders are skipped.
@@ -30,7 +31,8 @@ impl Planner {
         let class_lead = i64::from(self.settings()?.class_reminder_minutes);
         let tx = self.conn.transaction()?;
 
-        let candidates = session_candidates(&tx, now, class_lead)?;
+        let mut candidates = session_candidates(&tx, now, class_lead)?;
+        candidates.extend(assessment_candidates(&tx, now)?);
 
         let mut due = Vec::new();
         {
@@ -129,5 +131,47 @@ fn session_title(
     match room.map(str::trim).filter(|r| !r.is_empty()) {
         Some(room) => format!("{code} {name} at {start} in {room}"),
         None => format!("{code} {name} at {start}"),
+    }
+}
+
+/// FR-003, FR-004: incomplete assessments with `remind_minutes_before` set, of non-archived
+/// courses in the active term; `T` is `due_at` and the lead is `remind_minutes_before`.
+fn assessment_candidates(conn: &Connection, now: NaiveDateTime) -> Result<Vec<Candidate>> {
+    let mut stmt = conn.prepare(
+        "SELECT a.id, a.kind, a.title, a.due_at, a.remind_minutes_before, c.code
+         FROM assessment a
+         JOIN course c ON c.id = a.course_id
+         JOIN term t ON t.id = c.term_id
+         WHERE a.completed = 0 AND a.remind_minutes_before IS NOT NULL
+           AND c.archived = 0 AND t.is_active = 1
+           AND a.due_at >= ?1",
+    )?;
+    let rows = stmt.query_map([earliest_event_text(now)], |r| {
+        let kind = col_assessment_kind(r, 1)?;
+        let title: String = r.get(2)?;
+        let due_at = col_datetime(r, 3)?;
+        let code: String = r.get(5)?;
+        Ok(Candidate {
+            kind: ReminderKind::Assessment,
+            ref_id: r.get(0)?,
+            event_at: due_at,
+            lead_minutes: r.get(4)?,
+            title: format!(
+                "{code} {}: {title} due {}",
+                assessment_kind_word(kind),
+                due_at.format("%Y-%m-%d %H:%M")
+            ),
+        })
+    })?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
+/// FR-005: the kind word in an assessment title (same words the UI shows).
+fn assessment_kind_word(kind: AssessmentKind) -> &'static str {
+    match kind {
+        AssessmentKind::Quiz => "Quiz",
+        AssessmentKind::Exam => "Exam",
+        AssessmentKind::Assignment => "Assignment",
+        AssessmentKind::Other => "Other",
     }
 }

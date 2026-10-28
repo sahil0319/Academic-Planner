@@ -85,7 +85,7 @@ titles follow [contracts/core-api-m5.md](contracts/core-api-m5.md), e.g.
 
 **Independent Test**: T001–T003 all pass: `cargo test -p planner-core --test m5_reminders`.
 
-- [ ] T007 [US2] (builder) Extend `due_reminders` in crates/core/src/reminders.rs with assessment candidates: select `assessment` rows with `completed = 0` and `remind_minutes_before IS NOT NULL` joined to `course` (`archived = 0`) and `term` (`is_active = 1`), optionally pre-filtered to `due_at >= fmt_datetime(now - 1 minute)`; `T = due_at` (`db::parse_datetime`), lead = `remind_minutes_before`; same window, `INSERT OR IGNORE` with kind `'assessment'`, ordering, and transaction as T006; title `"{code} {Kind}: {title} due {YYYY-MM-DD HH:MM}"` with a private core mapping `Quiz`/`Exam`/`Assignment`/`Other` (research R-5). Doc comments cite FR-003 and FR-005. Needs T006
+- [X] T007 [US2] (builder) Extend `due_reminders` in crates/core/src/reminders.rs with assessment candidates: select `assessment` rows with `completed = 0` and `remind_minutes_before IS NOT NULL` joined to `course` (`archived = 0`) and `term` (`is_active = 1`), optionally pre-filtered to `due_at >= fmt_datetime(now - 1 minute)`; `T = due_at` (`db::parse_datetime`), lead = `remind_minutes_before`; same window, `INSERT OR IGNORE` with kind `'assessment'`, ordering, and transaction as T006; title `"{code} {Kind}: {title} due {YYYY-MM-DD HH:MM}"` with a private core mapping `Quiz`/`Exam`/`Assignment`/`Other` (research R-5). Doc comments cite FR-003 and FR-005. Needs T006
 
 **Checkpoint**: all `m5_*` tests pass; the full core suite is green.
 
