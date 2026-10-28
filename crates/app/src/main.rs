@@ -5,6 +5,7 @@ slint::include_modules!();
 
 mod bridge;
 mod controller;
+mod notify;
 mod pages;
 mod restore;
 mod viewmodel;
@@ -62,7 +63,7 @@ fn main() -> anyhow::Result<()> {
     };
 
     // R6: every 60 seconds, sync when the date has rolled over and refresh the now-dependent
-    // lists. The timer stops when it is dropped after the window closes.
+    // lists, then (FR-006) show desktop notifications for due reminders. The timer stops when it is dropped after the window closes.
     let timer = slint::Timer::default();
     if let Some(app) = &_app {
         let weak = Rc::downgrade(app);

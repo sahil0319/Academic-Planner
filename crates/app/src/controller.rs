@@ -12,8 +12,8 @@ use slint::{ComponentHandle, SharedString};
 
 use crate::viewmodel::{self, FilterChoice};
 use crate::{
-    pages, AppState, AppWindow, AssessmentsState, CoursesState, DashboardState, SettingsState,
-    TimetableState,
+    notify, pages, AppState, AppWindow, AssessmentsState, CoursesState, DashboardState,
+    SettingsState, TimetableState,
 };
 
 /// Page-level UI state that is not stored in the database (data-model.md "UI state").
@@ -145,7 +145,8 @@ impl App {
     /// R6: called by the 60-second timer. When the date has changed since the last sync, syncs
     /// with the new date and refreshes every page; otherwise refreshes only the pages whose lists
     /// depend on `now` (awaiting attendance, Attended/Absent enablement, overdue), leaving the
-    /// Settings forms untouched while the student types.
+    /// Settings forms untouched while the student types. Then checks reminders with the same
+    /// `now` (FR-006).
     pub fn tick(&self) {
         let now = self.now();
         let last_sync = self.state().last_sync;
@@ -160,6 +161,30 @@ impl App {
             pages::timetable::refresh(self);
             pages::courses::refresh(self);
             pages::assessments::refresh(self);
+        }
+        self.check_reminders(now);
+    }
+
+    /// FR-006, FR-008, §7: after the R6 work of [`App::tick`], shows a desktop notification for
+    /// each reminder that is due at `now`, in core's order. When the notifications switch is off,
+    /// core is not called (US3.2). An error is shown in the current page's message, never a panic.
+    fn check_reminders(&self, now: NaiveDateTime) {
+        // Each borrow of the planner ends with its `let` statement, before any message is shown.
+        let settings = self.planner().settings();
+        let enabled = match settings {
+            Ok(settings) => settings.notifications_enabled,
+            Err(e) => {
+                self.show_message(&viewmodel::error_text(&e));
+                return;
+            }
+        };
+        if !enabled {
+            return;
+        }
+        let due = self.planner_mut().due_reminders(now);
+        match due {
+            Ok(reminders) => reminders.iter().for_each(notify::show),
+            Err(e) => self.show_message(&viewmodel::error_text(&e)),
         }
     }
 
