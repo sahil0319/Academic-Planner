@@ -207,7 +207,8 @@ fn slot_change(
     let mut wanted: Vec<SlotKey> = file_slots.iter().map(file_key).collect();
     valid_now.sort();
     wanted.sort();
-    if valid_now == wanted && !(wanted.is_empty() && !current.is_empty()) {
+    let nothing_to_end = !wanted.is_empty() || current.is_empty();
+    if valid_now == wanted && nothing_to_end {
         return None;
     }
     Some(SlotChange {
