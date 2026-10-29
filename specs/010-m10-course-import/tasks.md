@@ -79,21 +79,21 @@ are warnings, nothing is written on error.
 
 **Independent test**: `cargo test -p planner-core --test m10_import r42_ t48_`.
 
-- [ ] T003 (tester) [core] Create crates/core/tests/m10_import.rs with helpers: `fresh()` (in-memory
+- [x] T003 (tester) [core] Create crates/core/tests/m10_import.rs with helpers: `fresh()` (in-memory
   planner, no term; M9 seeds rule sets), `with_term(name, start, end)` (active term via
   `save_term`), `add_course(code, archived)`, `add_slot(course, day, start, end, room, from)`,
   `snapshot(&Planner) -> String` (`export_json` at a fixed `NaiveDateTime`), `d("2026-01-14")`,
   and `doc(json!(…))` building import text with `serde_json::json!` (add `serde_json` to
   crates/core `[dev-dependencies]` only if not already reachable; it is a normal dependency, so the
   test can use it directly). Needs T002
-- [ ] T004 [US3] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T004 [US3] (tester) [core] In crates/core/tests/m10_import.rs write
   `t48_errors_collected_with_paths_db_unchanged`: one file with a bad day (`"Mo"` at
   `courses[0].slots[0].day`), end ≤ start (`courses[1].slots[0].end`), a duplicate code
   (`courses[2].code` duplicating `courses[0].code` written as `"cse 4711"` vs `"CSE 4711"`), and an
   unknown rule set (`courses[1].rule_set: "Foo"`); assert `preview_import` returns exactly those
   four errors (by path, any order), empty `add`/`update`/`term`; `apply_import` returns
   `Error::Validation` whose message contains all four paths; `snapshot` unchanged. Needs T003
-- [ ] T005 [US3] (tester) [core] Shape tests in crates/core/tests/m10_import.rs, one test each,
+- [x] T005 [US3] (tester) [core] Shape tests in crates/core/tests/m10_import.rs, one test each,
   asserting the path and that `apply_import` writes nothing: `r42_not_json_is_document_error`
   (path `document`, message has line and column), `r42_root_not_object`, `r42_format_missing_or_wrong`,
   `r42_version_not_1` (`2` and `"1"`), `r42_courses_missing_or_not_list`, `r42_course_not_object`,
@@ -102,7 +102,7 @@ are warnings, nothing is written on error.
   `r42_term_malformed_with_active_term_is_error` (bad `term.start` while an active term exists),
   `r42_term_end_before_start`, `r42_errors_collected_across_courses` (errors in `courses[0]` and
   `courses[3]` both reported). Needs T003
-- [ ] T006 [US3] (tester) [core] Value tests in crates/core/tests/m10_import.rs:
+- [x] T006 [US3] (tester) [core] Value tests in crates/core/tests/m10_import.rs:
   `r42_day_variants_accepted` (`"Mon"`, `"monday"`, `"MONDAY"`, `" Mon "`, `"1"`, `1` all →
   Monday in the planned slot; `"Sun"`, `7` → Sunday), `r42_day_variants_rejected` (`"Mo"`,
   `"Tues"`, `0`, `8`, `"0"`, `1.5`, `true` → error at that `.day` path), `r42_times`
@@ -111,7 +111,7 @@ are warnings, nothing is written on error.
   `r42_credits` (`0`, `-1`, `"3"` rejected; `1.5` accepted), `r42_min_attendance_pct` (`101`, `-1`,
   `75.5`, `"75"` rejected; `0`, `100` accepted), `r42_rule_set_unknown_lists_names` (message
   contains "Theory" and "Lab"). Needs T003
-- [ ] T007 [US3] (tester) [core] Warning tests in crates/core/tests/m10_import.rs:
+- [x] T007 [US3] (tester) [core] Warning tests in crates/core/tests/m10_import.rs:
   `r42_unknown_keys_warn_not_error`: unknown keys at root (`comment`), `term` (`id`), course
   (`teacher`, `notes`, `archived`), and slot (`type`) each produce one warning with its exact path
   (e.g. `courses[0].slots[1].type`), no errors, and the plan is otherwise the same as without
