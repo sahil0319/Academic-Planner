@@ -29,8 +29,17 @@ export global AppState {
     in-out property <int> current-page;      // 0 Dashboard, 1 Timetable, 2 Courses, 3 Assessments, 4 Settings
     in property <string> startup-error;      // FR-008: non-empty → only the error screen is shown
     callback page-selected(int);             // Rust refreshes all pages (fresh `now`)
+    callback theme-selected(int);            // §6 Appearance: 0 System, 1 Light, 2 Dark; Rust applies at once and saves
 }
 ```
+
+`ui/theme.slint` (change 2026-10-29, dark mode): `Theme` has `in-out property <int> mode` (0 System,
+1 Light, 2 Dark; `viewmodel::theme_index`) and `out property <bool> dark` (Dark, or System while the
+std-widgets `Palette` is dark). Every color token is `dark ? <DESIGN.md dark-*> : <light>`.
+`bridge::apply_theme(window, ThemeMode)` sets `Theme.mode` and `Palette.color-scheme` (System →
+`unknown`, so the std widgets follow the OS; Light → `light`; Dark → `dark`). `AppWindow`
+re-exports `Theme` and `Palette` for this. The build uses the `fluent` style (not `fluent-light`,
+which fixes the scheme to light at compile time).
 
 `bridge.rs` converts `viewmodel::SessionRow` etc. into these structs (field copies, `i64 → i32`
 ids, `ChipKind → Chip`) and `StatusAction → planner_core::Status`. No formatting happens there.
@@ -46,12 +55,21 @@ always shown), `SectionCard` (headline title), `ListRow`, `EmptyState` (`text`),
 `FocusScope` (disabled buttons are not focusable), Enter or Space activates, `accessible-role`
 `button` (`tab` for nav and filter tabs) with `accessible-label` from the text, and a terracotta
 focus ring at `Theme.border-width`.
+`AppearanceSwitch` (`in property <int> selected`, `callback select(int)`; DESIGN.md "Appearance
+switch"): a `Theme.surface-alt` pill (`radius-full`) with three `Theme.appearance-segment` segments
+whose icons are `Path` strokes (monitor, sun, moon) in `on-surface-muted`, the active one in
+`on-surface` on a `Theme.surface` pill with a `Theme.border` border. Each segment is keyboard
+reachable like the buttons, with `accessible-role` `button` and `accessible-label` "Use system
+appearance", "Light", "Dark".
 
 ## `ui/app-window.slint`
 
 `AppWindow` imports `theme.slint`, `types.slint`, and every page; re-exports `AppState` and the five
 page globals; shows the nav column (`Theme.nav-width`) with five `NavItem`s and the current page, or
-only the startup error text when `AppState.startup-error` is non-empty.
+only the startup error text when `AppState.startup-error` is non-empty. An `AppearanceSwitch`
+(`selected: Theme.mode`, `select` → `AppState.theme-selected`) is fixed `Theme.space-lg` from the
+top-right of the content area (it does not scroll; page titles are on the left of that row) and
+from the top-right of the startup error screen.
 
 ## Page globals
 
@@ -178,3 +196,8 @@ with `viewmodel::free_pre_restore_name(now, &existing)` (Q2 = A), runs `VACUUM I
 `changed(sync: bool)` (sync with today if `sync`, then `refresh_all`), `refresh_all()` (calls
 every `pages::*::refresh`), `tick()` (R6 rollover check, then `refresh_all`). Sync errors are shown
 in the visible page's `message`.
+Theme (change 2026-10-29): `load_theme()` applies `settings().theme` via `bridge::apply_theme`
+(on start before the first frame, and after a successful restore); `select_theme(index)` applies the
+theme at once, then saves it with `save_settings`, keeping the other settings. Errors go to the
+visible page's `message`. The Settings form save keeps the saved theme. On the startup error screen
+the switch applies the theme without saving (there is no database).

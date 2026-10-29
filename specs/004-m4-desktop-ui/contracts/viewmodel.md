@@ -74,7 +74,7 @@ holidays have no core range call.
 | `pub fn parse_makeup_form(course_id: i64, date: &str, start: &str, end: &str, room: &str, note: &str) -> Result<MakeupInput, FormErrors>` | `date`, `start`, `end`. Used by reschedule (R9) and "Add makeup class" (R10); note via `optional_text` |
 | `pub fn parse_assessment_form(course_id: Option<i64>, kind: i32, title: &str, due_date: &str, due_time: &str, notes: &str, remind: &str) -> Result<AssessmentInput, FormErrors>` | `course`, `kind` (`"Choose a kind"`), `due_date`, `due_time`, `remind`. `due_at` = date + time |
 | `pub fn parse_holiday_form(start: &str, end: &str, label: &str) -> Result<Vec<Holiday>, FormErrors>` | `start`, `end` (optional; `end < start` → `"End date must be on or after the start date"`). Returns `expand_holiday_range` |
-| `pub fn parse_settings_form(reminder_minutes: &str, window_days: &str, notifications: bool) -> Result<Settings, FormErrors>` | `reminder`, `window` via `parse_count` |
+| `pub fn parse_settings_form(reminder_minutes: &str, window_days: &str, notifications: bool) -> Result<Settings, FormErrors>` | `reminder`, `window` via `parse_count`; `theme` is the default (the form has no theme field); the caller saves with the stored theme |
 
 ## Holidays (human decision §6: single date or inclusive range)
 
@@ -98,6 +98,7 @@ holidays have no core range call.
 | `pub struct AssessmentRow { pub id: i64, pub course_code: String, pub kind: String, pub title: String, pub due: String, pub completed: bool, pub notes: String }` + `pub fn assessment_row(a: &Assessment) -> AssessmentRow` | `due` via `format_datetime` (`"October 30, 2026, 23:59"`); `notes` or `""` |
 | `pub fn assessment_kind_label(k: AssessmentKind) -> &'static str` | `"Quiz"`, `"Exam"`, `"Assignment"`, `"Other"` |
 | `pub fn assessment_kind_from_index(i: i32) -> Option<AssessmentKind>` / `pub fn assessment_kind_index(k: AssessmentKind) -> i32` | 0 Quiz, 1 Exam, 2 Assignment, 3 Other |
+| `pub fn theme_index(mode: ThemeMode) -> i32` / `pub fn theme_from_index(i: i32) -> Option<ThemeMode>` | Appearance switch segment and `Theme.mode` (change 2026-10-29): 0 System, 1 Light, 2 Dark; any other index → `None` |
 
 ## Assessment filters (R18, R19)
 
