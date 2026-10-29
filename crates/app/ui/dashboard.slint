@@ -49,6 +49,8 @@ component RowText inherits Text {
 // Muted row metadata, e.g. time or room.
 component RowMeta inherits Text {
     vertical-alignment: center;
+    // Long dates ("From September 1, 2026 to December 20, 2026") elide instead of widening rows.
+    overflow: elide;
     color: Theme.on-surface-muted;
     font-family: Theme.font-body;
     font-size: Theme.body-md-size;
