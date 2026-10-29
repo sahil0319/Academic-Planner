@@ -285,6 +285,7 @@ fn r21_export_rows_keep_ids_and_value_types() {
             "upcoming_window_days": "14",
             "notifications_enabled": "0",
             "theme": "system",
+            "check_updates_on_start": "1",
         })
     );
 }

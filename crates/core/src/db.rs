@@ -289,6 +289,17 @@ impl Planner {
                 .ok_or_else(|| Error::Corrupt(format!("setting {SETTING_THEME} = {v:?}")))?,
             None => defaults.theme,
         };
+        // §3, R29: a missing row reads as on; anything but "0"/"1" is corrupt.
+        let check_updates_on_start = match get(SETTING_CHECK_UPDATES)?.as_deref() {
+            Some("1") => true,
+            Some("0") => false,
+            Some(v) => {
+                return Err(Error::Corrupt(format!(
+                    "setting {SETTING_CHECK_UPDATES} = {v:?}"
+                )))
+            }
+            None => defaults.check_updates_on_start,
+        };
         Ok(Settings {
             class_reminder_minutes: number(
                 SETTING_CLASS_REMINDER,
@@ -297,11 +308,12 @@ impl Planner {
             upcoming_window_days: number(SETTING_UPCOMING_WINDOW, defaults.upcoming_window_days)?,
             notifications_enabled,
             theme,
-            check_updates_on_start: defaults.check_updates_on_start,
+            check_updates_on_start,
         })
     }
 
-    /// Stores all settings in one transaction, `theme` included (§5 Settings theme).
+    /// Stores all settings in one transaction, `theme` (§5 Settings theme) and
+    /// `check_updates_on_start` (R29) included.
     pub fn save_settings(&mut self, s: &Settings) -> Result<()> {
         let tx = self.conn.transaction()?;
         {
@@ -322,6 +334,10 @@ impl Planner {
                 if s.notifications_enabled { "1" } else { "0" }
             ])?;
             upsert.execute(params![SETTING_THEME, s.theme.as_db()])?;
+            upsert.execute(params![
+                SETTING_CHECK_UPDATES,
+                if s.check_updates_on_start { "1" } else { "0" }
+            ])?;
         }
         tx.commit()?;
         Ok(())
@@ -676,6 +692,8 @@ const SETTING_UPCOMING_WINDOW: &str = "upcoming_window_days";
 const SETTING_NOTIFICATIONS: &str = "notifications_enabled";
 /// §5 Settings theme: appearance choice, stored as `system`, `light`, or `dark`.
 pub(crate) const SETTING_THEME: &str = "theme";
+/// §3, R29: whether to check for an update once per launch, stored as `1` or `0`.
+pub(crate) const SETTING_CHECK_UPDATES: &str = "check_updates_on_start";
 
 // ---- text codecs (docs/spec.md §1: YYYY-MM-DD, HH:MM, YYYY-MM-DDTHH:MM) ----
 

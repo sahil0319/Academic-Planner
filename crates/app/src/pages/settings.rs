@@ -264,11 +264,13 @@ fn save_settings(app: &App) {
     };
     page.set_reminder_error(SharedString::new());
     page.set_window_error(SharedString::new());
-    // §5 Settings theme: the form has no theme field, so the saved theme is kept.
+    // §5 Settings theme, R29: the form has neither the theme nor the update-check switch
+    // (that one lives on About), so both saved values are kept.
     let current = app.planner().settings();
     let saved = current.and_then(|current| {
         app.planner_mut().save_settings(&Settings {
             theme: current.theme,
+            check_updates_on_start: current.check_updates_on_start,
             ..settings
         })
     });

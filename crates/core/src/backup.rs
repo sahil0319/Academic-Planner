@@ -8,7 +8,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 use crate::db::{
-    fmt_datetime, parse_date, parse_datetime, parse_time, Planner, SCHEMA_VERSION, SETTING_THEME,
+    fmt_datetime, parse_date, parse_datetime, parse_time, Planner, SCHEMA_VERSION, SETTING_CHECK_UPDATES,
+    SETTING_THEME,
 };
 use crate::error::{Error, Result};
 use crate::model::ThemeMode;
@@ -161,6 +162,12 @@ impl Backup {
             ThemeMode::from_db(v)
                 .map(|_| ())
                 .ok_or_else(|| bad("settings theme", v))?;
+        }
+        // R22, R29: check_updates_on_start must be exactly "0" or "1"; a missing key reads as on.
+        if let Some(v) = self.settings.get(SETTING_CHECK_UPDATES) {
+            if v != "0" && v != "1" {
+                return Err(bad("settings check_updates_on_start", v));
+            }
         }
         Ok(())
     }
