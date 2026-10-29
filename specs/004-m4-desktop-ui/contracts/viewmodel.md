@@ -116,7 +116,7 @@ holidays have no core range call.
 | `pub fn week_start(date: NaiveDate) -> NaiveDate` | Monday on or before `date` (Monday → itself; Sunday 2026-11-01 → 2026-10-26) |
 | `pub fn week_end(week_start: NaiveDate) -> NaiveDate` | `week_start + 6 days` (Sunday) |
 | `pub fn shift_week(week_start: NaiveDate, weeks: i64) -> NaiveDate` | `±7 × weeks` days; works across month and year ends |
-| `pub fn week_title(week_start: NaiveDate) -> String` | `"October 26 – November 1, 2026"`; year shown once at the end. Across years both years: `"December 28, 2026 – January 3, 2027"`. Within one month the month is still repeated: `"October 5 – October 11, 2026"` (decided: simpler to read) |
+| `pub fn week_title(week_start: NaiveDate) -> String` | `"October 26 – November 1, 2026"`; year shown once at the end. Across years both years: `"December 28, 2026 – January 3, 2027"`. Within one month the short form: `"October 5 – 11, 2026"` (human decision 2026-10-29: short within a month, month named again when it changes) |
 | `pub struct DayGroup { pub title: String, pub rows: Vec<SessionRow> }` + `pub fn group_week(views: &[SessionView]) -> Vec<DayGroup>` | One group per distinct date, in date order, keeping input order inside a day; title `"Monday, October 26, 2026"`; empty input → empty vec (page shows its empty state) |
 
 ## Dashboard (R14, R16–R20)

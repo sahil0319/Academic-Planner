@@ -406,7 +406,7 @@ No new stored entities; the schema is unchanged.
   (edit forms, defaults) show zero-padded `DD-MM-YYYY`.
 - Dates shown as text read like "October 26, 2026" wherever space allows: with a weekday
   "Monday, October 26, 2026"; with a time "October 30, 2026, 23:59" (times stay 24-hour `HH:MM`);
-  week title "October 26 – November 1, 2026" (both years shown when the week spans two years).
+  week title "October 5 – 11, 2026" within one month, "October 26 – November 1, 2026" when the month changes, and "December 28, 2026 – January 3, 2027" when the year changes.
 - The core `display_status` text "Rescheduled → 2026-01-13" (§5, T09) is unchanged in core; the
   app reformats its date part to "Rescheduled → January 13, 2026".
 - Unchanged and still ISO: database storage (§1), JSON backup (R21), CSV exports (R23), the

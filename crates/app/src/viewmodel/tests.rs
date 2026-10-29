@@ -1127,10 +1127,10 @@ fn week_title_range() {
     assert_eq!(week_title(d(2026, 10, 26)), "October 26 – November 1, 2026");
 }
 
-/// §6 date format change: a week inside one month still repeats the month.
+/// §6 date format change: a week inside one month names the month once ("October 5 – 11, 2026").
 #[test]
-fn week_title_within_one_month_repeats_month() {
-    assert_eq!(week_title(d(2026, 10, 5)), "October 5 – October 11, 2026");
+fn week_title_within_one_month_is_short() {
+    assert_eq!(week_title(d(2026, 10, 5)), "October 5 – 11, 2026");
 }
 
 /// §6 date format change: a week spanning two years shows both years.
