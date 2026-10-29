@@ -10,8 +10,8 @@ use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use crate::viewmodel::{self as vm, ChipKind};
 use crate::{
     AppWindow, AssessmentRow, BandRow, CalendarDay, CalendarWeek, Chip, ComponentRow, CourseRow,
-    DayGroup, GradeRowView, HolidayRow, MarkRow, NeededRowView, Palette, RuleSetRow, SessionRow,
-    SlotRow, StatusAction, SummaryView, Theme,
+    DayGroup, GradeRowView, HolidayRow, ImportLine, ImportLineKind, MarkRow, NeededRowView,
+    Palette, RuleSetRow, SessionRow, SlotRow, StatusAction, SummaryView, Theme,
 };
 
 /// R-D18: Slint `int` is `i32`; an id that does not fit is reported, never truncated.
@@ -177,6 +177,23 @@ pub fn course_row(r: &vm::CourseRow) -> Result<CourseRow, String> {
         target: r.target.as_str().into(),
         archived: r.archived,
     })
+}
+
+/// M10: one import-preview line.
+pub fn import_line(l: &vm::import::PreviewLine) -> ImportLine {
+    use vm::import::LineKind;
+    ImportLine {
+        text: l.text.as_str().into(),
+        kind: match l.kind {
+            LineKind::Heading => ImportLineKind::Heading,
+            LineKind::Error => ImportLineKind::Error,
+            LineKind::Summary => ImportLineKind::Summary,
+            LineKind::Section => ImportLineKind::Section,
+            LineKind::Item => ImportLineKind::Item,
+            LineKind::Detail => ImportLineKind::Detail,
+            LineKind::Warning => ImportLineKind::Warning,
+        },
+    }
 }
 
 /// Timetable rule row.

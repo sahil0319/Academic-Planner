@@ -13,6 +13,7 @@ import {
     StatusAction,
     SummaryView,
 } from "types.slint";
+import { ImportPanel, ImportState } from "import.slint";
 import {
     PageTitle,
     EmptyState,
@@ -179,7 +180,17 @@ export component CoursesPage inherits VerticalLayout {
                 CoursesState.begin-create();
             }
         }
+        // M10: opens the import panel below.
+        SecondaryButton {
+            text: "Import…";
+            clicked => {
+                ImportState.open = true;
+            }
+        }
     }
+
+    // M10, R42-R50: course and timetable import.
+    if ImportState.open: ImportPanel { }
 
     // R2: create / edit form; core validation errors show inline.
     if CoursesState.form-open: SectionCard {

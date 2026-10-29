@@ -11,6 +11,7 @@ import { AssessmentsPage, AssessmentsState } from "assessments.slint";
 import { SettingsPage, SettingsState } from "settings.slint";
 import { AboutPage, AboutState, UpdateBanner } from "about.slint";
 import { RulesPage, RulesState } from "rules.slint";
+import { ImportState } from "import.slint";
 
 export {
     Chip,
@@ -27,6 +28,8 @@ export {
     ComponentRow,
     BandRow,
     GradeRowView,
+    ImportLine,
+    ImportLineKind,
 } from "types.slint";
 export {
     DashboardState,
@@ -36,6 +39,7 @@ export {
     SettingsState,
     AboutState,
     RulesState,
+    ImportState,
 }
 // Rust sets Theme.mode and the std-widgets color scheme (§6 "Appearance:").
 export { Theme, Palette }

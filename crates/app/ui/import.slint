@@ -1,0 +1,192 @@
+// Import panel of the Courses page (docs/spec.md §13.4 UI, R42-R50, contracts/ui-import.md).
+// Bindings and callbacks only; every string comes from src/viewmodel/import.rs, and the Copy
+// buttons use the two hidden read-only TextInputs (research D17).
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { ImportLine, ImportLineKind } from "types.slint";
+import { PrimaryButton, SecondaryButton, Field, SectionCard } from "components.slint";
+
+export global ImportState {
+    // The panel is shown.
+    in-out property <bool> open;
+    // Pasted import text.
+    in-out property <string> text;
+    // R49: effective date, DD-MM-YYYY, pre-filled with today.
+    in-out property <string> date-text;
+    in property <string> date-error;
+    // Preview needs a non-blank text and a valid date.
+    in property <bool> can-preview;
+    // R48, D19: Apply is allowed for the current preview only.
+    in property <bool> can-apply;
+    // Result area: preview lines, or the apply result.
+    in property <[ImportLine]> lines;
+    // Core or date error shown under the buttons.
+    in property <string> message;
+    // "Template copied" / "AI prompt copied".
+    in property <string> copy-status;
+    // Embedded texts the Copy buttons put on the clipboard.
+    in property <string> template-text;
+    in property <string> prompt-text;
+
+    callback close();
+    callback text-edited(string);
+    callback date-edited(string);
+    callback preview();
+    callback apply();
+    callback template-copied();
+    callback prompt-copied();
+}
+
+// Text of one result line, styled by its kind.
+component ResultLine inherits Text {
+    in property <ImportLineKind> kind;
+    wrap: word-wrap;
+    color: kind == ImportLineKind.error ? Theme.error
+        : kind == ImportLineKind.warning ? Theme.status-pending
+        : kind == ImportLineKind.detail ? Theme.on-surface-muted
+        : Theme.on-surface;
+    font-family: kind == ImportLineKind.section ? Theme.font-heading : Theme.font-body;
+    font-size: kind == ImportLineKind.section ? Theme.headline-md-size : Theme.body-md-size;
+    font-weight: kind == ImportLineKind.heading || kind == ImportLineKind.summary || kind == ImportLineKind.item ? Theme.label-md-weight : Theme.body-md-weight;
+}
+
+export component ImportPanel inherits SectionCard {
+    title: "Import courses and timetable";
+
+    Text {
+        text: "Paste the import text below.";
+        color: Theme.on-surface-muted;
+        font-family: Theme.font-body;
+        font-size: Theme.body-md-size;
+    }
+
+    // Multi-line paste box, styled like Field.
+    Rectangle {
+        height: 8 * Theme.row-height;
+        border-radius: Theme.radius-sm;
+        border-width: Theme.border-width;
+        border-color: paste.has-focus ? Theme.primary : Theme.border;
+        background: Theme.surface;
+        clip: true;
+
+        // Hidden carriers for the clipboard (research D17): select-all, copy, clear-selection.
+        // They live here because this Rectangle is not a layout, so they take no space.
+        template-source := TextInput {
+            visible: false;
+            read-only: true;
+            width: 0;
+            height: 0;
+            text: ImportState.template-text;
+        }
+        prompt-source := TextInput {
+            visible: false;
+            read-only: true;
+            width: 0;
+            height: 0;
+            text: ImportState.prompt-text;
+        }
+
+        ScrollView {
+            VerticalLayout {
+                padding: Theme.space-sm;
+                paste := TextInput {
+                    text <=> ImportState.text;
+                    wrap: word-wrap;
+                    color: Theme.on-surface;
+                    font-family: Theme.font-body;
+                    font-size: Theme.body-md-size;
+                    edited => {
+                        ImportState.text-edited(self.text);
+                    }
+                }
+            }
+        }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.space-sm;
+        alignment: start;
+        SecondaryButton {
+            text: "Copy template";
+            clicked => {
+                template-source.select-all();
+                template-source.copy();
+                template-source.clear-selection();
+                ImportState.template-copied();
+            }
+        }
+        SecondaryButton {
+            text: "Copy AI prompt";
+            clicked => {
+                prompt-source.select-all();
+                prompt-source.copy();
+                prompt-source.clear-selection();
+                ImportState.prompt-copied();
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Text {
+                text: ImportState.copy-status;
+                color: Theme.on-surface-muted;
+                font-family: Theme.font-body;
+                font-size: Theme.body-md-size;
+            }
+        }
+    }
+
+    Field {
+        label: "Effective date (DD-MM-YYYY)";
+        text <=> ImportState.date-text;
+        error: ImportState.date-error;
+        edited(value) => {
+            ImportState.date-edited(value);
+        }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.space-sm;
+        alignment: start;
+        SecondaryButton {
+            text: "Preview";
+            enabled: ImportState.can-preview;
+            clicked => {
+                ImportState.preview();
+            }
+        }
+        PrimaryButton {
+            text: "Apply";
+            enabled: ImportState.can-apply;
+            clicked => {
+                ImportState.apply();
+            }
+        }
+        SecondaryButton {
+            text: "Close";
+            clicked => {
+                ImportState.close();
+            }
+        }
+    }
+
+    if ImportState.message != "": Text {
+        text: ImportState.message;
+        color: Theme.error;
+        wrap: word-wrap;
+        font-family: Theme.font-body;
+        font-size: Theme.body-sm-size;
+        font-weight: Theme.body-sm-weight;
+    }
+
+    if ImportState.lines.length > 0: ScrollView {
+        height: 12 * Theme.row-height;
+        VerticalLayout {
+            alignment: start;
+            spacing: Theme.space-xs;
+            for line in ImportState.lines: ResultLine {
+                text: line.text;
+                kind: line.kind;
+            }
+        }
+    }
+}

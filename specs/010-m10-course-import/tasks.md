@@ -268,7 +268,7 @@ are warnings, nothing is written on error.
 - [x] T024 [US4] (builder) [app] Implement crates/app/src/viewmodel/import.rs per
   contracts/ui-import.md, reusing `format_date`, `format_time_range`, `weekday_name`, `or_dash`
   from crates/app/src/viewmodel.rs. T023 passes. Needs T023
-- [ ] T025 [US4] (builder) [app] UI and wiring: create crates/app/ui/import.slint (`export global
+- [x] T025 [US4] (builder) [app] UI and wiring: create crates/app/ui/import.slint (`export global
   ImportState` with the properties and callbacks of contracts/ui-import.md and
   `export component ImportPanel`: paste box, Copy template / Copy AI prompt with two read-only
   `TextInput`s and `select-all()`/`copy()`/`clear-selection()` (research D17), effective date

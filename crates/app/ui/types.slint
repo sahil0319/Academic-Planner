@@ -157,3 +157,12 @@ export struct GradeRowView {
     points: string,
     error: string,
 }
+
+// M10: styling hint of one import-preview line (src/viewmodel/import.rs `LineKind`).
+export enum ImportLineKind { heading, error, summary, section, item, detail, warning }
+
+// M10: one line of the import-preview result area; the text is already formatted.
+export struct ImportLine {
+    text: string,
+    kind: ImportLineKind,
+}

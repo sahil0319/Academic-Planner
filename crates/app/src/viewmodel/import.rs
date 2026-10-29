@@ -11,6 +11,8 @@ use planner_core::{
 use super::{format_date, format_time_range, or_dash, weekday_name};
 
 #[cfg(test)]
+mod lines_tests;
+#[cfg(test)]
 mod tests;
 
 /// R48, R49: the preview the panel last produced, kept to decide whether Apply is allowed.
@@ -184,4 +186,104 @@ pub fn import_report_text(report: &ImportReport) -> String {
 pub fn can_apply(preview: Option<&PreviewState>, text: &str, date_text: &str) -> bool {
     preview
         .is_some_and(|p| p.text == text && p.date_text == date_text && !p.has_errors && !p.is_empty)
+}
+
+/// How the panel styles one result line.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LineKind {
+    /// R42: the errors heading.
+    Heading,
+    /// R42: one validation error.
+    Error,
+    /// R48: the plan summary or the apply result.
+    Summary,
+    /// A section title such as `Courses to add`.
+    Section,
+    /// A term, a course to add, or a course to update.
+    Item,
+    /// A slot or a field change under an item.
+    Detail,
+    /// R42, R44, R47: a non-fatal finding.
+    Warning,
+}
+
+/// One line of the preview result area.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PreviewLine {
+    /// Display text, formatted by the functions above.
+    pub text: String,
+    /// Styling hint for the panel.
+    pub kind: LineKind,
+}
+
+fn line(kind: LineKind, text: impl Into<String>) -> PreviewLine {
+    PreviewLine {
+        text: text.into(),
+        kind,
+    }
+}
+
+/// R42, R43-R48: the result area for a preview with effective date `effective`: errors (then
+/// warnings) when the plan has errors, otherwise the summary and one section per kind of change.
+pub fn preview_lines(plan: &ImportPlan, effective: NaiveDate) -> Vec<PreviewLine> {
+    let mut lines = Vec::new();
+    if plan.errors.is_empty() {
+        lines.push(line(LineKind::Summary, plan_summary(plan)));
+        if let Some(term) = &plan.term {
+            lines.push(line(LineKind::Section, "Term to create"));
+            lines.push(line(LineKind::Item, term_line(term)));
+        }
+        if !plan.add.is_empty() {
+            lines.push(line(LineKind::Section, "Courses to add"));
+            for course in &plan.add {
+                lines.push(line(LineKind::Item, course_add_line(course)));
+                lines.extend(
+                    course
+                        .slots
+                        .iter()
+                        .map(|s| line(LineKind::Detail, slot_line(s))),
+                );
+            }
+        }
+        if !plan.update.is_empty() {
+            lines.push(line(LineKind::Section, "Courses to update"));
+            for course in &plan.update {
+                let title = if course.archived {
+                    format!("{} (archived)", course.code)
+                } else {
+                    course.code.clone()
+                };
+                lines.push(line(LineKind::Item, title));
+                lines.extend(
+                    course
+                        .changes
+                        .iter()
+                        .map(|c| line(LineKind::Detail, field_change_line(c))),
+                );
+                if let Some(slots) = &course.slots {
+                    lines.extend(
+                        slot_change_lines(slots, effective)
+                            .into_iter()
+                            .map(|t| line(LineKind::Detail, t)),
+                    );
+                }
+            }
+        }
+    } else {
+        lines.push(line(LineKind::Heading, errors_heading(plan.errors.len())));
+        lines.extend(
+            plan.errors
+                .iter()
+                .map(|e| line(LineKind::Error, issue_line(e))),
+        );
+    }
+    if !plan.warnings.is_empty() {
+        lines.push(line(LineKind::Section, "Warnings"));
+        lines.extend(
+            plan.warnings
+                .iter()
+                .map(|w| line(LineKind::Warning, issue_line(w))),
+        );
+    }
+    lines
 }

@@ -250,6 +250,7 @@ impl App {
         pages::settings::refresh(self);
         pages::about::refresh(self);
         pages::rules::refresh(self);
+        pages::import::refresh(self);
     }
 
     /// Shows `text` in the `message` property of the page that is currently visible.
