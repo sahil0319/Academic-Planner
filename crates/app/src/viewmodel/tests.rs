@@ -550,7 +550,17 @@ fn parse_term_form_passes_end_before_start_to_core() {
 /// Course form: trims code and name, maps empty optional fields to `None`.
 #[test]
 fn parse_course_form_valid() {
-    let input = parse_course_form(" CSE101 ", " Intro ", "Dr. Rahman", "  ", "", "75").unwrap();
+    let input = parse_course_form(
+        " CSE101 ",
+        " Intro ",
+        "Dr. Rahman",
+        "  ",
+        "",
+        "75",
+        "",
+        None,
+    )
+    .unwrap();
     assert_eq!(
         input,
         CourseInput {
@@ -569,14 +579,14 @@ fn parse_course_form_valid() {
 /// Course form: an empty target means no target.
 #[test]
 fn parse_course_form_empty_target_is_none() {
-    let input = parse_course_form("CSE101", "Intro", "", "", "", "").unwrap();
+    let input = parse_course_form("CSE101", "Intro", "", "", "", "", "", None).unwrap();
     assert_eq!(input.min_attendance_pct, None);
 }
 
 /// Course form: a non-integer target reports a field error.
 #[test]
 fn parse_course_form_bad_target_reports_field_error() {
-    let err = parse_course_form("CSE101", "Intro", "", "", "", "7.5").unwrap_err();
+    let err = parse_course_form("CSE101", "Intro", "", "", "", "7.5", "", None).unwrap_err();
     assert_eq!(err.get("target"), "Enter a whole number");
     assert_eq!(err.get("code"), "");
 }
@@ -584,7 +594,7 @@ fn parse_course_form_bad_target_reports_field_error() {
 /// R2: empty code and out-of-range target are core's checks; the form passes them through.
 #[test]
 fn parse_course_form_passes_r2_checks_to_core() {
-    let input = parse_course_form("", "", "", "", "", "150").unwrap();
+    let input = parse_course_form("", "", "", "", "", "150", "", None).unwrap();
     assert_eq!(input.code, "");
     assert_eq!(input.name, "");
     assert_eq!(input.min_attendance_pct, Some(150));
@@ -809,6 +819,8 @@ fn parse_assessment_form_valid() {
         },
         "",
         "60",
+        None,
+        "",
     )
     .unwrap();
     assert_eq!(
@@ -840,6 +852,8 @@ fn parse_assessment_form_empty_remind_is_none() {
         },
         "",
         "",
+        None,
+        "",
     )
     .unwrap();
     assert_eq!(input.remind_minutes_before, None);
@@ -860,6 +874,8 @@ fn parse_assessment_form_reports_all_errors_at_once() {
         },
         "",
         "-5",
+        None,
+        "",
     )
     .unwrap_err();
     assert_eq!(err.get("course"), "Choose a course");
@@ -882,6 +898,8 @@ fn parse_assessment_form_passes_empty_title_to_core() {
             pm: false,
         },
         "",
+        "",
+        None,
         "",
     )
     .unwrap();

@@ -8,9 +8,10 @@ use std::path::Path;
 
 use chrono::{Datelike, Days, Duration, NaiveDate, NaiveDateTime, NaiveTime, Timelike, Weekday};
 use planner_core::{
-    Assessment, AssessmentFilter, AssessmentInput, AssessmentKind, AttendanceSummary, Course,
-    CourseInput, Dashboard, Holiday, MakeupInput, SessionView, Settings, Slot, SlotInput, Status,
-    TermInput, ThemeMode,
+    Assessment, AssessmentFilter, AssessmentInput, AssessmentKind, Assumption, AttendanceBand,
+    AttendanceSummary, ComponentKind, Course, CourseInput, Dashboard, FinalOutlook, GpaSummary,
+    GradeRow, Holiday, MakeupInput, Needed, RuleComponent, RuleComponentInput, SessionView,
+    Settings, Slot, SlotInput, Status, TermInput, ThemeMode,
 };
 
 use crate::updater::InstallKind;
@@ -368,6 +369,7 @@ pub fn parse_term_form(
 }
 
 /// Checks `target`. R2 checks (empty code or name, range) belong to core.
+#[allow(clippy::too_many_arguments)]
 pub fn parse_course_form(
     code: &str,
     name: &str,
@@ -375,6 +377,8 @@ pub fn parse_course_form(
     room: &str,
     notes: &str,
     target: &str,
+    _credits: &str,
+    _rule_set_id: Option<i64>,
 ) -> Result<CourseInput, FormErrors> {
     let mut errors = FormErrors::default();
     match errors.check("target", parse_target(target)) {
@@ -465,6 +469,7 @@ pub fn parse_makeup_form(
 }
 
 /// Checks `course`, `kind`, `due_date`, `due_time`, `remind`. `due_at` is date plus time.
+#[allow(clippy::too_many_arguments)]
 pub fn parse_assessment_form(
     course_id: Option<i64>,
     kind: i32,
@@ -473,6 +478,8 @@ pub fn parse_assessment_form(
     due_time: TimeText<'_>,
     notes: &str,
     remind: &str,
+    _component_id: Option<i64>,
+    _score: &str,
 ) -> Result<AssessmentInput, FormErrors> {
     let mut errors = FormErrors::default();
     let course_id = errors.check(
@@ -1363,4 +1370,110 @@ pub fn progress_fraction(received: u64, total: Option<u64>) -> f32 {
         Some(t) => (received as f64 / t as f64).clamp(0.0, 1.0) as f32,
         None => -1.0,
     }
+}
+
+// ---- M9: credits, rule sets, marks, GPA (contracts/ui-grading.md) ----
+// T018 stubs: bodies arrive in T021. The `allow(dead_code)` attributes below are removed in the
+// final app task (T027) once the pages call these functions.
+
+/// R38: one row of the needed-in-final table as display text.
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NeededRowView {
+    pub letter: String,
+    pub text: String,
+}
+
+/// R37: a mark such as `45` or `37.5`, without a trailing `.0`.
+#[allow(dead_code)]
+pub fn format_mark(_value: f64) -> String {
+    todo!("M9")
+}
+
+/// R35/R36: `"39.0 of 45"`, earned with one decimal, possible as a plain mark.
+#[allow(dead_code)]
+pub fn format_marks(_earned: f64, _possible: f64) -> String {
+    todo!("M9")
+}
+
+/// R37: `"80.0% · A+"`; `None` shows an em dash.
+#[allow(dead_code)]
+pub fn format_projected(_pct: Option<f64>, _letter: Option<&str>) -> String {
+    todo!("M9")
+}
+
+/// R38: `"111.0"`, `"Secured"`, or `"Not reachable"`.
+#[allow(dead_code)]
+pub fn needed_text(_needed: &Needed) -> String {
+    todo!("M9")
+}
+
+/// R38: one row per grade letter in scale order; empty for `FinalOutlook::Actual`.
+#[allow(dead_code)]
+pub fn needed_rows(_outlook: &FinalOutlook) -> Vec<NeededRowView> {
+    todo!("M9")
+}
+
+/// R38: `"Quizzes: assumes 0 for 1 item not entered"`.
+#[allow(dead_code)]
+pub fn assumption_text(_assumption: &Assumption) -> String {
+    todo!("M9")
+}
+
+/// R38: `"Final grade: A"`; `None` gives `"Final grade: —"`.
+#[allow(dead_code)]
+pub fn actual_grade_text(_letter: Option<&str>) -> String {
+    todo!("M9")
+}
+
+/// R40: `"Term GPA 3.67 (projected)"`, with the left-out count appended when above 0.
+#[allow(dead_code)]
+pub fn gpa_header_text(_summary: &GpaSummary) -> String {
+    todo!("M9")
+}
+
+/// R34: `"Items · 15% · best 3 of 4, out of 15"`.
+#[allow(dead_code)]
+pub fn component_summary(_component: &RuleComponent) -> String {
+    todo!("M9")
+}
+
+/// R35: `"≥ 90% → 100%"`.
+#[allow(dead_code)]
+pub fn band_text(_band: &AttendanceBand) -> String {
+    todo!("M9")
+}
+
+/// R36: `"/ 15"` for `Some(15.0)`; `None` gives `""`.
+#[allow(dead_code)]
+pub fn score_max_label(_item_max: Option<f64>) -> String {
+    todo!("M9")
+}
+
+/// R34: parses the number fields of one component row; range checks stay in core.
+#[allow(dead_code, clippy::too_many_arguments)]
+pub fn parse_component_row(
+    _id: Option<i64>,
+    _name: &str,
+    _kind: ComponentKind,
+    _weight: &str,
+    _item_count: &str,
+    _best_count: &str,
+    _item_max: &str,
+    _is_final: bool,
+    _bands: Vec<AttendanceBand>,
+) -> Result<RuleComponentInput, FormErrors> {
+    todo!("M9")
+}
+
+/// R35: parses one attendance band row; range checks stay in core.
+#[allow(dead_code)]
+pub fn parse_band_row(_min: &str, _credit: &str) -> Result<AttendanceBand, FormErrors> {
+    todo!("M9")
+}
+
+/// R39: parses one grade scale row; range checks stay in core.
+#[allow(dead_code)]
+pub fn parse_grade_row(_letter: &str, _min: &str, _points: &str) -> Result<GradeRow, FormErrors> {
+    todo!("M9")
 }

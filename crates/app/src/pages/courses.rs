@@ -238,6 +238,8 @@ fn save_course(app: &App, ui: &CoursesState<'_>) {
         &ui.get_room(),
         &ui.get_notes(),
         &ui.get_target(),
+        "",
+        None,
     );
     let input = match parsed {
         Ok(input) => input,

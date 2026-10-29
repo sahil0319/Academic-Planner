@@ -279,6 +279,8 @@ fn save(app: &App) {
         },
         &st.get_notes(),
         &st.get_remind(),
+        None,
+        "",
     ) {
         Ok(input) => input,
         Err(errors) => {

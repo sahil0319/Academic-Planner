@@ -113,3 +113,45 @@ export global AppState {
     callback update-banner-view();
     callback update-banner-dismiss();
 }
+
+// M9 (contracts/ui-grading.md): grading rows as display text; Rust fills them via the view model.
+export struct MarkRow {
+    name: string,
+    marks: string,
+}
+
+export struct NeededRowView {
+    letter: string,
+    needed: string,
+}
+
+export struct RuleSetRow {
+    id: int,
+    name: string,
+    summary: string,
+}
+
+export struct ComponentRow {
+    name: string,
+    // true = Items, false = Attendance.
+    is-items: bool,
+    weight: string,
+    item-count: string,
+    best-count: string,
+    item-max: string,
+    is-final: bool,
+    error: string,
+}
+
+export struct BandRow {
+    min: string,
+    credit: string,
+    error: string,
+}
+
+export struct GradeRowView {
+    letter: string,
+    min: string,
+    points: string,
+    error: string,
+}
