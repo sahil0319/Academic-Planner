@@ -7,7 +7,8 @@ mod common;
 use chrono::Weekday;
 use common::*;
 use planner_core::{
-    Course, Error, ImportIssue, ImportPlan, ImportReport, Planner, Slot, SlotInput, TermInput,
+    Course, CourseInput, Error, FieldValue, ImportField, ImportIssue, ImportPlan, ImportReport,
+    Planner, Slot, SlotInput, Status, SyncReport, TermInput,
 };
 use serde_json::{json, Value};
 
@@ -499,7 +500,7 @@ fn r42_rule_set_unknown_lists_names() {
 fn r42_unknown_keys_warn_not_error() {
     let mut p = semester();
     let existing = p
-        .create_course(planner_core::CourseInput {
+        .create_course(CourseInput {
             notes: Some("keep me".into()),
             ..course_input("CSE 4711")
         })
@@ -778,4 +779,538 @@ fn r50_template_previews_cleanly() {
     assert_eq!(plan.add.len(), 1);
     assert_eq!(plan.add[0].code, "CSE 4711");
     assert_eq!(plan.add[0].slots.len(), 2);
+}
+
+// ---- US2: re-import (R43-R47) ----
+
+/// Applies `text` with the given effective date and today (both `YYYY-MM-DD`).
+fn apply_at(p: &mut Planner, text: &str, from: &str, today: &str) -> ImportReport {
+    p.apply_import(text, d(from), d(today)).unwrap()
+}
+
+/// Regular sessions of a course on one date.
+fn regular_sessions_on(p: &Planner, course_id: i64, date: &str) -> Vec<planner_core::Session> {
+    sessions_of(p, course_id)
+        .into_iter()
+        .filter(|s| s.kind == planner_core::SessionKind::Regular && s.date == d(date))
+        .collect()
+}
+
+/// Three courses: `CSE 4711` with credits 1.5, `CSE 4712` with slots listed Friday first, and
+/// `CSE 4713` with a slot room. `a_name` and `b_monday_start` let a test change the file.
+fn three_courses(a_name: &str, b_monday_start: &str) -> String {
+    with_courses(json!([
+        {"code": "CSE 4711", "name": a_name, "credits": 1.5,
+         "slots": [{"day": "Tue", "start": "09:00", "end": "10:15"}]},
+        {"code": "CSE 4712", "name": "Networks", "slots": [
+            {"day": "Fri", "start": "14:30", "end": "15:45"},
+            {"day": "Mon", "start": b_monday_start, "end": "11:45"}
+        ]},
+        {"code": "CSE 4713", "name": "Databases", "slots": [
+            {"day": "Wed", "start": "09:00", "end": "10:00", "room": "301"}
+        ]}
+    ]))
+}
+
+/// A semester planner with course `CSE 4711` that has the given slots (weekday, start, end,
+/// room), valid from the term start and synced.
+fn existing(slots: &[(Weekday, &str, &str, Option<&str>)]) -> (Planner, Course) {
+    let mut p = semester();
+    let course = add_course(&mut p, "CSE 4711", false);
+    for (day, start, end, room) in slots {
+        add_slot(&mut p, &course, *day, start, end, *room, "2026-01-05");
+    }
+    p.sync_sessions(d("2026-01-05")).unwrap();
+    (p, course)
+}
+
+/// A document that touches only the slots of `CSE 4711`.
+fn slots_doc(slots: Value) -> String {
+    no_term(json!([{"code": "CSE 4711", "slots": slots}]))
+}
+
+const MON: (Weekday, &str, &str, Option<&str>) = (Weekday::Mon, "10:30", "11:45", None);
+const FRI: (Weekday, &str, &str, Option<&str>) = (Weekday::Fri, "14:30", "15:45", None);
+
+/// R48, R45: after applying a file, the same file previews as an empty plan and applying it
+/// again changes nothing; an archived course adds only its warning (T45).
+#[test]
+fn t45_same_file_twice_is_empty() {
+    let mut p = fresh();
+    let text = three_courses("AI", "10:30");
+    apply_at(&mut p, &text, "2026-01-05", "2026-01-05");
+
+    let plan = p.preview_import(&text, d("2026-01-05")).unwrap();
+    assert!(plan.errors.is_empty(), "{:?}", plan.errors);
+    assert!(plan.is_empty(), "{plan:?}");
+    assert!(plan
+        .update
+        .iter()
+        .all(|u| u.slots.is_none() && u.changes.is_empty()));
+
+    let before = snapshot(&p);
+    let report = apply_at(&mut p, &text, "2026-01-05", "2026-01-05");
+    assert!(report.plan.is_empty());
+    assert_eq!(report.sync, SyncReport::default());
+    assert_eq!(snapshot(&p), before);
+
+    // Archived variant: only the archived warning appears, the plan stays empty.
+    let id = course_by_code(&p, "CSE 4712").id;
+    p.set_archived(id, true).unwrap();
+    let plan = p.preview_import(&text, d("2026-01-05")).unwrap();
+    assert!(plan.errors.is_empty(), "{:?}", plan.errors);
+    assert!(plan.is_empty(), "{plan:?}");
+    assert_eq!(paths(&plan.warnings), ["courses[1]"]);
+}
+
+/// R48: on the update path preview writes nothing and apply returns the previewed plan (T50).
+#[test]
+fn t50_update_path_apply_matches_preview() {
+    let mut p = fresh();
+    apply_at(
+        &mut p,
+        &three_courses("AI", "10:30"),
+        "2026-01-05",
+        "2026-01-05",
+    );
+
+    let changed = three_courses("AI Advanced", "11:00");
+    let before = snapshot(&p);
+    let plan = preview(&p, &changed);
+    assert!(plan.errors.is_empty(), "{:?}", plan.errors);
+    assert_eq!(snapshot(&p), before, "preview wrote to the database");
+    assert_eq!(plan.update.len(), 2);
+    assert!(plan.update.iter().any(|u| !u.changes.is_empty()));
+    assert!(plan.update.iter().any(|u| u.slots.is_some()));
+
+    let report = apply(&mut p, &changed).unwrap();
+    assert_eq!(report.plan, plan);
+    assert_eq!(course_by_code(&p, "CSE 4711").name, "AI Advanced");
+}
+
+/// Imports a Monday 10:30-11:45 `CSE 4711` at 2026-01-05 into Semester 7 and returns its id.
+fn monday_course() -> (Planner, i64) {
+    let mut p = semester();
+    let text = no_term(json!([{"code": "CSE 4711", "name": "AI", "slots": [
+        {"day": "Mon", "start": "10:30", "end": "11:45"}
+    ]}]));
+    apply_at(&mut p, &text, "2026-01-05", "2026-01-05");
+    let id = course_by_code(&p, "CSE 4711").id;
+    (p, id)
+}
+
+/// The same course moved to Monday 11:00-12:15.
+fn monday_moved() -> String {
+    no_term(json!([{"code": "CSE 4711", "slots": [
+        {"day": "Mon", "start": "11:00", "end": "12:15"}
+    ]}]))
+}
+
+/// R45, R7: a time change effective 2026-01-14 keeps earlier sessions (the attended one too),
+/// moves later ones, ends the old slot on 01-13, and never doubles a date (T46).
+#[test]
+fn t46_slot_time_change_effective_0114() {
+    let (mut p, id) = monday_course();
+    let first = regular_on(&p, id, "2026-01-05");
+    p.set_status(first.id, Status::Attended, after_term())
+        .unwrap();
+
+    apply_at(&mut p, &monday_moved(), "2026-01-14", "2026-01-14");
+
+    let sessions = sessions_of(&p, id);
+    for s in sessions.iter().filter(|s| s.date < d("2026-01-14")) {
+        assert_eq!(s.start_time, t("10:30"), "{}", s.date);
+        assert_eq!(s.end_time, t("11:45"), "{}", s.date);
+    }
+    let attended = regular_on(&p, id, "2026-01-05");
+    assert_eq!(attended.id, first.id);
+    assert_eq!(attended.status, Status::Attended);
+    for s in sessions.iter().filter(|s| s.date >= d("2026-01-14")) {
+        assert_eq!(s.start_time, t("11:00"), "{}", s.date);
+        assert_eq!(s.end_time, t("12:15"), "{}", s.date);
+    }
+    assert_eq!(
+        regular_dates(&p, id),
+        weekday_dates("2026-01-05", "2026-05-01", &[Weekday::Mon])
+    );
+    let old = slots_of(&p, id, "2026-01-13")
+        .into_iter()
+        .find(|s| s.start_time == t("10:30"))
+        .expect("old slot valid until 01-13");
+    assert_eq!(old.valid_to, Some(d("2026-01-13")));
+}
+
+/// R45, R5, R7: effective 01-14 with today 01-21 (research D12): a pending old-time session on
+/// 01-19 is removed and replaced (variant A); an attended one is kept and the new-time session
+/// is added beside it (variant B).
+#[test]
+fn r45_backdated_effective_removes_pending_only() {
+    let (mut p, id) = monday_course();
+    apply_at(&mut p, &monday_moved(), "2026-01-14", "2026-01-21");
+    let on_19 = regular_sessions_on(&p, id, "2026-01-19");
+    assert_eq!(on_19.len(), 1, "{on_19:?}");
+    assert_eq!(on_19[0].start_time, t("11:00"));
+
+    let (mut p, id) = monday_course();
+    let old = regular_on(&p, id, "2026-01-19");
+    p.set_status(old.id, Status::Attended, after_term())
+        .unwrap();
+    apply_at(&mut p, &monday_moved(), "2026-01-14", "2026-01-21");
+    let on_19 = regular_sessions_on(&p, id, "2026-01-19");
+    assert_eq!(on_19.len(), 2, "{on_19:?}");
+    let kept = on_19
+        .iter()
+        .find(|s| s.id == old.id)
+        .expect("attended kept");
+    assert_eq!(kept.status, Status::Attended);
+    assert_eq!(kept.start_time, t("10:30"));
+    assert!(on_19
+        .iter()
+        .any(|s| s.id != old.id && s.start_time == t("11:00") && s.status == Status::Pending));
+}
+
+/// R45 (OQ-3 default): a slot from an earlier import that starts after the new effective date
+/// is ended too, so no date gets two regular sessions.
+#[test]
+fn r45_future_slot_also_ended() {
+    let mut p = semester();
+    let first = no_term(json!([{"code": "CSE 4711", "name": "AI", "slots": [
+        {"day": "Mon", "start": "10:30", "end": "11:45"}
+    ]}]));
+    apply_at(&mut p, &first, "2026-02-02", "2026-01-05");
+    let id = course_by_code(&p, "CSE 4711").id;
+
+    let plan = p.preview_import(&monday_moved(), d("2026-01-14")).unwrap();
+    let ended = plan.update[0]
+        .slots
+        .as_ref()
+        .expect("slot change")
+        .end
+        .clone();
+    assert_eq!(ended.len(), 1);
+    assert_eq!(ended[0].start_time, t("10:30"));
+
+    apply_at(&mut p, &monday_moved(), "2026-01-14", "2026-01-14");
+    assert_eq!(
+        regular_dates(&p, id),
+        weekday_dates("2026-01-14", "2026-05-01", &[Weekday::Mon])
+    );
+    assert!(sessions_of(&p, id)
+        .iter()
+        .all(|s| s.start_time == t("11:00")));
+    assert_eq!(slots_of(&p, id, "2026-02-02").len(), 1);
+}
+
+/// R43: the code matches ignoring case and spaces; the match keeps the stored code and takes
+/// the new name (T47).
+#[test]
+fn t47_code_match_ignores_case_and_space() {
+    let mut p = semester();
+    add_course(&mut p, "CSE 4711", false);
+    let text = no_term(json!([{"code": "cse4711", "name": "New Name"}]));
+    let plan = assert_valid(&p, &text);
+    assert!(plan.add.is_empty());
+    assert_eq!(plan.update.len(), 1);
+    apply(&mut p, &text).unwrap();
+    let courses = p.list_courses(true).unwrap();
+    assert_eq!(courses.len(), 1);
+    assert_eq!(courses[0].code, "CSE 4711");
+    assert_eq!(courses[0].name, "New Name");
+}
+
+/// R46: a course missing from the file keeps its fields, slots, and sessions (T49).
+#[test]
+fn t49_course_absent_from_file_unchanged() {
+    let mut p = semester();
+    let keep = add_course(&mut p, "KEEP 200", false);
+    add_slot(
+        &mut p,
+        &keep,
+        Weekday::Mon,
+        "09:00",
+        "10:00",
+        None,
+        "2026-01-05",
+    );
+    p.sync_sessions(d("2026-01-05")).unwrap();
+    let course_before = course_by_code(&p, "KEEP 200");
+    let slots_before = slots_of(&p, keep.id, EFFECTIVE);
+    let sessions_before = sessions_of(&p, keep.id);
+    assert!(!sessions_before.is_empty());
+
+    let text = no_term(json!([{"code": "NEW 100", "name": "New", "slots": [
+        {"day": "Tue", "start": "09:00", "end": "10:00"}
+    ]}]));
+    apply(&mut p, &text).unwrap();
+
+    assert_eq!(course_by_code(&p, "KEEP 200"), course_before);
+    assert_eq!(slots_of(&p, keep.id, EFFECTIVE), slots_before);
+    assert_eq!(sessions_of(&p, keep.id), sessions_before);
+}
+
+/// R43 (OQ-1 default): a code that matches two stored courses is an error at `.code`.
+#[test]
+fn r43_ambiguous_match_is_error() {
+    let mut p = semester();
+    add_course(&mut p, "CSE 4711", false);
+    add_course(&mut p, "CSE4711", false);
+    let text = no_term(json!([{"code": "cse 4711", "name": "X"}]));
+    assert_invalid(&mut p, &text, "courses[0].code");
+}
+
+/// R43: an archived course still matches, so no duplicate is created.
+#[test]
+fn r43_match_includes_archived() {
+    let mut p = semester();
+    let archived = add_course(&mut p, "CSE 4711", true);
+    let text = no_term(json!([{"code": "CSE 4711", "name": "X"}]));
+    let plan = assert_valid(&p, &text);
+    assert!(plan.add.is_empty());
+    assert_eq!(plan.update[0].course_id, archived.id);
+    apply(&mut p, &text).unwrap();
+    let courses = p.list_courses(true).unwrap();
+    assert_eq!(courses.len(), 1);
+    assert_eq!(courses[0].name, "X");
+}
+
+/// A stored course with every field set (including notes) and the Theory rule set.
+fn full_course(p: &mut Planner) -> Course {
+    let theory = p
+        .list_rule_sets()
+        .unwrap()
+        .into_iter()
+        .find(|s| s.name == "Theory")
+        .unwrap()
+        .id;
+    p.create_course(CourseInput {
+        code: "CSE 4711".into(),
+        name: "Old".into(),
+        instructor: Some("Dr A".into()),
+        room: Some("R1".into()),
+        notes: Some("note".into()),
+        min_attendance_pct: Some(75),
+        credits: Some(3.0),
+        rule_set_id: Some(theory),
+    })
+    .unwrap()
+}
+
+/// R44: an absent key keeps the stored value, `null` clears it, an equal value is no change;
+/// `notes` is never touched.
+#[test]
+fn r44_absent_keeps_null_clears() {
+    let mut p = semester();
+    let stored = full_course(&mut p);
+
+    // File A: every key absent.
+    let text = no_term(json!([{"code": "CSE 4711"}]));
+    let plan = assert_valid(&p, &text);
+    assert!(plan.update.iter().all(|u| u.changes.is_empty()), "{plan:?}");
+    apply(&mut p, &text).unwrap();
+    assert_eq!(course_by_code(&p, "CSE 4711"), stored);
+
+    // File C: same values as stored, credits written as 3 against stored 3.0.
+    let same = no_term(json!([{
+        "code": "CSE 4711", "name": "Old", "credits": 3, "rule_set": "Theory",
+        "instructor": "Dr A", "room": "R1", "min_attendance_pct": 75
+    }]));
+    let plan = assert_valid(&p, &same);
+    assert!(plan.is_empty(), "{plan:?}");
+
+    // File B: every clearable key is null.
+    let nulls = no_term(json!([{
+        "code": "CSE 4711", "credits": null, "rule_set": null,
+        "instructor": null, "room": null, "min_attendance_pct": null
+    }]));
+    let plan = assert_valid(&p, &nulls);
+    let changes = &plan.update[0].changes;
+    assert_eq!(changes.len(), 5, "{changes:?}");
+    let new_of = |field: ImportField| {
+        changes
+            .iter()
+            .find(|c| c.field == field)
+            .unwrap_or_else(|| panic!("no change for {field:?}"))
+            .new
+            .clone()
+    };
+    assert_eq!(new_of(ImportField::Credits), FieldValue::Number(None));
+    assert_eq!(new_of(ImportField::RuleSet), FieldValue::RuleSet(None));
+    assert_eq!(new_of(ImportField::Instructor), FieldValue::Text(None));
+    assert_eq!(new_of(ImportField::Room), FieldValue::Text(None));
+    assert_eq!(
+        new_of(ImportField::MinAttendancePct),
+        FieldValue::Integer(None)
+    );
+    apply(&mut p, &nulls).unwrap();
+    let cleared = course_by_code(&p, "CSE 4711");
+    assert_eq!(cleared.credits, None);
+    assert_eq!(cleared.rule_set_id, None);
+    assert_eq!(cleared.instructor, None);
+    assert_eq!(cleared.room, None);
+    assert_eq!(cleared.min_attendance_pct, None);
+    assert_eq!(cleared.name, "Old");
+    assert_eq!(cleared.notes.as_deref(), Some("note"));
+}
+
+/// R44: a match on an archived course warns at the course path, updates its fields and slots,
+/// and leaves it archived.
+#[test]
+fn r44_archived_match_warns_and_stays_archived() {
+    let mut p = semester();
+    let course = add_course(&mut p, "CSE 4711", false);
+    add_slot(
+        &mut p,
+        &course,
+        Weekday::Mon,
+        "10:30",
+        "11:45",
+        None,
+        "2026-01-05",
+    );
+    p.set_archived(course.id, true).unwrap();
+    let text = no_term(json!([{"code": "CSE 4711", "name": "Renamed", "slots": [
+        {"day": "Tue", "start": "09:00", "end": "10:00"}
+    ]}]));
+    let plan = assert_valid(&p, &text);
+    assert!(paths(&plan.warnings).contains(&"courses[0]".to_string()));
+    assert!(plan.update[0].archived);
+    apply(&mut p, &text).unwrap();
+    let stored = course_by_code(&p, "CSE 4711");
+    assert_eq!(stored.name, "Renamed");
+    assert!(stored.archived);
+    let slots = slots_of(&p, course.id, EFFECTIVE);
+    assert_eq!(slots.len(), 1);
+    assert_eq!(slots[0].weekday, Weekday::Tue);
+}
+
+/// R45: the same slots in another order are no change.
+#[test]
+fn r45_slot_set_equal_any_order_no_change() {
+    let (p, _) = existing(&[MON, FRI]);
+    let text = slots_doc(json!([
+        {"day": "Fri", "start": "14:30", "end": "15:45"},
+        {"day": "Mon", "start": "10:30", "end": "11:45"}
+    ]));
+    let plan = assert_valid(&p, &text);
+    assert!(plan.is_empty(), "{plan:?}");
+}
+
+/// R45: a room that differs (`null` against "301", either way) is a slot change.
+#[test]
+fn r45_slot_room_difference_is_change() {
+    let (p, _) = existing(&[MON]);
+    let text = slots_doc(json!([{"day": "Mon", "start": "10:30", "end": "11:45", "room": "301"}]));
+    let change = assert_valid(&p, &text).update[0]
+        .slots
+        .clone()
+        .expect("slot change");
+    assert_eq!(change.end.len(), 1);
+    assert_eq!(change.add.len(), 1);
+    assert_eq!(change.add[0].room.as_deref(), Some("301"));
+
+    let (p, _) = existing(&[(Weekday::Mon, "10:30", "11:45", Some("301"))]);
+    let text = slots_doc(json!([{"day": "Mon", "start": "10:30", "end": "11:45", "room": null}]));
+    let change = assert_valid(&p, &text).update[0]
+        .slots
+        .clone()
+        .expect("slot change");
+    assert_eq!(change.end.len(), 1);
+    assert_eq!(change.add.len(), 1);
+    assert_eq!(change.add[0].room, None);
+}
+
+/// R45: a slot without `room` equals a stored slot with no room, and so does `room: null`.
+#[test]
+fn r45_absent_room_equals_null_room() {
+    let (p, _) = existing(&[MON, FRI]);
+    let text = slots_doc(json!([
+        {"day": "Mon", "start": "10:30", "end": "11:45", "room": null},
+        {"day": "Fri", "start": "14:30", "end": "15:45"}
+    ]));
+    let plan = assert_valid(&p, &text);
+    assert!(plan.is_empty(), "{plan:?}");
+}
+
+/// R45, R5: `"slots": []` ends every current slot on 01-13, adds nothing, and removes the
+/// pending sessions from 01-14 on; earlier sessions stay.
+#[test]
+fn r45_empty_slots_ends_all() {
+    let (mut p, course) = existing(&[MON, FRI]);
+    let text = slots_doc(json!([]));
+    let change = assert_valid(&p, &text).update[0]
+        .slots
+        .clone()
+        .expect("slot change");
+    assert_eq!(change.end.len(), 2);
+    assert!(change.add.is_empty());
+
+    apply(&mut p, &text).unwrap();
+    let ended = slots_of(&p, course.id, "2026-01-13");
+    assert_eq!(ended.len(), 2);
+    assert!(ended.iter().all(|s| s.valid_to == Some(d("2026-01-13"))));
+    assert!(slots_of(&p, course.id, EFFECTIVE).is_empty());
+    assert_eq!(
+        regular_dates(&p, course.id),
+        weekday_dates("2026-01-05", "2026-01-13", &[Weekday::Mon, Weekday::Fri])
+    );
+}
+
+/// R45: with no `slots` key the slots stay as they are; only the field change is planned.
+#[test]
+fn r45_missing_slots_key_untouched() {
+    let (mut p, course) = existing(&[MON, FRI]);
+    let before = slots_of(&p, course.id, EFFECTIVE);
+    let text = no_term(json!([{"code": "CSE 4711", "name": "Renamed"}]));
+    let plan = assert_valid(&p, &text);
+    assert_eq!(plan.update[0].changes.len(), 1);
+    assert!(plan.update[0].slots.is_none());
+    apply(&mut p, &text).unwrap();
+    assert_eq!(slots_of(&p, course.id, EFFECTIVE), before);
+}
+
+/// R45: slots compare as a multiset; listing one slot twice against one stored is a change.
+#[test]
+fn r45_duplicate_identical_slots_counted() {
+    let (p, _) = existing(&[MON]);
+    let slot = json!({"day": "Mon", "start": "10:30", "end": "11:45"});
+    let text = slots_doc(json!([slot.clone(), slot]));
+    let change = assert_valid(&p, &text).update[0]
+        .slots
+        .clone()
+        .expect("slot change");
+    assert_eq!(change.end.len(), 1);
+    assert_eq!(change.add.len(), 2);
+}
+
+/// R47: an active term that differs from the file's `term` stays; the plan has no term and a
+/// warning at `term`.
+#[test]
+fn r47_active_term_differs_warns() {
+    let differing = [
+        json!({"name": "Other", "start": "2026-01-05", "end": "2026-05-01"}),
+        json!({"name": "Semester 7", "start": "2026-01-06", "end": "2026-05-01"}),
+        json!({"name": "Semester 7", "start": "2026-01-05", "end": "2026-05-02"}),
+    ];
+    for term in differing {
+        let mut p = semester();
+        let active = p.active_term().unwrap().unwrap();
+        let mut v = base();
+        v["term"] = term;
+        v["courses"] = json!([]);
+        let text = doc(v);
+        let plan = assert_valid(&p, &text);
+        assert!(plan.term.is_none());
+        assert_eq!(paths(&plan.warnings), ["term"], "{text}");
+        apply(&mut p, &text).unwrap();
+        assert_eq!(p.active_term().unwrap().unwrap(), active);
+    }
+}
+
+/// R47: an active term equal to the file's `term` gives no warning and no term in the plan.
+#[test]
+fn r47_active_term_equal_no_warning() {
+    let p = semester();
+    let plan = assert_valid(&p, &with_courses(json!([])));
+    assert!(plan.term.is_none());
+    assert!(plan.warnings.is_empty(), "{:?}", plan.warnings);
 }

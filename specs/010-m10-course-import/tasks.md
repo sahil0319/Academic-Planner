@@ -180,7 +180,7 @@ are warnings, nothing is written on error.
 
 **Independent test**: `cargo test -p planner-core --test m10_import t45_ t46_ t47_ t49_ r43_ r44_ r45_ r47_`.
 
-- [ ] T014 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T014 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
   `t45_same_file_twice_is_empty`: apply a file (term + 3 courses, one with `credits: 1.5`, one with
   slots listed out of day order, one with a slot `room`) at E; preview the same text at the same E:
   `is_empty()`, no slot changes, no field changes; snapshot before and after a second
@@ -189,7 +189,7 @@ are warnings, nothing is written on error.
   empty. Also `t50_update_path_apply_matches_preview`: a changed file (one field change and one slot
   change on a matched course): snapshot equal after preview, `report.plan == preview` after apply.
   Needs T013
-- [ ] T015 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T015 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
   `t46_slot_time_change_effective_0114`: term from 2026-01-05, course with Mon 10:30–11:45 imported
   at 2026-01-05 and synced; mark the 2026-01-05 session attended; re-import with Mon 11:00–12:15 at
   effective 2026-01-14, today 2026-01-14; assert sessions dated before 2026-01-14 keep 10:30–11:45
@@ -201,14 +201,14 @@ are warnings, nothing is written on error.
   also exists (R5, R7: non-pending sessions are never removed) and
   `r45_future_slot_also_ended` (OQ-3 default: slot from an earlier import with a later E is ended;
   no duplicate sessions). Needs T013
-- [ ] T016 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T016 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
   `t47_code_match_ignores_case_and_space` (DB `CSE 4711`, file `cse4711` with a new name: one
   course, code still `CSE 4711`, name updated), `t49_course_absent_from_file_unchanged` (DB course
   B with slots and sessions not in the file: course, slots, sessions identical after apply),
   `r43_ambiguous_match_is_error` (OQ-1 default: DB `CSE 4711` and `CSE4711`, file `cse 4711` →
   error at `courses[0].code`), `r43_match_includes_archived` (archived match, no duplicate created).
   Needs T013
-- [ ] T017 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T017 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
   `r44_absent_keeps_null_clears`: existing course with every field set; file A omits `instructor`,
   `room`, `credits`, `rule_set`, `min_attendance_pct`, `name` → plan has no field change and apply
   keeps all; file B sets each to `null` → one `FieldChange` per field with `new` = `None`, apply
@@ -216,14 +216,14 @@ are warnings, nothing is written on error.
   vs stored `3.0`) → no change; `notes` set in the DB is kept in all cases.
   `r44_archived_match_warns_and_stays_archived`: warning at `courses[0]`, fields and slots updated,
   `archived` still true. Needs T013
-- [ ] T018 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T018 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
   `r45_slot_set_equal_any_order_no_change`, `r45_slot_room_difference_is_change` (`null` vs
   `"301"`), `r45_absent_room_equals_null_room`, `r45_empty_slots_ends_all` (`"slots": []` →
   every current slot `valid_to = E − 1`, nothing added, pending sessions from E removed),
   `r45_missing_slots_key_untouched` (field change only; slots identical),
   `r45_duplicate_identical_slots_counted` (file lists the same slot twice vs DB once → change).
   Needs T013
-- [ ] T019 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T019 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
   `r47_active_term_differs_warns` (file term name or dates differ → warning at `term`, active term
   unchanged, no term in plan) and `r47_active_term_equal_no_warning`. Needs T013
 - [ ] T020 [US2] (builder) [core] Implement matching and merge in crates/core/src/import/plan.rs:
