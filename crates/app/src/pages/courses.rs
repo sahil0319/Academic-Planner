@@ -42,6 +42,18 @@ fn fill(
     let courses = planner.list_courses(show_archived).map_err(err)?;
     let rows: Vec<_> = courses.iter().map(vm::course_row).collect();
     ui.set_courses(bridge::rows(&rows, bridge::course_row)?);
+    // R33: the rule set choice offers "Not graded" and the current rule sets.
+    let names: Vec<String> = planner
+        .list_rule_sets()
+        .map_err(err)?
+        .into_iter()
+        .map(|s| s.name)
+        .collect();
+    let labels = vm::choice_labels(vm::NOT_GRADED_LABEL, &names);
+    if usize::try_from(ui.get_rule_set()).map_or(true, |i| i >= labels.len()) {
+        ui.set_rule_set(0);
+    }
+    ui.set_rule_set_options(bridge::strings(&labels));
 
     let course = match detail {
         Some(id) => planner
@@ -168,7 +180,14 @@ fn after<T>(app: &App, ui: &CoursesState<'_>, result: planner_core::Result<T>, s
 
 fn clear_course_errors(ui: &CoursesState<'_>) {
     ui.set_target_error(SharedString::new());
+    ui.set_credits_error(SharedString::new());
     ui.set_course_form_error(SharedString::new());
+}
+
+/// R33: ids of the rule sets in choice order (choice `i + 1` is `ids[i]`; 0 is "Not graded").
+fn rule_set_ids(app: &App) -> Result<Vec<i64>, String> {
+    let sets = app.planner().list_rule_sets().map_err(err)?;
+    Ok(sets.into_iter().map(|s| s.id).collect())
 }
 
 fn clear_makeup_form(ui: &CoursesState<'_>) {
@@ -198,9 +217,11 @@ fn begin_create(_app: &App, ui: &CoursesState<'_>) {
         CoursesState::set_room,
         CoursesState::set_notes,
         CoursesState::set_target,
+        CoursesState::set_credits,
     ] {
         set(ui, SharedString::new());
     }
+    ui.set_rule_set(0);
     clear_course_errors(ui);
     ui.set_editing_id(NEW_COURSE);
     ui.set_form_open(true);
@@ -223,14 +244,23 @@ fn begin_edit(app: &App, ui: &CoursesState<'_>, id: i32) {
     ui.set_room(course.room.unwrap_or_default().into());
     ui.set_notes(course.notes.unwrap_or_default().into());
     ui.set_target(vm::target_input(course.min_attendance_pct).into());
+    ui.set_credits(vm::number_input(course.credits).into());
+    match rule_set_ids(app) {
+        Ok(ids) => ui.set_rule_set(vm::choice_index(course.rule_set_id, &ids)),
+        Err(text) => return ui.set_message(text.into()),
+    }
     clear_course_errors(ui);
     ui.set_editing_id(id);
     ui.set_form_open(true);
 }
 
-/// R2: parses the form, then creates or updates the course; core validation errors are shown
+/// R2, R33: parses the form (credits and rule set included), then creates or updates the course; core validation errors are shown
 /// under the form. R6: sync after a successful save.
 fn save_course(app: &App, ui: &CoursesState<'_>) {
+    let rule_set_id = match rule_set_ids(app) {
+        Ok(ids) => vm::choice_id(ui.get_rule_set(), &ids),
+        Err(text) => return ui.set_course_form_error(text.into()),
+    };
     let parsed = vm::parse_course_form(
         &ui.get_code(),
         &ui.get_name(),
@@ -238,13 +268,14 @@ fn save_course(app: &App, ui: &CoursesState<'_>) {
         &ui.get_room(),
         &ui.get_notes(),
         &ui.get_target(),
-        "",
-        None,
+        &ui.get_credits(),
+        rule_set_id,
     );
     let input = match parsed {
         Ok(input) => input,
         Err(errors) => {
             ui.set_target_error(errors.get("target").into());
+            ui.set_credits_error(errors.get("credits").into());
             ui.set_course_form_error(SharedString::new());
             return;
         }
@@ -264,6 +295,7 @@ fn save_course(app: &App, ui: &CoursesState<'_>) {
         }
         Err(e) => {
             ui.set_target_error(SharedString::new());
+            ui.set_credits_error(SharedString::new());
             ui.set_course_form_error(err(e).into());
         }
     }

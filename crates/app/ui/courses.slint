@@ -11,6 +11,7 @@ import {
     PrimaryButton,
     SecondaryButton,
     Field,
+    ComboField,
     TimeField,
     StatusChip,
     SectionCard,
@@ -43,6 +44,12 @@ export global CoursesState {
     in-out property <string> notes;
     in-out property <string> target;
     in property <string> target-error;
+    // R33: credits text (empty = none) and the rule set choice (0 = "Not graded", then the names
+    // in `rule-set-options` after it).
+    in-out property <string> credits;
+    in property <string> credits-error;
+    in-out property <int> rule-set;
+    in property <[string]> rule-set-options;
     in property <string> course-form-error;
 
     // R10: "Add makeup class" form.
@@ -176,6 +183,16 @@ export component CoursesPage inherits VerticalLayout {
             Field {
                 label: "Room";
                 text <=> CoursesState.room;
+            }
+            Field {
+                label: "Credits";
+                text <=> CoursesState.credits;
+                error: CoursesState.credits-error;
+            }
+            ComboField {
+                label: "Rule set";
+                model: CoursesState.rule-set-options;
+                current-index <=> CoursesState.rule-set;
             }
         }
 
