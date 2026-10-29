@@ -17,8 +17,8 @@ pub use types::{
 
 impl Planner {
     /// R42-R48: parses and validates the whole document and returns the plan. Writes nothing.
-    pub fn preview_import(&self, _json: &str, _effective_from: NaiveDate) -> Result<ImportPlan> {
-        todo!("M10: R42-R48")
+    pub fn preview_import(&self, json: &str, effective_from: NaiveDate) -> Result<ImportPlan> {
+        plan::build_plan(&self.conn, json, effective_from)
     }
 
     /// R48: applies the plan `preview_import` returns for the same input, in one transaction,

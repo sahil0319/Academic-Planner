@@ -116,7 +116,7 @@ are warnings, nothing is written on error.
   (`teacher`, `notes`, `archived`), and slot (`type`) each produce one warning with its exact path
   (e.g. `courses[0].slots[1].type`), no errors, and the plan is otherwise the same as without
   them; apply succeeds and ignores them (course `notes` unchanged). Needs T003
-- [ ] T008 [US3] (builder) [core] Implement R42 in crates/core/src/import/parse.rs (research
+- [x] T008 [US3] (builder) [core] Implement R42 in crates/core/src/import/parse.rs (research
   D2–D4, D7–D10; contracts/import-format.md): `Value` walk, path builder, tri-state `Field<T>`,
   own `H:MM`/`HH:MM` time parser, day parser, number rules, duplicate detection by normalized code
   (research D6), unknown-key warnings, issue ordering per D4. In crates/core/src/import/plan.rs
