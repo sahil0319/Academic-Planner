@@ -5,8 +5,13 @@ timetables, assessments, and manually logged attendance. It has a native user in
 Slint (no WebView), needs no account and no server, and keeps all your data in one file on your own
 computer. You enter your term, holidays, courses, and weekly class times; the app fills in the
 term's classes, you mark each one as attended, absent, or cancelled, and it shows your attendance
-percentage per course and which courses are below your target. While the app is open, it can show
+percentage per course and which courses are below your target. The dashboard has a mini calendar
+that highlights holidays, exam periods, and weekends and marks days with an assessment due. Dates
+are typed as DD-MM-YYYY and shown as "October 26, 2026". The app has light and dark appearances
+(or follows your system) from a switch in the top-right corner. While the app is open, it can show
 a desktop notification before each class and before assessments that have a reminder set.
+
+What's new in each version is in the [release notes](docs/releases/).
 
 ## Screenshots
 
