@@ -35,6 +35,9 @@ pub struct UiState {
     pub course_ids: Vec<i64>,
     /// Assessments form combo index to course id, rebuilt on each assessments refresh.
     pub assessment_course_ids: Vec<i64>,
+    /// R36: assessments form "Counts toward" choices after "Not counted": component id and its
+    /// effective item max, rebuilt with the course choice.
+    pub assessment_components: Vec<(i64, Option<f64>)>,
     /// R22: backup file picked for restore, waiting for confirmation.
     pub pending_restore: Option<PathBuf>,
     /// First day of the month shown in the dashboard mini calendar (§6 mini calendar change).
@@ -55,6 +58,7 @@ impl UiState {
             selected_session: None,
             course_ids: Vec::new(),
             assessment_course_ids: Vec::new(),
+            assessment_components: Vec::new(),
             pending_restore: None,
             calendar_month: viewmodel::month_start(today),
             calendar_selected: today,

@@ -2,7 +2,8 @@
 //! with the upcoming / overdue / completed / all filters (R18, R19) and saves the create / edit
 //! form through `parse_assessment_form` (FR-007) and core, which owns the R2 checks. Assessment
 //! changes do not affect sessions, so they never sync (R6 is only for term, holiday, course, and
-//! slot changes).
+//! slot changes). R36: the form links an assessment to a component of its course's rule set and
+//! stores a score; core's R36 errors are shown as the form error.
 
 use std::rc::{Rc, Weak};
 
@@ -57,10 +58,15 @@ pub fn refresh(app: &App) {
     // Keep the chosen course across refreshes by id, not combo index: the course list may have
     // changed (created, archived) while the form was open.
     let chosen = selected_course_id(app, st.get_course());
+    let chosen_component = selected_component_id(app, st.get_component());
     let keep = chosen.filter(|_| st.get_editing_id() >= 0);
     match fill_course_options(app, &st, keep) {
         Ok(()) => st.set_course(course_index(app, chosen)),
         Err(e) => problems.push(e),
+    }
+    // R36: the components offered follow the chosen course's rule set, which may have changed.
+    if let Err(e) = fill_component_options(app, &st, chosen_component) {
+        problems.push(e);
     }
 
     if !problems.is_empty() {
@@ -95,6 +101,27 @@ pub fn wire(app: &Rc<App>) {
 
     let weak = Rc::downgrade(app);
     st.on_save(move || with_app(&weak, save));
+
+    let weak = Rc::downgrade(app);
+    st.on_course_changed(move || {
+        with_app(&weak, |app| {
+            if let Some(window) = app.window() {
+                let st = window.global::<AssessmentsState>();
+                if let Err(e) = fill_component_options(app, &st, None) {
+                    st.set_message(e.into());
+                }
+            }
+        });
+    });
+
+    let weak = Rc::downgrade(app);
+    st.on_component_changed(move || {
+        with_app(&weak, |app| {
+            if let Some(window) = app.window() {
+                show_score_max(app, &window.global::<AssessmentsState>());
+            }
+        });
+    });
 
     let weak = Rc::downgrade(app);
     st.on_set_completed(move |id, done| {
@@ -176,6 +203,60 @@ fn course_index(app: &App, id: Option<i64>) -> i32 {
     .unwrap_or(NONE)
 }
 
+/// Component id behind "Counts toward" choice `index` in the current options, if any.
+fn selected_component_id(app: &App, index: i32) -> Option<i64> {
+    let ids: Vec<i64> = app
+        .state()
+        .assessment_components
+        .iter()
+        .map(|c| c.0)
+        .collect();
+    vm::choice_id(index, &ids)
+}
+
+/// R36: sets "Counts toward" to "Not counted" plus the components of the chosen course's rule set
+/// (none when the course is not graded), selects `preferred` when it is still offered, and shows
+/// its "/ max". The effective item max comes from `course_marks`. Stores the choice-to-component
+/// map in `UiState::assessment_components`.
+fn fill_component_options(
+    app: &App,
+    st: &AssessmentsState<'_>,
+    preferred: Option<i64>,
+) -> Result<(), String> {
+    let components: Vec<(i64, String, Option<f64>)> = match selected_course_id(app, st.get_course())
+    {
+        Some(course_id) => app
+            .planner()
+            .course_marks(course_id)
+            .map_err(|e| vm::error_text(&e))?
+            .components
+            .into_iter()
+            .map(|c| (c.component_id, c.name, c.item_max))
+            .collect(),
+        None => Vec::new(),
+    };
+    let names: Vec<String> = components.iter().map(|c| c.1.clone()).collect();
+    let ids: Vec<i64> = components.iter().map(|c| c.0).collect();
+    st.set_component_options(bridge::strings(&vm::choice_labels(
+        vm::NOT_COUNTED_LABEL,
+        &names,
+    )));
+    app.state().assessment_components = components.iter().map(|c| (c.0, c.2)).collect();
+    st.set_component(vm::choice_index(preferred, &ids));
+    show_score_max(app, st);
+    Ok(())
+}
+
+/// R36: the "/ max" label of the chosen component; empty for "Not counted".
+fn show_score_max(app: &App, st: &AssessmentsState<'_>) {
+    let item_max = usize::try_from(st.get_component())
+        .ok()
+        .and_then(|c| c.checked_sub(1))
+        .and_then(|i| app.state().assessment_components.get(i).map(|c| c.1))
+        .flatten();
+    st.set_score_max(vm::score_max_label(item_max).into());
+}
+
 /// After a row action: on success refreshes every page; on error refreshes this page (so a
 /// toggled checkbox shows the stored value again) and shows the error.
 fn finish_row_action(app: &App, result: planner_core::Result<()>) {
@@ -203,8 +284,10 @@ fn clear_form(app: &App) {
     st.set_due_time_pm(false);
     st.set_notes(SharedString::new());
     st.set_remind(SharedString::new());
+    st.set_score(SharedString::new());
     // A new assessment offers active courses only; drop an archived course kept for editing.
     let problem = fill_course_options(app, &st, None)
+        .and_then(|()| fill_component_options(app, &st, None))
         .err()
         .unwrap_or_default();
     show_errors(&st, &FormErrors::default(), &problem);
@@ -217,8 +300,12 @@ fn begin_edit(app: &App, id: i32) {
         return;
     };
     let st = window.global::<AssessmentsState>();
-    let found = find_assessment(app, i64::from(id))
-        .and_then(|a| fill_course_options(app, &st, Some(a.course_id)).map(|()| a));
+    let found = find_assessment(app, i64::from(id)).and_then(|a| {
+        fill_course_options(app, &st, Some(a.course_id))?;
+        st.set_course(course_index(app, Some(a.course_id)));
+        fill_component_options(app, &st, a.component_id)?;
+        Ok(a)
+    });
     let assessment = match found {
         Ok(found) => found,
         Err(e) => {
@@ -228,7 +315,7 @@ fn begin_edit(app: &App, id: i32) {
     };
 
     st.set_editing_id(id);
-    st.set_course(course_index(app, Some(assessment.course_id)));
+    st.set_score(vm::number_input(assessment.score).into());
     st.set_kind(vm::assessment_kind_index(assessment.kind));
     st.set_title(assessment.title.as_str().into());
     st.set_due_date(vm::format_date_input(assessment.due_at.date()).into());
@@ -258,7 +345,7 @@ fn find_assessment(app: &App, id: i64) -> Result<Assessment, String> {
         .ok_or_else(|| "This assessment no longer exists".to_string())
 }
 
-/// FR-007 field checks, then create or update; R2 errors from core are shown as the form error
+/// FR-007 field checks (R36: score included), then create or update; R2 and R36 errors from core are shown as the form error
 /// and nothing is saved.
 fn save(app: &App) {
     let Some(window) = app.window() else {
@@ -279,8 +366,8 @@ fn save(app: &App) {
         },
         &st.get_notes(),
         &st.get_remind(),
-        None,
-        "",
+        selected_component_id(app, st.get_component()),
+        &st.get_score(),
     ) {
         Ok(input) => input,
         Err(errors) => {
@@ -312,5 +399,6 @@ fn show_errors(st: &AssessmentsState<'_>, errors: &FormErrors, form_error: &str)
     st.set_due_date_error(errors.get("due_date").into());
     st.set_due_time_error(errors.get("due_time").into());
     st.set_remind_error(errors.get("remind").into());
+    st.set_score_error(errors.get("score").into());
     st.set_form_error(form_error.into());
 }
