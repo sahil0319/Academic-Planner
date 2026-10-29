@@ -125,23 +125,52 @@ component AssessmentLine inherits ListRow {
     }
 }
 
+// Class count badge (DESIGN.md "Mini calendar"): a terracotta pill with a white number.
+component CalendarBadge inherits Rectangle {
+    in property <string> text;
+
+    height: Theme.calendar-badge;
+    width: max(Theme.calendar-badge, badge-label.preferred-width + Theme.space-xs);
+    border-radius: Theme.radius-full;
+    background: Theme.primary;
+
+    badge-label := Text {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        // The day cell or the legend text carries the meaning.
+        accessible-role: none;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        color: Theme.on-primary;
+        font-family: Theme.font-body;
+        font-size: Theme.calendar-badge-text;
+        font-weight: Theme.label-sm-weight;
+    }
+}
+
 // One mini calendar day (DESIGN.md "Mini calendar"): the number, a filled terracotta circle for
-// today, the selected fill, and up to two markers with distinct shapes (round dot = classes,
-// square = assessment due). The accessible label spells out the date and both counts.
+// today, a light terracotta highlight and a count badge for class days, and a red dot under the
+// number for assessments due. Selected: surface-selected fill (over the highlight) plus a
+// terracotta border; the badge keeps the class count visible. The accessible label spells out
+// the date and both counts.
 component DayCell inherits Rectangle {
     in property <CalendarDay> item;
     callback clicked();
 
-    // Vertical gap that centers the today circle and the marker row inside the cell.
-    property <length> gap: (Theme.calendar-cell - Theme.calendar-today - Theme.calendar-marker) / 3;
+    // The number sits below half the badge height; the due dot is centered in the space left.
+    property <length> number-y: Theme.calendar-badge / 2;
+    property <length> dot-y: root.number-y + Theme.calendar-today
+        + (Theme.calendar-cell - root.number-y - Theme.calendar-today - Theme.calendar-marker) / 2;
 
     width: Theme.calendar-cell;
     height: Theme.calendar-cell;
     border-radius: Theme.radius-sm;
     border-width: Theme.border-width;
-    border-color: focus-scope.has-focus ? Theme.primary : transparent;
+    border-color: focus-scope.has-focus || root.item.is-selected ? Theme.primary : transparent;
     background: root.item.is-selected ? Theme.surface-selected
         : touch.has-hover ? Theme.surface-alt
+        : root.item.has-class ? Theme.calendar-class-highlight
         : transparent;
     accessible-role: button;
     accessible-label: root.item.label;
@@ -173,7 +202,7 @@ component DayCell inherits Rectangle {
 
     if root.item.is-today: Rectangle {
         x: (parent.width - self.width) / 2;
-        y: root.gap;
+        y: root.number-y;
         width: Theme.calendar-today;
         height: Theme.calendar-today;
         border-radius: Theme.radius-full;
@@ -182,7 +211,7 @@ component DayCell inherits Rectangle {
 
     Text {
         x: 0;
-        y: root.gap;
+        y: root.number-y;
         width: parent.width;
         height: Theme.calendar-today;
         text: root.item.day;
@@ -198,25 +227,22 @@ component DayCell inherits Rectangle {
         font-weight: Theme.body-md-weight;
     }
 
-    HorizontalLayout {
-        x: 0;
-        y: 2 * root.gap + Theme.calendar-today;
-        width: parent.width;
+    if root.item.has-due: Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: root.dot-y;
+        width: Theme.calendar-marker;
         height: Theme.calendar-marker;
-        alignment: center;
-        spacing: Theme.calendar-marker / 2;
-        if root.item.has-class: Rectangle {
-            width: Theme.calendar-marker;
-            height: Theme.calendar-marker;
-            border-radius: Theme.radius-full;
-            background: Theme.on-surface-muted;
-        }
-        if root.item.has-due: Rectangle {
-            width: Theme.calendar-marker;
-            height: Theme.calendar-marker;
-            border-radius: Theme.radius-none;
-            background: Theme.on-surface-muted;
-        }
+        border-radius: Theme.radius-full;
+        background: Theme.error;
+    }
+
+    // A thin surface ring keeps the badge apart from the today circle under it.
+    if root.item.class-badge != "": CalendarBadge {
+        x: parent.width - self.width;
+        y: 0;
+        text: root.item.class-badge;
+        border-width: Theme.border-width;
+        border-color: Theme.surface;
     }
 }
 
@@ -354,10 +380,13 @@ component CalendarSection inherits HorizontalLayout {
             }
         }
 
+        // A small gap between cells keeps neighbouring class highlights apart.
         VerticalLayout {
             alignment: start;
+            spacing: Theme.space-xs / 2;
             HorizontalLayout {
                 alignment: start;
+                spacing: Theme.space-xs / 2;
                 for initial in DashboardState.weekday-initials: Text {
                     text: initial;
                     width: Theme.calendar-cell;
@@ -370,6 +399,7 @@ component CalendarSection inherits HorizontalLayout {
             }
             for week in DashboardState.calendar: HorizontalLayout {
                 alignment: start;
+                spacing: Theme.space-xs / 2;
                 for day in week.days: DayCell {
                     item: day;
                     clicked => {
@@ -379,15 +409,43 @@ component CalendarSection inherits HorizontalLayout {
             }
         }
 
-        // Markers are explained in words, never by shape or color alone (DESIGN.md).
+        // Markers are explained in words, never by color alone (DESIGN.md "Mini calendar").
         HorizontalLayout {
             alignment: start;
             spacing: Theme.space-md;
-            LegendText {
-                text: "● Classes";
+            HorizontalLayout {
+                spacing: Theme.space-xs;
+                Rectangle {
+                    width: Theme.calendar-today;
+                    height: Theme.calendar-today;
+                    border-radius: Theme.radius-sm;
+                    background: Theme.calendar-class-highlight;
+                    CalendarBadge {
+                        x: (parent.width - self.width) / 2;
+                        y: (parent.height - self.height) / 2;
+                        text: "2";
+                    }
+                }
+                LegendText {
+                    text: "Classes (count)";
+                    vertical-alignment: center;
+                }
             }
-            LegendText {
-                text: "■ Assessment due";
+            HorizontalLayout {
+                spacing: Theme.space-xs;
+                VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: Theme.calendar-marker;
+                        height: Theme.calendar-marker;
+                        border-radius: Theme.radius-full;
+                        background: Theme.error;
+                    }
+                }
+                LegendText {
+                    text: "Assessment due";
+                    vertical-alignment: center;
+                }
             }
         }
     }

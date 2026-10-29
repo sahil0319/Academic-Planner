@@ -1616,7 +1616,13 @@ fn month_grid_has_class_and_has_due_flags() {
 fn month_grid_class_badge_counts_classes() {
     let mut classes = vec![d(2026, 10, 26), d(2026, 10, 26), d(2026, 10, 28)];
     classes.extend(std::iter::repeat_n(d(2026, 10, 30), 10));
-    let grid = month_grid(d(2026, 10, 1), d(2026, 10, 29), d(2026, 10, 29), &classes, &[]);
+    let grid = month_grid(
+        d(2026, 10, 1),
+        d(2026, 10, 29),
+        d(2026, 10, 29),
+        &classes,
+        &[],
+    );
     assert_eq!(cell(&grid, "2026-10-26").class_badge, "2");
     assert_eq!(cell(&grid, "2026-10-28").class_badge, "1");
     assert_eq!(cell(&grid, "2026-10-30").class_badge, "9+");
