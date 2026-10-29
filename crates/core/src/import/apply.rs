@@ -44,7 +44,7 @@ pub(super) fn apply(
         insert_course(&tx, add, effective_from)?;
     }
     for update in &plan.update {
-        update_course(&tx, update)?;
+        update_course(&tx, update, effective_from)?;
     }
     let sync = sync_in(&tx, effective_from.min(today))?;
     tx.commit()?;
@@ -91,10 +91,31 @@ fn insert_course(conn: &Connection, add: &CourseAdd, effective_from: NaiveDate) 
 }
 
 /// R44: writes the changed fields of a matched course; every other column (code, notes,
-/// archived) keeps its stored value.
-fn update_course(conn: &Connection, update: &CourseUpdate) -> Result<()> {
+/// archived) keeps its stored value. R45, R7: ends the replaced slots the day before
+/// `effective_from` and inserts the file's slots from it.
+fn update_course(
+    conn: &Connection,
+    update: &CourseUpdate,
+    effective_from: NaiveDate,
+) -> Result<()> {
     for change in &update.changes {
         write_change(conn, update.course_id, change)?;
+    }
+    if let Some(slots) = &update.slots {
+        let last_day = effective_from.pred_opt().ok_or_else(|| {
+            Error::Validation(format!(
+                "effective date {effective_from} has no previous day"
+            ))
+        })?;
+        for slot in &slots.end {
+            conn.execute(
+                "UPDATE slot SET valid_to = ?1 WHERE id = ?2",
+                params![fmt_date(last_day), slot.id],
+            )?;
+        }
+        for slot in &slots.add {
+            insert_import_slot(conn, update.course_id, slot, effective_from)?;
+        }
     }
     Ok(())
 }

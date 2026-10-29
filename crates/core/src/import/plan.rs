@@ -5,18 +5,21 @@ use rusqlite::Connection;
 
 use super::parse::{self, Context, Field, ParsedCourse};
 use super::types::{
-    CourseAdd, CourseUpdate, FieldChange, FieldValue, ImportField, ImportPlan, RuleSetRef,
+    CourseAdd, CourseUpdate, FieldChange, FieldValue, ImportField, ImportPlan, ImportSlot,
+    RuleSetRef, SlotChange,
 };
-use crate::db::{active_term_id, course_from_row, load_term, COURSE_COLS};
+use crate::db::{
+    active_term_id, course_from_row, load_term, slot_from_row, COURSE_COLS, SLOT_COLS,
+};
 use crate::error::Result;
-use crate::model::Course;
+use crate::model::{Course, Slot};
 
 /// R42-R48: parses and validates `text` against the database and returns the plan.
 /// With errors, the plan carries only `errors` and `warnings` (R42: nothing may be written).
 pub(super) fn build_plan(
     conn: &Connection,
     text: &str,
-    _effective_from: NaiveDate,
+    effective_from: NaiveDate,
 ) -> Result<ImportPlan> {
     let active_term = match active_term_id(conn)? {
         Some(id) => Some(load_term(conn, id)?),
@@ -51,9 +54,16 @@ pub(super) fn build_plan(
     for course in parsed.courses {
         match course.matched {
             None => plan.add.extend(course_add(course)),
-            Some(i) => plan
-                .update
-                .extend(course_update(&courses[i], course, &rule_sets)),
+            Some(i) => {
+                let stored_slots = load_course_slots(conn, courses[i].id)?;
+                plan.update.extend(course_update(
+                    &courses[i],
+                    course,
+                    &rule_sets,
+                    &stored_slots,
+                    effective_from,
+                ));
+            }
         }
     }
     Ok(plan)
@@ -77,13 +87,15 @@ fn changed<T: PartialEq>(field: Field<T>, stored: Option<&T>) -> Option<Option<T
     }
 }
 
-/// R43, R44, R46: the field changes of a matched course; `None` when nothing differs. The
-/// stored code, notes, and archived flag are never changed. R44: an archived match stays
+/// R43-R46: the field and slot changes of a matched course; `None` when nothing differs.
+/// The stored code, notes, and archived flag are never changed. R44: an archived match stays
 /// archived.
 fn course_update(
     stored: &Course,
     course: ParsedCourse,
     rule_sets: &[RuleSetRef],
+    stored_slots: &[Slot],
+    effective_from: NaiveDate,
 ) -> Option<CourseUpdate> {
     let mut changes = Vec::new();
     if let Some(new) = changed(course.name, Some(&stored.name)) {
@@ -134,7 +146,12 @@ fn course_update(
             new: FieldValue::Integer(new),
         });
     }
-    if changes.is_empty() {
+    // R45: a missing `slots` key leaves the slots untouched.
+    let slots = match course.slots {
+        Field::Value(file_slots) => slot_change(file_slots, stored_slots, effective_from),
+        Field::Absent | Field::Null => None,
+    };
+    if changes.is_empty() && slots.is_none() {
         return None;
     }
     Some(CourseUpdate {
@@ -142,8 +159,72 @@ fn course_update(
         code: stored.code.clone(),
         archived: stored.archived,
         changes,
-        slots: None,
+        slots,
     })
+}
+
+/// A slot as the comparison sees it: weekday, start, end, room.
+type SlotKey = (u32, chrono::NaiveTime, chrono::NaiveTime, Option<String>);
+
+fn file_key(s: &ImportSlot) -> SlotKey {
+    (
+        s.weekday.num_days_from_monday(),
+        s.start,
+        s.end,
+        s.room.clone(),
+    )
+}
+
+fn stored_key(s: &Slot) -> SlotKey {
+    (
+        s.weekday.num_days_from_monday(),
+        s.start_time,
+        s.end_time,
+        s.room.clone(),
+    )
+}
+
+/// R45, R7: compares the file's slots, as a sorted multiset of (day, start, end, room), with
+/// the stored slots valid on `effective_from` (a missing room equals a `null` room).
+/// Equal: no change. Different: every stored slot not ended before `effective_from` is ended
+/// (`valid_to = E - 1`, like `change_slot`), including slots that start after it so they cannot
+/// duplicate the new ones (OQ-3, router ruling), and the file's slots are added from
+/// `effective_from`. `"slots": []` ends all current slots and adds none.
+fn slot_change(
+    file_slots: Vec<ImportSlot>,
+    stored_slots: &[Slot],
+    effective_from: NaiveDate,
+) -> Option<SlotChange> {
+    let current: Vec<&Slot> = stored_slots
+        .iter()
+        .filter(|s| s.valid_to.is_none_or(|to| to >= effective_from))
+        .collect();
+    let mut valid_now: Vec<SlotKey> = current
+        .iter()
+        .filter(|s| s.valid_from <= effective_from)
+        .map(|s| stored_key(s))
+        .collect();
+    let mut wanted: Vec<SlotKey> = file_slots.iter().map(file_key).collect();
+    valid_now.sort();
+    wanted.sort();
+    if valid_now == wanted && !(wanted.is_empty() && !current.is_empty()) {
+        return None;
+    }
+    Some(SlotChange {
+        end: current.into_iter().cloned().collect(),
+        add: file_slots,
+    })
+}
+
+/// R45: every slot of a course in id order, ended ones included.
+fn load_course_slots(conn: &Connection, course_id: i64) -> Result<Vec<Slot>> {
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {SLOT_COLS} FROM slot s WHERE s.course_id = ?1 ORDER BY s.id"
+    ))?;
+    let slots = stmt
+        .query_map([course_id], slot_from_row)?
+        .collect::<rusqlite::Result<_>>()?;
+    Ok(slots)
 }
 
 /// R43: a course whose code matches no stored course. Absent and `null` both mean "none".

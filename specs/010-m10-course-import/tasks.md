@@ -232,7 +232,7 @@ are warnings, nothing is written on error.
   absent keep; `null` clear), archived warning, term-differs warning (research D15/D16); in
   crates/core/src/import/apply.rs write changed fields onto the stored course (keep `notes`,
   `archived`, code). Doc comments cite R43, R44, R46, R47. T016, T017, T019 pass. Needs T016, T017, T019
-- [ ] T021 [US2] (builder) [core] Implement R45 in crates/core/src/import/plan.rs and
+- [x] T021 [US2] (builder) [core] Implement R45 in crates/core/src/import/plan.rs and
   crates/core/src/import/apply.rs (research D11): slots valid on E per course, multiset comparison
   of `(weekday, start, end, room)` after sorting, "current" slots = not ended before E (OQ-3
   default), `SlotChange { end, add }` only when different, apply sets `valid_to = E − 1` and
