@@ -58,8 +58,9 @@ Extra checks during the same run:
 - After the restore, `target/scratch/backups/pre-restore-*.sqlite` exists (SC-007) and opens with
   the pre-restore data.
 - Restore a second time in the same minute: a `-2` copy appears, the first is unchanged (Q2).
-- Enter `2026-1-5` in any date field and `9:30` in any time field: the inline error names the
-  expected format.
+- Enter `2026-10-29` in any date field and `9:30` in any time field: the inline error names the
+  expected format ("Use DD-MM-YYYY, e.g. 29-10-2026"). `5-1-2026` and `05-01-2026` are accepted;
+  edit forms pre-fill dates as `DD-MM-YYYY` and lists show long dates ("October 26, 2026").
 - A future session's Attended / Absent buttons are disabled; Cancelled and Pending work (R12).
 
 ## 7. Rollover (R6, FR-010)
