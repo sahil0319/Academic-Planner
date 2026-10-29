@@ -4,7 +4,7 @@ mod common;
 
 use chrono::Weekday;
 use common::*;
-use planner_core::{Planner, Settings, Slot, SlotInput};
+use planner_core::{Planner, Settings, Slot, SlotInput, ThemeMode};
 
 fn ids(slots: &[Slot]) -> Vec<i64> {
     slots.iter().map(|s| s.id).collect()
@@ -91,6 +91,7 @@ fn settings_defaults_on_fresh_db() {
             class_reminder_minutes: 15,
             upcoming_window_days: 7,
             notifications_enabled: true,
+            theme: ThemeMode::System,
         }
     );
 }
@@ -102,6 +103,7 @@ fn save_settings_round_trip() {
         class_reminder_minutes: 30,
         upcoming_window_days: 14,
         notifications_enabled: false,
+        theme: ThemeMode::System,
     };
     p.save_settings(&s).unwrap();
     assert_eq!(p.settings().unwrap(), s);

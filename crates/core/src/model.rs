@@ -246,12 +246,24 @@ pub struct Assessment {
     pub remind_minutes_before: Option<u32>,
 }
 
+/// Appearance choice (§3 `theme`, §5 `Settings`; human decision 2026-10-29).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ThemeMode {
+    /// Follow the operating system's appearance.
+    #[default]
+    System,
+    Light,
+    Dark,
+}
+
 /// User settings (`setting` table).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Settings {
     pub class_reminder_minutes: u32,
     pub upcoming_window_days: u32,
     pub notifications_enabled: bool,
+    pub theme: ThemeMode,
 }
 
 impl Default for Settings {
@@ -261,6 +273,7 @@ impl Default for Settings {
             class_reminder_minutes: 15,
             upcoming_window_days: 7,
             notifications_enabled: true,
+            theme: ThemeMode::System,
         }
     }
 }

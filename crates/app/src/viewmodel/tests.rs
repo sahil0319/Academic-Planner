@@ -649,6 +649,7 @@ fn parse_settings_form_valid() {
             class_reminder_minutes: 15,
             upcoming_window_days: 7,
             notifications_enabled: false,
+            theme: ThemeMode::System,
         }
     );
 }
@@ -1812,4 +1813,22 @@ fn day_panel_holiday_text_empty_and_labeled() {
         day_panel_holiday_text("Midterm week"),
         "Holiday: Midterm week"
     );
+}
+
+/// Dark mode (human decision 2026-10-29): theme mode maps to switch segments 0, 1, 2.
+#[test]
+fn theme_index_maps_modes() {
+    assert_eq!(theme_index(ThemeMode::System), 0);
+    assert_eq!(theme_index(ThemeMode::Light), 1);
+    assert_eq!(theme_index(ThemeMode::Dark), 2);
+}
+
+/// Dark mode (human decision 2026-10-29): segments 0, 1, 2 map back; anything else is `None`.
+#[test]
+fn theme_from_index_maps_segments() {
+    assert_eq!(theme_from_index(0), Some(ThemeMode::System));
+    assert_eq!(theme_from_index(1), Some(ThemeMode::Light));
+    assert_eq!(theme_from_index(2), Some(ThemeMode::Dark));
+    assert_eq!(theme_from_index(-1), None);
+    assert_eq!(theme_from_index(3), None);
 }

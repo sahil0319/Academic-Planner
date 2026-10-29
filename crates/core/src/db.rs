@@ -304,6 +304,7 @@ impl Planner {
             )?,
             upcoming_window_days: number(SETTING_UPCOMING_WINDOW, defaults.upcoming_window_days)?,
             notifications_enabled,
+            theme: ThemeMode::System,
         })
     }
 

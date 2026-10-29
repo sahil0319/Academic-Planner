@@ -10,7 +10,7 @@ use chrono::{Datelike, Days, Duration, NaiveDate, NaiveDateTime, NaiveTime, Week
 use planner_core::{
     Assessment, AssessmentFilter, AssessmentInput, AssessmentKind, AttendanceSummary, Course,
     CourseInput, Dashboard, Holiday, MakeupInput, SessionView, Settings, Slot, SlotInput, Status,
-    TermInput,
+    TermInput, ThemeMode,
 };
 
 #[cfg(test)]
@@ -459,6 +459,7 @@ pub fn parse_settings_form(
             class_reminder_minutes,
             upcoming_window_days,
             notifications_enabled: notifications,
+            theme: ThemeMode::System,
         }),
         _ => Err(errors),
     }
@@ -703,6 +704,20 @@ pub fn assessment_kind_from_index(i: i32) -> Option<AssessmentKind> {
         3 => Some(AssessmentKind::Other),
         _ => None,
     }
+}
+
+/// Appearance switch segment for a theme mode: System 0, Light 1, Dark 2.
+#[allow(dead_code)]
+pub fn theme_index(mode: ThemeMode) -> i32 {
+    let _ = mode;
+    todo!("M4 dark mode: theme_index")
+}
+
+/// Theme mode for an appearance switch segment; `None` when out of range.
+#[allow(dead_code)]
+pub fn theme_from_index(i: i32) -> Option<ThemeMode> {
+    let _ = i;
+    todo!("M4 dark mode: theme_from_index")
 }
 
 /// Inverse of [`assessment_kind_from_index`].

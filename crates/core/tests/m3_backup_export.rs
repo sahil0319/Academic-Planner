@@ -8,7 +8,7 @@ use chrono::NaiveTime;
 use common::*;
 use planner_core::{
     AssessmentInput, AssessmentKind, Holiday, Planner, Session, SessionKind, Settings, Status,
-    TermInput,
+    TermInput, ThemeMode,
 };
 use serde_json::{json, Value};
 
@@ -75,6 +75,7 @@ fn populated() -> Populated {
         class_reminder_minutes: 30,
         upcoming_window_days: 14,
         notifications_enabled: false,
+        theme: ThemeMode::System,
     })
     .unwrap();
 
