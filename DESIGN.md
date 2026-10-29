@@ -267,6 +267,12 @@ rounded pills for status chips.
   attendance target, e.g. "CSE101 — 66.7% (target 75%)".
 - **Section card:** paper card, 10px radius, 1px border, 16px padding, with a serif headline title.
 - **Empty state:** muted body text centered in the section, e.g. "No classes today."
+- **Mini calendar:** a section card with the month name in the headline serif and prev/next
+  secondary buttons; a 7-column grid of 32px day cells starting Monday, weekday initials in label-sm
+  muted. Day numbers in body text; days outside the month muted. Today: a filled terracotta circle
+  with white number. Selected day: surface-selected fill. Under the number, up to two 4px markers
+  with distinct shapes, never color alone: a round dot for classes and a small square for an
+  assessment due, explained by a one-line legend under the grid.
 
 ## Do's and Don'ts
 

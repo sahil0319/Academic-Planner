@@ -411,3 +411,26 @@ No new stored entities; the schema is unchanged.
   app reformats its date part to "Rescheduled → January 13, 2026".
 - Unchanged and still ISO: database storage (§1), JSON backup (R21), CSV exports (R23), the
   backup and pre-restore file names, and the database path.
+
+## Change 2026-10-29: dashboard mini calendar (human request)
+
+- The dashboard gains a "Calendar" section card placed right after "Awaiting attendance": a mini
+  month calendar on the left and a day panel on the right.
+- Calendar: month title "October 2026" with Previous / Next month buttons and a Today button;
+  a 6-week grid (42 days) starting on the Monday on or before the 1st; weekday initials M T W T F S S.
+  Each day shows its number; days outside the month are muted. Today is marked with a filled
+  terracotta circle. A day with at least one non-cancelled class (pending, attended, or absent)
+  shows a round dot; a day with at least one incomplete assessment due shows a small square. A
+  legend "● Classes ■ Assessment due" explains the markers (never color alone, DESIGN.md).
+  Archived courses are excluded (R3). Each day cell has an accessible label such as
+  "Monday, October 26, 2026, 2 classes, 1 assessment due".
+- Clicking a day selects it (surface-selected fill) and the day panel lists that day's classes
+  (session rows with status chips; Attended / Absent enabled only for sessions that have started,
+  R12; Cancelled and Pending always) and the assessments due that day (incomplete and completed,
+  with their kind and time). Today is selected on start. The panel title is "Today's classes" for
+  today and the long date otherwise ("Monday, October 26, 2026"). This panel replaces the separate
+  "Today's classes" section (R16 content unchanged for today).
+- Selecting a day in another month moves the calendar to that month. When the date rolls over (R6)
+  and the selected day was the old today, the selection and month move to the new today.
+- Not a visual time grid or a date picker (§10); no new core API (uses `sessions_between` and
+  `list_assessments`).

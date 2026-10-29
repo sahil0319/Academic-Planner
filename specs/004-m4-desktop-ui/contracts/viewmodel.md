@@ -146,3 +146,18 @@ holidays have no core range call.
 | `pub fn csv_exported_message(folder: &Path) -> String` | R23: `"Exported attendance.csv and assessments.csv to {folder}"` |
 | `pub fn file_error_message(path: &Path, cause: &str) -> String` | `"Could not access {path}: {cause}"` |
 | `pub fn pre_restore_failed_message(cause: &str) -> String` | R22: `"Restore not started: could not copy the current data ({cause})"` |
+
+## Mini calendar (change 2026-10-29)
+
+| Item | Contract |
+| --- | --- |
+| `pub fn month_start(d: NaiveDate) -> NaiveDate` | First day of `d`'s month (2026-10-29 → 2026-10-01) |
+| `pub fn shift_month(month_start: NaiveDate, months: i32) -> NaiveDate` | First day of the month `months` away (2026-12-01, +1 → 2027-01-01; 2026-01-01, −1 → 2025-12-01) |
+| `pub fn month_title(month_start: NaiveDate) -> String` | `"October 2026"` |
+| `pub fn class_days(views: &[SessionView]) -> Vec<NaiveDate>` | One entry per non-cancelled session (pending, attended, absent), duplicates kept so callers can count; cancelled and rescheduled originals excluded |
+| `pub fn due_days(assessments: &[Assessment]) -> Vec<NaiveDate>` | One entry per incomplete assessment (`due_at.date()`), duplicates kept; completed excluded |
+| `pub struct CalendarDay { pub key: String, pub day: String, pub in_month: bool, pub is_today: bool, pub is_selected: bool, pub has_class: bool, pub has_due: bool, pub label: String }` + `pub fn month_grid(month_start: NaiveDate, today: NaiveDate, selected: NaiveDate, class_days: &[NaiveDate], due_days: &[NaiveDate]) -> Vec<CalendarDay>` | Always 42 cells from the Monday on or before `month_start` (October 2026 → starts 2026-09-28, ends 2026-11-08). `key` ISO date (identity, never shown); `day` `"1"`..`"31"` unpadded; `label` accessible text: `"Monday, October 26, 2026"`, then `", today"` if today, then `", 2 classes"` / `", 1 class"` and `", 1 assessment due"` / `", 2 assessments due"` when non-zero |
+| `pub fn weekday_initials() -> [&'static str; 7]` | `["M","T","W","T","F","S","S"]` |
+| `pub fn day_panel_title(selected: NaiveDate, today: NaiveDate) -> String` | `"Today's classes"` when equal, else `"Monday, October 26, 2026"` |
+| `pub fn day_panel_empty_text(selected: NaiveDate, today: NaiveDate) -> String` | Today: the existing today's-classes empty sentence; other days: `"Nothing on this day."` |
+| `pub fn parse_date_key(key: &str) -> Option<NaiveDate>` | Parses a `CalendarDay.key` (`"2026-10-26"`); anything else → `None` |

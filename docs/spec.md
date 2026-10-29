@@ -250,7 +250,7 @@ impl Planner {
 
 One window. Left nav with 5 pages. Forms are inline panels or dialogs. Every list has an empty state.
 
-1. **Dashboard:** sections for R16–R20. Each awaiting-attendance row has Attended / Absent / Cancelled buttons. A banner lists courses that are below target.
+1. **Dashboard:** sections for R16–R20. Each awaiting-attendance row has Attended / Absent / Cancelled buttons. A banner lists courses that are below target. A mini month calendar (prev/next month; marks today, days with classes, and days with incomplete assessments due) sits beside a day panel listing the selected day's classes (with status buttons) and assessments due; today is selected by default, so the panel replaces the separate "Today's classes" section (R16) (human decision 2026-10-29). Not a visual time grid or date picker (§10).
 2. **Timetable:** a week view (prev/next/today buttons) showing that week's sessions grouped by weekday. Clicking a session offers: mark status, cancel, reschedule (date + time + room + optional note; the note is stored on the makeup session), and shows any stored note read-only. A second tab, "Rules", lists slots with add/edit (asks for an effective date)/end actions. **A grouped list is acceptable; a visual time grid is out of scope.**
 3. **Courses:** a list (with a show-archived toggle) and create/edit/archive. Course detail shows the attendance summary, the full session list with status buttons, and an "Add makeup class" form (date, start, end, room, note) for R10.
 4. **Assessments:** a list with filters (upcoming / overdue / completed / all), create/edit/delete, and a complete checkbox.
