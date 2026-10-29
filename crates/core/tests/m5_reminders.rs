@@ -193,7 +193,7 @@ fn m5_assessment_reminder_fires_once() {
             kind: ReminderKind::Assessment,
             ref_id: a.id,
             fire_at: dt("2026-01-07T22:59"),
-            title: "CSE101 Assignment: HW1 due 2026-01-07 23:59".into(),
+            title: "CSE101 Assignment: HW1 due January 7, 2026, 23:59".into(),
         }]
     );
     assert!(p.due_reminders(dt("2026-01-07T23:30")).unwrap().is_empty());
@@ -268,7 +268,10 @@ fn m5_assessment_due_change_fires_new_reminder() {
     let due = p.due_reminders(dt("2026-01-08T22:59")).unwrap();
     assert_eq!(due.len(), 1);
     assert_eq!(due[0].fire_at, dt("2026-01-08T22:59"));
-    assert_eq!(due[0].title, "CSE101 Assignment: HW1 due 2026-01-08 23:59");
+    assert_eq!(
+        due[0].title,
+        "CSE101 Assignment: HW1 due January 8, 2026, 23:59"
+    );
     assert!(p.due_reminders(dt("2026-01-08T23:00")).unwrap().is_empty());
 }
 

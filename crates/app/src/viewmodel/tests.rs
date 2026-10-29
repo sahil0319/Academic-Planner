@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use super::*;
 use planner_core::Error;
 
-const DATE_ERR: &str = "Use YYYY-MM-DD, e.g. 2026-10-29";
+const DATE_ERR: &str = "Use DD-MM-YYYY, e.g. 29-10-2026";
 const TIME_ERR: &str = "Use HH:MM, e.g. 09:30";
 const HOLIDAY_RANGE_ERR: &str = "End date must be on or after the start date";
 
@@ -181,11 +181,26 @@ fn can_mark_attendance_follows_is_past() {
 
 // ---- Dates and times ----
 
-/// Dates print as ISO.
+/// §6 date format change: dates display in the long form, day not zero-padded.
 #[test]
-fn format_date_iso() {
-    assert_eq!(format_date(d(2026, 10, 29)), "2026-10-29");
-    assert_eq!(format_date(d(2026, 1, 5)), "2026-01-05");
+fn format_date_long_form() {
+    assert_eq!(format_date(d(2026, 10, 29)), "October 29, 2026");
+    assert_eq!(format_date(d(2026, 1, 5)), "January 5, 2026");
+}
+
+/// §6 date format change: pre-filled date fields show zero-padded `DD-MM-YYYY`.
+#[test]
+fn format_date_input_is_zero_padded_dd_mm_yyyy() {
+    assert_eq!(format_date_input(d(2026, 10, 26)), "26-10-2026");
+    assert_eq!(format_date_input(d(2026, 1, 5)), "05-01-2026");
+}
+
+/// §6 date format change: the pre-fill text parses back to the same date.
+#[test]
+fn format_date_input_round_trips_through_parse_date() {
+    for date in [d(2026, 1, 5), d(2026, 10, 29), d(2027, 2, 28)] {
+        assert_eq!(parse_date(&format_date_input(date)), Ok(date));
+    }
 }
 
 /// Times print as HH:MM, seconds dropped.
@@ -202,12 +217,12 @@ fn format_time_range_uses_en_dash() {
     assert_eq!(format_time_range(t(9, 0), t(10, 30)), "09:00–10:30");
 }
 
-/// Date and time print as `YYYY-MM-DD HH:MM`.
+/// §6 date format change: date and time print as `Month D, YYYY, HH:MM` (24-hour).
 #[test]
 fn format_datetime_date_and_time() {
     assert_eq!(
         format_datetime(dt(2026, 10, 30, 23, 59)),
-        "2026-10-30 23:59"
+        "October 30, 2026, 23:59"
     );
 }
 
@@ -246,17 +261,34 @@ fn weekday_index_round_trips() {
     }
 }
 
-/// FR-007: valid dates parse, with surrounding whitespace trimmed.
+/// FR-007, §6 date format change: `DD-MM-YYYY` parses, with surrounding whitespace trimmed.
 #[test]
-fn parse_date_accepts_iso_and_trims() {
-    assert_eq!(parse_date("2026-10-29"), Ok(d(2026, 10, 29)));
-    assert_eq!(parse_date("  2026-10-29 "), Ok(d(2026, 10, 29)));
+fn parse_date_accepts_dd_mm_yyyy_and_trims() {
+    assert_eq!(parse_date("29-10-2026"), Ok(d(2026, 10, 29)));
+    assert_eq!(parse_date("  29-10-2026 "), Ok(d(2026, 10, 29)));
 }
 
-/// FR-007: bad dates give one error text that states the format.
+/// §6 date format change: day and month may have one digit or two.
+#[test]
+fn parse_date_accepts_one_digit_day_and_month() {
+    assert_eq!(parse_date("5-1-2026"), Ok(d(2026, 1, 5)));
+    assert_eq!(parse_date("05-01-2026"), Ok(d(2026, 1, 5)));
+    assert_eq!(parse_date("5-01-2026"), Ok(d(2026, 1, 5)));
+}
+
+/// FR-007, §6 date format change: bad dates (including the old ISO form and a 2-digit year)
+/// give one error text that states the format.
 #[test]
 fn parse_date_rejects_bad_input_with_format_hint() {
-    for bad in ["", "   ", "2026-1-5", "29/10/2026", "2026-02-30", "abc"] {
+    for bad in [
+        "",
+        "   ",
+        "2026-10-29",
+        "29/10/2026",
+        "30-02-2026",
+        "29-10-26",
+        "abc",
+    ] {
         assert_eq!(parse_date(bad), Err(DATE_ERR.to_string()), "input {bad:?}");
     }
 }
@@ -271,7 +303,7 @@ fn parse_optional_date_blank_is_none() {
 /// Optional date: otherwise as `parse_date`.
 #[test]
 fn parse_optional_date_parses_or_errors() {
-    assert_eq!(parse_optional_date("2026-12-20"), Ok(Some(d(2026, 12, 20))));
+    assert_eq!(parse_optional_date("20-12-2026"), Ok(Some(d(2026, 12, 20))));
     assert_eq!(parse_optional_date("20/12/2026"), Err(DATE_ERR.to_string()));
 }
 
@@ -364,7 +396,7 @@ fn form_errors_get_and_is_empty() {
 /// Term form: valid input builds a `TermInput` with a trimmed name.
 #[test]
 fn parse_term_form_valid() {
-    let input = parse_term_form(Some(3), "  Fall 2026 ", "2026-09-01", "2026-12-20").unwrap();
+    let input = parse_term_form(Some(3), "  Fall 2026 ", "01-09-2026", "20-12-2026").unwrap();
     assert_eq!(
         input,
         TermInput {
@@ -387,7 +419,7 @@ fn parse_term_form_reports_all_date_errors() {
 /// R2: end before start is core's check, so the form passes it through.
 #[test]
 fn parse_term_form_passes_end_before_start_to_core() {
-    let input = parse_term_form(None, "Fall", "2026-12-20", "2026-09-01").unwrap();
+    let input = parse_term_form(None, "Fall", "20-12-2026", "01-09-2026").unwrap();
     assert_eq!(input.start_date, d(2026, 12, 20));
     assert_eq!(input.end_date, d(2026, 9, 1));
 }
@@ -442,8 +474,8 @@ fn parse_slot_form_valid() {
         "09:00",
         "10:30",
         " B12 ",
-        "2026-09-01",
-        "2026-12-20",
+        "01-09-2026",
+        "20-12-2026",
     )
     .unwrap();
     assert_eq!(
@@ -463,7 +495,7 @@ fn parse_slot_form_valid() {
 /// Slot form: empty valid-to means until term end.
 #[test]
 fn parse_slot_form_empty_valid_to_is_none() {
-    let input = parse_slot_form(Some(1), 0, "09:00", "10:30", "", "2026-09-01", "").unwrap();
+    let input = parse_slot_form(Some(1), 0, "09:00", "10:30", "", "01-09-2026", "").unwrap();
     assert_eq!(input.valid_to, None);
     assert_eq!(input.room, None);
 }
@@ -491,7 +523,7 @@ fn parse_slot_form_requires_valid_from() {
 /// R2: slot end not after start is core's check; the form passes it through.
 #[test]
 fn parse_slot_form_passes_end_before_start_to_core() {
-    let input = parse_slot_form(Some(1), 0, "10:30", "09:00", "", "2026-09-01", "").unwrap();
+    let input = parse_slot_form(Some(1), 0, "10:30", "09:00", "", "01-09-2026", "").unwrap();
     assert_eq!(input.start_time, t(10, 30));
     assert_eq!(input.end_time, t(9, 0));
 }
@@ -499,7 +531,7 @@ fn parse_slot_form_passes_end_before_start_to_core() {
 /// R9, R10: makeup form builds a `MakeupInput`; the note is optional.
 #[test]
 fn parse_makeup_form_valid() {
-    let input = parse_makeup_form(4, "2026-01-15", "14:00", "15:30", "C3", " moved ").unwrap();
+    let input = parse_makeup_form(4, "15-01-2026", "14:00", "15:30", "C3", " moved ").unwrap();
     assert_eq!(
         input,
         MakeupInput {
@@ -516,7 +548,7 @@ fn parse_makeup_form_valid() {
 /// R9, R10: empty room and note become `None`.
 #[test]
 fn parse_makeup_form_empty_optional_fields_are_none() {
-    let input = parse_makeup_form(4, "2026-01-15", "14:00", "15:30", "", "").unwrap();
+    let input = parse_makeup_form(4, "15-01-2026", "14:00", "15:30", "", "").unwrap();
     assert_eq!(input.room, None);
     assert_eq!(input.note, None);
 }
@@ -534,7 +566,7 @@ fn parse_makeup_form_reports_all_errors_at_once() {
 #[test]
 fn parse_assessment_form_valid() {
     let input =
-        parse_assessment_form(Some(1), 1, " Midterm ", "2026-10-30", "23:59", "", "60").unwrap();
+        parse_assessment_form(Some(1), 1, " Midterm ", "30-10-2026", "23:59", "", "60").unwrap();
     assert_eq!(
         input,
         AssessmentInput {
@@ -551,7 +583,7 @@ fn parse_assessment_form_valid() {
 /// Assessment form: empty remind means no reminder.
 #[test]
 fn parse_assessment_form_empty_remind_is_none() {
-    let input = parse_assessment_form(Some(1), 0, "Quiz 1", "2026-10-30", "09:00", "", "").unwrap();
+    let input = parse_assessment_form(Some(1), 0, "Quiz 1", "30-10-2026", "09:00", "", "").unwrap();
     assert_eq!(input.remind_minutes_before, None);
     assert_eq!(input.kind, AssessmentKind::Quiz);
 }
@@ -570,21 +602,21 @@ fn parse_assessment_form_reports_all_errors_at_once() {
 /// R2: an empty title is core's check; the form passes it through.
 #[test]
 fn parse_assessment_form_passes_empty_title_to_core() {
-    let input = parse_assessment_form(Some(1), 3, "", "2026-10-30", "09:00", "", "").unwrap();
+    let input = parse_assessment_form(Some(1), 3, "", "30-10-2026", "09:00", "", "").unwrap();
     assert_eq!(input.title, "");
 }
 
 /// Holiday form: a blank end date gives a single holiday with an optional label.
 #[test]
 fn parse_holiday_form_single_day() {
-    let got = parse_holiday_form("2026-12-25", "", " Christmas ").unwrap();
+    let got = parse_holiday_form("25-12-2026", "", " Christmas ").unwrap();
     assert_eq!(got, vec![holiday(d(2026, 12, 25), Some("Christmas"))]);
 }
 
 /// Holiday form: a range expands to one holiday per day.
 #[test]
 fn parse_holiday_form_range_expands() {
-    let got = parse_holiday_form("2026-12-21", "2026-12-25", "Break").unwrap();
+    let got = parse_holiday_form("21-12-2026", "25-12-2026", "Break").unwrap();
     assert_eq!(got.len(), 5);
     assert_eq!(got[0].date, d(2026, 12, 21));
     assert_eq!(got[4].date, d(2026, 12, 25));
@@ -602,7 +634,7 @@ fn parse_holiday_form_reports_date_errors() {
 /// attached to the `end` field.
 #[test]
 fn parse_holiday_form_end_before_start_errors_on_end() {
-    let err = parse_holiday_form("2026-12-25", "2026-12-21", "").unwrap_err();
+    let err = parse_holiday_form("25-12-2026", "21-12-2026", "").unwrap_err();
     assert_eq!(err.get("end"), HOLIDAY_RANGE_ERR);
     assert_eq!(err.get("start"), "");
 }
@@ -747,7 +779,7 @@ fn holiday_row_label_and_dash() {
     assert_eq!(
         holiday_row(&holiday(d(2026, 12, 25), Some("Christmas"))),
         HolidayRow {
-            date: "2026-12-25".to_string(),
+            date: "December 25, 2026".to_string(),
             label: "Christmas".to_string()
         }
     );
@@ -755,6 +787,23 @@ fn holiday_row_label_and_dash() {
 }
 
 // ---- Rows ----
+
+/// §6 date format change: the trailing ISO date of a rescheduled label becomes a long date.
+#[test]
+fn display_status_text_rewrites_trailing_iso_date() {
+    assert_eq!(
+        display_status_text("Rescheduled → 2026-01-13"),
+        "Rescheduled → January 13, 2026"
+    );
+}
+
+/// §6 date format change: labels without a date are unchanged.
+#[test]
+fn display_status_text_leaves_other_labels_unchanged() {
+    for label in ["Pending", "Attended", "Absent", "Cancelled", ""] {
+        assert_eq!(display_status_text(label), label);
+    }
+}
 
 /// R11, R12: a regular session row.
 #[test]
@@ -766,7 +815,7 @@ fn session_row_for_past_pending_session() {
         row,
         SessionRow {
             id: 5,
-            date: "2026-10-26".to_string(),
+            date: "October 26, 2026".to_string(),
             weekday: "Monday".to_string(),
             time: "09:00–10:30".to_string(),
             course: "CSE101 · Intro to Programming".to_string(),
@@ -790,7 +839,8 @@ fn session_row_future_session_missing_room_and_note() {
     assert_eq!(row.note, "");
 }
 
-/// R9: a rescheduled original keeps core's text and shows the Cancelled chip.
+/// R9, §6 date format change: a rescheduled original shows core's text with a long date and
+/// the Cancelled chip.
 #[test]
 fn session_row_rescheduled_original_keeps_display_status() {
     let view = session_view(
@@ -801,7 +851,7 @@ fn session_row_rescheduled_original_keeps_display_status() {
         true,
     );
     let row = session_row(&view);
-    assert_eq!(row.status_label, "Rescheduled → 2026-01-15");
+    assert_eq!(row.status_label, "Rescheduled → January 15, 2026");
     assert_eq!(row.chip, ChipKind::Cancelled);
 }
 
@@ -893,7 +943,7 @@ fn slot_row_with_valid_to() {
             time: "09:00–10:30".to_string(),
             course: "CSE101".to_string(),
             room: "C3".to_string(),
-            valid: "From 2026-09-01 to 2026-12-20".to_string(),
+            valid: "From September 1, 2026 to December 20, 2026".to_string(),
         }
     );
 }
@@ -902,7 +952,7 @@ fn slot_row_with_valid_to() {
 #[test]
 fn slot_row_until_term_end_and_unknown_course() {
     let row = slot_row(&slot(None, None), &[course(9, "PHY101")]);
-    assert_eq!(row.valid, "From 2026-09-01 until term end");
+    assert_eq!(row.valid, "From September 1, 2026 until term end");
     assert_eq!(row.room, "—");
     assert_eq!(row.course, "—");
 }
@@ -918,7 +968,7 @@ fn assessment_row_formats_fields() {
             course_code: "CSE101".to_string(),
             kind: "Exam".to_string(),
             title: "Midterm".to_string(),
-            due: "2026-10-30 23:59".to_string(),
+            due: "October 30, 2026, 23:59".to_string(),
             completed: false,
             notes: "Chapters 1-3".to_string(),
         }
@@ -1071,10 +1121,25 @@ fn shift_week_across_month_and_year_end() {
     assert_eq!(shift_week(d(2026, 10, 26), 2), d(2026, 11, 9));
 }
 
-/// Week title is a date range with an en dash and spaces.
+/// §6 date format change: week title is a long-form range with the year once at the end.
 #[test]
 fn week_title_range() {
-    assert_eq!(week_title(d(2026, 10, 26)), "2026-10-26 – 2026-11-01");
+    assert_eq!(week_title(d(2026, 10, 26)), "October 26 – November 1, 2026");
+}
+
+/// §6 date format change: a week inside one month still repeats the month.
+#[test]
+fn week_title_within_one_month_repeats_month() {
+    assert_eq!(week_title(d(2026, 10, 5)), "October 5 – October 11, 2026");
+}
+
+/// §6 date format change: a week spanning two years shows both years.
+#[test]
+fn week_title_across_years_shows_both_years() {
+    assert_eq!(
+        week_title(d(2026, 12, 28)),
+        "December 28, 2026 – January 3, 2027"
+    );
 }
 
 /// Empty input gives no groups (the page shows its empty state).
@@ -1093,12 +1158,12 @@ fn group_week_orders_days_and_keeps_row_order() {
     ];
     let groups = group_week(&views);
     assert_eq!(groups.len(), 2);
-    assert_eq!(groups[0].title, "Monday 2026-10-26");
+    assert_eq!(groups[0].title, "Monday, October 26, 2026");
     assert_eq!(
         groups[0].rows.iter().map(|r| r.id).collect::<Vec<_>>(),
         vec![1, 2]
     );
-    assert_eq!(groups[1].title, "Wednesday 2026-10-28");
+    assert_eq!(groups[1].title, "Wednesday, October 28, 2026");
     assert_eq!(groups[1].rows.len(), 1);
 }
 

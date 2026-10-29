@@ -88,6 +88,19 @@ pub fn format_date(d: NaiveDate) -> String {
     d.format("%Y-%m-%d").to_string()
 }
 
+/// `26-10-2026` (zero-padded `DD-MM-YYYY`) for pre-filling date fields (§6 date format change).
+#[allow(dead_code)] // stub: builder wires it into the UI and removes this
+pub fn format_date_input(_d: NaiveDate) -> String {
+    todo!("M4 date format change: DD-MM-YYYY pre-fill text")
+}
+
+/// Rewrites a trailing ISO date in core's `display_status`
+/// (`Rescheduled → 2026-01-13` becomes `Rescheduled → January 13, 2026`); other labels unchanged.
+#[allow(dead_code)] // stub: builder wires it into the UI and removes this
+pub fn display_status_text(_raw: &str) -> String {
+    todo!("M4 date format change: long date in the status label")
+}
+
 /// `09:05` (seconds dropped).
 pub fn format_time(t: NaiveTime) -> String {
     t.format("%H:%M").to_string()
