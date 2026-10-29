@@ -9,9 +9,9 @@ use std::path::Path;
 use chrono::{Datelike, Days, Duration, NaiveDate, NaiveDateTime, NaiveTime, Timelike, Weekday};
 use planner_core::{
     Assessment, AssessmentFilter, AssessmentInput, AssessmentKind, Assumption, AttendanceBand,
-    AttendanceSummary, ComponentKind, Course, CourseInput, Dashboard, FinalOutlook, GpaSummary,
-    GradeRow, Holiday, MakeupInput, Needed, RuleComponent, RuleComponentInput, SessionView,
-    Settings, Slot, SlotInput, Status, TermInput, ThemeMode,
+    AttendanceSummary, ComponentKind, Course, CourseInput, Dashboard, FinalOutlook, GpaStatus,
+    GpaSummary, GradeRow, Holiday, MakeupInput, Needed, RuleComponent, RuleComponentInput,
+    SessionView, Settings, Slot, SlotInput, Status, TermInput, ThemeMode,
 };
 
 use crate::updater::InstallKind;
@@ -308,6 +308,52 @@ pub fn parse_count(text: &str) -> Result<u32, String> {
     t.parse::<u32>().map_err(|_| WHOLE_NUMBER_ERR.to_string())
 }
 
+/// R33, R34, R35, R36, R39: a finite decimal number; the error says what is expected.
+fn parse_number(text: &str) -> Result<f64, String> {
+    let t = text.trim();
+    if t.is_empty() {
+        return Err("Required".to_string());
+    }
+    match t.parse::<f64>() {
+        Ok(v) if v.is_finite() => Ok(v),
+        _ => Err("Enter a number".to_string()),
+    }
+}
+
+/// An optional decimal number: empty is `None`.
+fn parse_optional_number(text: &str) -> Result<Option<f64>, String> {
+    if text.trim().is_empty() {
+        Ok(None)
+    } else {
+        parse_number(text).map(Some)
+    }
+}
+
+/// An optional whole number: empty is `None`.
+fn parse_optional_count(text: &str) -> Result<Option<u32>, String> {
+    if text.trim().is_empty() {
+        Ok(None)
+    } else {
+        parse_count(text).map(Some)
+    }
+}
+
+/// R33: credits are empty (not graded) or a number above 0.
+fn parse_credits(text: &str) -> Result<Option<f64>, String> {
+    match parse_optional_number(text)? {
+        Some(v) if v <= 0.0 => Err("Enter a number above 0".to_string()),
+        other => Ok(other),
+    }
+}
+
+/// R36: a score is empty (none) or a number of 0 or more. The upper bound is core's.
+fn parse_score(text: &str) -> Result<Option<f64>, String> {
+    match parse_optional_number(text)? {
+        Some(v) if v < 0.0 => Err("Enter a number of 0 or more".to_string()),
+        other => Ok(other),
+    }
+}
+
 // ---- Forms ----
 
 /// Field errors of a form, as `(field, message)` pairs. Field keys are snake_case.
@@ -368,7 +414,8 @@ pub fn parse_term_form(
     }
 }
 
-/// Checks `target`. R2 checks (empty code or name, range) belong to core.
+/// Checks `target` and `credits` (R33: empty = none, otherwise a number above 0). R2 checks
+/// (empty code or name, range) belong to core.
 #[allow(clippy::too_many_arguments)]
 pub fn parse_course_form(
     code: &str,
@@ -377,22 +424,24 @@ pub fn parse_course_form(
     room: &str,
     notes: &str,
     target: &str,
-    _credits: &str,
-    _rule_set_id: Option<i64>,
+    credits: &str,
+    rule_set_id: Option<i64>,
 ) -> Result<CourseInput, FormErrors> {
     let mut errors = FormErrors::default();
-    match errors.check("target", parse_target(target)) {
-        Some(min_attendance_pct) => Ok(CourseInput {
+    let min_attendance_pct = errors.check("target", parse_target(target));
+    let credits = errors.check("credits", parse_credits(credits));
+    match (min_attendance_pct, credits) {
+        (Some(min_attendance_pct), Some(credits)) => Ok(CourseInput {
             code: code.trim().to_string(),
             name: name.trim().to_string(),
             instructor: optional_text(instructor),
             room: optional_text(room),
             notes: optional_text(notes),
             min_attendance_pct,
-            credits: None,
-            rule_set_id: None,
+            credits,
+            rule_set_id,
         }),
-        None => Err(errors),
+        _ => Err(errors),
     }
 }
 
@@ -468,7 +517,8 @@ pub fn parse_makeup_form(
     }
 }
 
-/// Checks `course`, `kind`, `due_date`, `due_time`, `remind`. `due_at` is date plus time.
+/// Checks `course`, `kind`, `due_date`, `due_time`, `remind`, `score` (R36: empty = none,
+/// otherwise a number of 0 or more). `due_at` is date plus time.
 #[allow(clippy::too_many_arguments)]
 pub fn parse_assessment_form(
     course_id: Option<i64>,
@@ -478,8 +528,8 @@ pub fn parse_assessment_form(
     due_time: TimeText<'_>,
     notes: &str,
     remind: &str,
-    _component_id: Option<i64>,
-    _score: &str,
+    component_id: Option<i64>,
+    score: &str,
 ) -> Result<AssessmentInput, FormErrors> {
     let mut errors = FormErrors::default();
     let course_id = errors.check(
@@ -493,19 +543,25 @@ pub fn parse_assessment_form(
     let date = errors.check("due_date", parse_date(due_date));
     let time = errors.check("due_time", parse_time(due_time.digits, due_time.pm));
     let remind = errors.check("remind", parse_optional_minutes(remind));
-    match (course_id, kind, date, time, remind) {
-        (Some(course_id), Some(kind), Some(date), Some(time), Some(remind_minutes_before)) => {
-            Ok(AssessmentInput {
-                course_id,
-                kind,
-                title: title.trim().to_string(),
-                due_at: date.and_time(time),
-                notes: optional_text(notes),
-                remind_minutes_before,
-                component_id: None,
-                score: None,
-            })
-        }
+    let score = errors.check("score", parse_score(score));
+    match (course_id, kind, date, time, remind, score) {
+        (
+            Some(course_id),
+            Some(kind),
+            Some(date),
+            Some(time),
+            Some(remind_minutes_before),
+            Some(score),
+        ) => Ok(AssessmentInput {
+            course_id,
+            kind,
+            title: title.trim().to_string(),
+            due_at: date.and_time(time),
+            notes: optional_text(notes),
+            remind_minutes_before,
+            component_id,
+            score,
+        }),
         _ => Err(errors),
     }
 }
@@ -1373,8 +1429,8 @@ pub fn progress_fraction(received: u64, total: Option<u64>) -> f32 {
 }
 
 // ---- M9: credits, rule sets, marks, GPA (contracts/ui-grading.md) ----
-// T018 stubs: bodies arrive in T021. The `allow(dead_code)` attributes below are removed in the
-// final app task (T027) once the pages call these functions.
+// The `allow(dead_code)` attributes below are removed in the final app task (T027) once the
+// pages call these functions.
 
 /// R38: one row of the needed-in-final table as display text.
 #[allow(dead_code)]
@@ -1384,96 +1440,212 @@ pub struct NeededRowView {
     pub text: String,
 }
 
-/// R37: a mark such as `45` or `37.5`, without a trailing `.0`.
+/// R37: a mark such as `45` or `37.5`, without a trailing `.0`. Two decimals at most.
 #[allow(dead_code)]
-pub fn format_mark(_value: f64) -> String {
-    todo!("M9")
+pub fn format_mark(value: f64) -> String {
+    let rounded = (value * 100.0).round() / 100.0;
+    format!("{rounded}")
 }
 
 /// R35/R36: `"39.0 of 45"`, earned with one decimal, possible as a plain mark.
 #[allow(dead_code)]
-pub fn format_marks(_earned: f64, _possible: f64) -> String {
-    todo!("M9")
+pub fn format_marks(earned: f64, possible: f64) -> String {
+    format!("{earned:.1} of {}", format_mark(possible))
 }
 
 /// R37: `"80.0% · A+"`; `None` shows an em dash.
 #[allow(dead_code)]
-pub fn format_projected(_pct: Option<f64>, _letter: Option<&str>) -> String {
-    todo!("M9")
+pub fn format_projected(pct: Option<f64>, letter: Option<&str>) -> String {
+    match (pct, letter) {
+        (Some(pct), Some(letter)) => format!("{pct:.1}% \u{b7} {letter}"),
+        (Some(pct), None) => format!("{pct:.1}%"),
+        _ => DASH.to_string(),
+    }
 }
 
 /// R38: `"111.0"`, `"Secured"`, or `"Not reachable"`.
 #[allow(dead_code)]
-pub fn needed_text(_needed: &Needed) -> String {
-    todo!("M9")
+pub fn needed_text(needed: &Needed) -> String {
+    match needed {
+        Needed::Score(v) => format!("{v:.1}"),
+        Needed::Secured => "Secured".to_string(),
+        Needed::NotReachable => "Not reachable".to_string(),
+    }
 }
 
 /// R38: one row per grade letter in scale order; empty for `FinalOutlook::Actual`.
 #[allow(dead_code)]
-pub fn needed_rows(_outlook: &FinalOutlook) -> Vec<NeededRowView> {
-    todo!("M9")
+pub fn needed_rows(outlook: &FinalOutlook) -> Vec<NeededRowView> {
+    match outlook {
+        FinalOutlook::Needed { rows, .. } => rows
+            .iter()
+            .map(|r| NeededRowView {
+                letter: r.letter.clone(),
+                text: needed_text(&r.needed),
+            })
+            .collect(),
+        FinalOutlook::Actual { .. } => Vec::new(),
+    }
 }
 
 /// R38: `"Quizzes: assumes 0 for 1 item not entered"`.
 #[allow(dead_code)]
-pub fn assumption_text(_assumption: &Assumption) -> String {
-    todo!("M9")
+pub fn assumption_text(assumption: &Assumption) -> String {
+    format!(
+        "{}: assumes 0 for {} not entered",
+        assumption.component_name,
+        count_text(assumption.missing_items as usize, "item", "items")
+    )
 }
 
 /// R38: `"Final grade: A"`; `None` gives `"Final grade: —"`.
 #[allow(dead_code)]
-pub fn actual_grade_text(_letter: Option<&str>) -> String {
-    todo!("M9")
+pub fn actual_grade_text(letter: Option<&str>) -> String {
+    format!("Final grade: {}", letter.unwrap_or(DASH))
 }
 
 /// R40: `"Term GPA 3.67 (projected)"`, with the left-out count appended when above 0.
 #[allow(dead_code)]
-pub fn gpa_header_text(_summary: &GpaSummary) -> String {
-    todo!("M9")
+pub fn gpa_header_text(summary: &GpaSummary) -> String {
+    let mut text = match summary.gpa {
+        Some(gpa) => {
+            let status = match summary.status {
+                GpaStatus::Projected => "projected",
+                GpaStatus::Final => "final",
+            };
+            format!("Term GPA {gpa:.2} ({status})")
+        }
+        None => format!("Term GPA {DASH}"),
+    };
+    if summary.left_out > 0 {
+        text.push_str(&format!(
+            " \u{b7} {} without marks",
+            count_text(summary.left_out as usize, "graded course", "graded courses")
+        ));
+    }
+    text
 }
 
 /// R34: `"Items · 15% · best 3 of 4, out of 15"`.
 #[allow(dead_code)]
-pub fn component_summary(_component: &RuleComponent) -> String {
-    todo!("M9")
+pub fn component_summary(component: &RuleComponent) -> String {
+    let weight = format_mark(component.weight_pct);
+    match component.kind {
+        ComponentKind::Attendance => format!("Attendance \u{b7} {weight}%"),
+        ComponentKind::Items => {
+            let mut text = format!("Items \u{b7} {weight}%");
+            if let (Some(count), Some(best)) = (component.item_count, component.best_count) {
+                let prefix = if best < count { "best " } else { "" };
+                text.push_str(&format!(" \u{b7} {prefix}{best} of {count}"));
+                if let Some(max) = component.item_max {
+                    text.push_str(&format!(", out of {}", format_mark(max)));
+                }
+            }
+            if component.is_final {
+                text.push_str(" \u{b7} final");
+            }
+            text
+        }
+    }
 }
 
 /// R35: `"≥ 90% → 100%"`.
 #[allow(dead_code)]
-pub fn band_text(_band: &AttendanceBand) -> String {
-    todo!("M9")
+pub fn band_text(band: &AttendanceBand) -> String {
+    format!(
+        "\u{2265} {}% \u{2192} {}%",
+        format_mark(band.min_pct),
+        format_mark(band.credit_pct)
+    )
 }
 
 /// R36: `"/ 15"` for `Some(15.0)`; `None` gives `""`.
 #[allow(dead_code)]
-pub fn score_max_label(_item_max: Option<f64>) -> String {
-    todo!("M9")
+pub fn score_max_label(item_max: Option<f64>) -> String {
+    item_max
+        .map(|m| format!("/ {}", format_mark(m)))
+        .unwrap_or_default()
 }
 
 /// R34: parses the number fields of one component row; range checks stay in core.
+///
+/// An attendance row has no item fields (they are ignored); an items row has no bands.
 #[allow(dead_code, clippy::too_many_arguments)]
 pub fn parse_component_row(
-    _id: Option<i64>,
-    _name: &str,
-    _kind: ComponentKind,
-    _weight: &str,
-    _item_count: &str,
-    _best_count: &str,
-    _item_max: &str,
-    _is_final: bool,
-    _bands: Vec<AttendanceBand>,
+    id: Option<i64>,
+    name: &str,
+    kind: ComponentKind,
+    weight: &str,
+    item_count: &str,
+    best_count: &str,
+    item_max: &str,
+    is_final: bool,
+    bands: Vec<AttendanceBand>,
 ) -> Result<RuleComponentInput, FormErrors> {
-    todo!("M9")
+    let mut errors = FormErrors::default();
+    let weight_pct = errors.check("weight", parse_number(weight));
+    let items = match kind {
+        ComponentKind::Attendance => Some((None, None, None)),
+        ComponentKind::Items => {
+            let item_count = errors.check("item_count", parse_optional_count(item_count));
+            let best_count = errors.check("best_count", parse_optional_count(best_count));
+            let item_max = errors.check("item_max", parse_optional_number(item_max));
+            match (item_count, best_count, item_max) {
+                (Some(c), Some(b), Some(m)) => Some((c, b, m)),
+                _ => None,
+            }
+        }
+    };
+    match (weight_pct, items) {
+        (Some(weight_pct), Some((item_count, best_count, item_max))) => Ok(RuleComponentInput {
+            id,
+            name: name.trim().to_string(),
+            kind,
+            weight_pct,
+            item_count,
+            best_count,
+            item_max,
+            is_final,
+            bands: match kind {
+                ComponentKind::Attendance => bands,
+                ComponentKind::Items => Vec::new(),
+            },
+        }),
+        _ => Err(errors),
+    }
 }
 
 /// R35: parses one attendance band row; range checks stay in core.
 #[allow(dead_code)]
-pub fn parse_band_row(_min: &str, _credit: &str) -> Result<AttendanceBand, FormErrors> {
-    todo!("M9")
+pub fn parse_band_row(min: &str, credit: &str) -> Result<AttendanceBand, FormErrors> {
+    let mut errors = FormErrors::default();
+    let min_pct = errors.check("min", parse_number(min));
+    let credit_pct = errors.check("credit", parse_number(credit));
+    match (min_pct, credit_pct) {
+        (Some(min_pct), Some(credit_pct)) => Ok(AttendanceBand {
+            min_pct,
+            credit_pct,
+        }),
+        _ => Err(errors),
+    }
 }
 
-/// R39: parses one grade scale row; range checks stay in core.
+/// R39: parses one grade scale row; range checks stay in core. The letter is trimmed.
 #[allow(dead_code)]
-pub fn parse_grade_row(_letter: &str, _min: &str, _points: &str) -> Result<GradeRow, FormErrors> {
-    todo!("M9")
+pub fn parse_grade_row(letter: &str, min: &str, points: &str) -> Result<GradeRow, FormErrors> {
+    let mut errors = FormErrors::default();
+    let letter = letter.trim();
+    if letter.is_empty() {
+        errors.push("letter", "Required".to_string());
+    }
+    let min_pct = errors.check("min", parse_number(min));
+    let points = errors.check("points", parse_number(points));
+    match (min_pct, points) {
+        (Some(min_pct), Some(points)) if errors.is_empty() => Ok(GradeRow {
+            letter: letter.to_string(),
+            min_pct,
+            points,
+        }),
+        _ => Err(errors),
+    }
 }
