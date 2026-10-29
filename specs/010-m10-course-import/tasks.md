@@ -249,7 +249,7 @@ are warnings, nothing is written on error.
 
 **Independent test**: `cargo test -p app viewmodel::import` plus the manual check T029.
 
-- [ ] T022 [P] [US4] (builder) [app] App stubs: create crates/app/src/viewmodel/import.rs with the
+- [x] T022 [P] [US4] (builder) [app] App stubs: create crates/app/src/viewmodel/import.rs with the
   function signatures of contracts/ui-import.md (`issue_line`, `errors_heading`, `plan_summary`,
   `term_line`, `course_add_line`, `field_change_line`, `slot_line`, `slot_change_lines`,
   `import_report_text`, `can_apply`, and the `PreviewState` struct holding the previewed text, date

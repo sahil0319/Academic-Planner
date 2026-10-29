@@ -20,6 +20,8 @@ use crate::updater::InstallKind;
 #[cfg(test)]
 mod tests;
 
+pub mod import;
+
 /// Shown for a missing value (R13: never `0%` or `NaN`).
 const DASH: &str = "\u{2014}";
 /// FR-007: the error states the expected date format.
