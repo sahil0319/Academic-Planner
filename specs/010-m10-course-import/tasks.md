@@ -256,7 +256,7 @@ are warnings, nothing is written on error.
   text, `has_errors`, `is_empty`), bodies `todo!("M10")`, `#[cfg(test)] mod tests;`, empty
   crates/app/src/viewmodel/import/tests.rs; add `pub mod import;` to crates/app/src/viewmodel.rs.
   `#[allow(dead_code)]` only on stub items until T025. Needs T002
-- [ ] T023 [US4] (tester) [app] In crates/app/src/viewmodel/import/tests.rs write unit tests for
+- [x] T023 [US4] (tester) [app] In crates/app/src/viewmodel/import/tests.rs write unit tests for
   every row of the contracts/ui-import.md table: `issue_line` exact text; `errors_heading(1)` and
   `(3)`; `plan_summary` for term+adds+updates, singular/plural ("1 course", "2 courses"), and the
   empty plan ("No changes. Everything already matches."); `term_line`; `course_add_line` with and
