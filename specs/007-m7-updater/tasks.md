@@ -143,7 +143,7 @@ ui/types.slint}`, `.github/workflows/release.yml`, `README.md`, `Cargo.lock`. No
 ## Phase 8: Polish, gate, Done-when
 
 - [x] T033 (builder) Run the gate `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`, the theme grep, and `cargo test -p planner-core t31_`, `t32_`, `cargo test -p app t33_`; remove any leftover `#[allow(dead_code)]` from T006/T011; paste the summary. Needs T014, T016, T023, T026, T028, T031
-- [ ] T034 (builder) Manual dev-build checks from quickstart §4 on macOS (About items and links, switch persists across restart, offline → "Couldn't check for updates" + Retry, Install on a dev build opens the release page); report results. Needs T033
+- [x] T034 (builder) Manual dev-build checks from quickstart §4 on macOS (About items and links, switch persists across restart, offline → "Couldn't check for updates" + Retry, Install on a dev build opens the release page); report results. Needs T033
 - [ ] T035 (human) §7 Done-when, quickstart §5: release the first updater version (version number and release notes chosen at release time), install it on macOS by hand, release and publish a newer version, update the installed copy in-app, confirm the new version and that all data is present. Needs T004, T030, T033
 
 ---
