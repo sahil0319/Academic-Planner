@@ -1,4 +1,4 @@
-//! JSON backup and restore (M3).
+//! JSON backup and restore (M3; version 2 adds the grading data, R41).
 
 use std::collections::BTreeMap;
 
@@ -8,7 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 use crate::db::{
-    fmt_datetime, parse_date, parse_datetime, parse_time, Planner, SCHEMA_VERSION,
+    fmt_datetime, parse_date, parse_datetime, parse_time, Planner, GRADING_SEED, SCHEMA_VERSION,
     SETTING_CHECK_UPDATES, SETTING_THEME,
 };
 use crate::error::{Error, Result};
@@ -39,7 +39,24 @@ struct Backup {
     sessions: Vec<SessionRow>,
     assessments: Vec<AssessmentRow>,
     settings: BTreeMap<String, String>,
+    /// R41: the four grading arrays; required in a version 2 backup, ignored in version 1.
+    #[serde(default)]
+    rule_sets: Vec<RuleSetRow>,
+    #[serde(default)]
+    rule_components: Vec<RuleComponentRow>,
+    #[serde(default)]
+    attendance_bands: Vec<AttendanceBandRow>,
+    #[serde(default)]
+    grade_scale: Vec<GradeScaleRow>,
 }
+
+/// R41: the arrays a version 2 backup must contain.
+const GRADING_KEYS: [&str; 4] = [
+    "rule_sets",
+    "rule_components",
+    "attendance_bands",
+    "grade_scale",
+];
 
 #[derive(Serialize, Deserialize)]
 struct TermRow {
@@ -73,6 +90,11 @@ struct CourseRow {
     #[serde(deserialize_with = "nullable")]
     min_attendance_pct: Option<i64>,
     archived: bool,
+    /// R41: `None` = not graded; absent in a version 1 backup.
+    #[serde(default, deserialize_with = "nullable")]
+    credits: Option<f64>,
+    #[serde(default, deserialize_with = "nullable")]
+    rule_set_id: Option<i64>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -120,6 +142,52 @@ struct AssessmentRow {
     completed: bool,
     #[serde(deserialize_with = "nullable")]
     remind_minutes_before: Option<i64>,
+    /// R41: `None` = not counted in marks; absent in a version 1 backup.
+    #[serde(default, deserialize_with = "nullable")]
+    component_id: Option<i64>,
+    #[serde(default, deserialize_with = "nullable")]
+    score: Option<f64>,
+}
+
+/// R41: a `rule_set` row.
+#[derive(Serialize, Deserialize)]
+struct RuleSetRow {
+    id: i64,
+    name: String,
+}
+
+/// R41: a `rule_component` row; nullable keys are always written.
+#[derive(Serialize, Deserialize)]
+struct RuleComponentRow {
+    id: i64,
+    rule_set_id: i64,
+    position: i64,
+    name: String,
+    kind: String,
+    weight_pct: f64,
+    #[serde(deserialize_with = "nullable")]
+    item_count: Option<i64>,
+    #[serde(deserialize_with = "nullable")]
+    best_count: Option<i64>,
+    #[serde(deserialize_with = "nullable")]
+    item_max: Option<f64>,
+    is_final: bool,
+}
+
+/// R41: an `attendance_band` row.
+#[derive(Serialize, Deserialize)]
+struct AttendanceBandRow {
+    component_id: i64,
+    min_pct: f64,
+    credit_pct: f64,
+}
+
+/// R41: a `grade_scale` row.
+#[derive(Serialize, Deserialize)]
+struct GradeScaleRow {
+    letter: String,
+    min_pct: f64,
+    points: f64,
 }
 
 impl Backup {
@@ -186,8 +254,9 @@ fn apply_error(e: rusqlite::Error) -> Error {
     }
 }
 
-/// R22: replaces the content of the seven data tables with the backup rows.
-fn apply(tx: &Transaction, b: &Backup) -> rusqlite::Result<()> {
+/// R22, R41: replaces the content of the data tables with the backup rows. A version 1
+/// backup (`version < 2`) has no grading data: the grading tables get the seed defaults.
+fn apply(tx: &Transaction, b: &Backup, version: i64) -> rusqlite::Result<()> {
     // Foreign keys are checked at commit, so a makeup may precede the session it replaces.
     tx.execute_batch("PRAGMA defer_foreign_keys = ON")?;
     for table in [
@@ -198,6 +267,10 @@ fn apply(tx: &Transaction, b: &Backup) -> rusqlite::Result<()> {
         "holiday",
         "term",
         "setting",
+        "attendance_band",
+        "rule_component",
+        "rule_set",
+        "grade_scale",
     ] {
         tx.execute(&format!("DELETE FROM {table}"), [])?;
     }
@@ -213,10 +286,53 @@ fn apply(tx: &Transaction, b: &Backup) -> rusqlite::Result<()> {
             params![h.term_id, h.date, h.label],
         )?;
     }
+    if version >= 2 {
+        for r in &b.rule_sets {
+            tx.execute(
+                "INSERT INTO rule_set (id, name) VALUES (?1, ?2)",
+                params![r.id, r.name],
+            )?;
+        }
+        for c in &b.rule_components {
+            tx.execute(
+                "INSERT INTO rule_component (id, rule_set_id, position, name, kind, weight_pct, \
+                 item_count, best_count, item_max, is_final) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                params![
+                    c.id,
+                    c.rule_set_id,
+                    c.position,
+                    c.name,
+                    c.kind,
+                    c.weight_pct,
+                    c.item_count,
+                    c.best_count,
+                    c.item_max,
+                    c.is_final
+                ],
+            )?;
+        }
+        for band in &b.attendance_bands {
+            tx.execute(
+                "INSERT INTO attendance_band (component_id, min_pct, credit_pct) \
+                 VALUES (?1, ?2, ?3)",
+                params![band.component_id, band.min_pct, band.credit_pct],
+            )?;
+        }
+        for g in &b.grade_scale {
+            tx.execute(
+                "INSERT INTO grade_scale (letter, min_pct, points) VALUES (?1, ?2, ?3)",
+                params![g.letter, g.min_pct, g.points],
+            )?;
+        }
+    } else {
+        tx.execute_batch(GRADING_SEED)?;
+    }
     for c in &b.courses {
         tx.execute(
             "INSERT INTO course (id, term_id, code, name, instructor, room, notes, \
-             min_attendance_pct, archived) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+             min_attendance_pct, archived, credits, rule_set_id) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
             params![
                 c.id,
                 c.term_id,
@@ -226,7 +342,9 @@ fn apply(tx: &Transaction, b: &Backup) -> rusqlite::Result<()> {
                 c.room,
                 c.notes,
                 c.min_attendance_pct,
-                c.archived
+                c.archived,
+                c.credits,
+                c.rule_set_id
             ],
         )?;
     }
@@ -269,7 +387,8 @@ fn apply(tx: &Transaction, b: &Backup) -> rusqlite::Result<()> {
     for a in &b.assessments {
         tx.execute(
             "INSERT INTO assessment (id, course_id, kind, title, due_at, notes, completed, \
-             remind_minutes_before) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+             remind_minutes_before, component_id, score) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             params![
                 a.id,
                 a.course_id,
@@ -278,7 +397,9 @@ fn apply(tx: &Transaction, b: &Backup) -> rusqlite::Result<()> {
                 a.due_at,
                 a.notes,
                 a.completed,
-                a.remind_minutes_before
+                a.remind_minutes_before,
+                a.component_id,
+                a.score
             ],
         )?;
     }
@@ -338,7 +459,7 @@ impl Planner {
             courses: rows(
                 &tx,
                 "SELECT id, term_id, code, name, instructor, room, notes, min_attendance_pct, \
-                 archived FROM course ORDER BY id",
+                 archived, credits, rule_set_id FROM course ORDER BY id",
                 |r| {
                     Ok(CourseRow {
                         id: r.get(0)?,
@@ -350,6 +471,8 @@ impl Planner {
                         notes: r.get(6)?,
                         min_attendance_pct: r.get(7)?,
                         archived: r.get(8)?,
+                        credits: r.get(9)?,
+                        rule_set_id: r.get(10)?,
                     })
                 },
             )?,
@@ -393,7 +516,7 @@ impl Planner {
             assessments: rows(
                 &tx,
                 "SELECT id, course_id, kind, title, due_at, notes, completed, \
-                 remind_minutes_before FROM assessment ORDER BY id",
+                 remind_minutes_before, component_id, score FROM assessment ORDER BY id",
                 |r| {
                     Ok(AssessmentRow {
                         id: r.get(0)?,
@@ -404,6 +527,8 @@ impl Planner {
                         notes: r.get(5)?,
                         completed: r.get(6)?,
                         remind_minutes_before: r.get(7)?,
+                        component_id: r.get(8)?,
+                        score: r.get(9)?,
                     })
                 },
             )?
@@ -414,6 +539,54 @@ impl Planner {
             })?
             .into_iter()
             .collect(),
+            rule_sets: rows(&tx, "SELECT id, name FROM rule_set ORDER BY id", |r| {
+                Ok(RuleSetRow {
+                    id: r.get(0)?,
+                    name: r.get(1)?,
+                })
+            })?,
+            rule_components: rows(
+                &tx,
+                "SELECT id, rule_set_id, position, name, kind, weight_pct, item_count, \
+                 best_count, item_max, is_final FROM rule_component ORDER BY id",
+                |r| {
+                    Ok(RuleComponentRow {
+                        id: r.get(0)?,
+                        rule_set_id: r.get(1)?,
+                        position: r.get(2)?,
+                        name: r.get(3)?,
+                        kind: r.get(4)?,
+                        weight_pct: r.get(5)?,
+                        item_count: r.get(6)?,
+                        best_count: r.get(7)?,
+                        item_max: r.get(8)?,
+                        is_final: r.get(9)?,
+                    })
+                },
+            )?,
+            attendance_bands: rows(
+                &tx,
+                "SELECT component_id, min_pct, credit_pct FROM attendance_band \
+                 ORDER BY component_id, min_pct",
+                |r| {
+                    Ok(AttendanceBandRow {
+                        component_id: r.get(0)?,
+                        min_pct: r.get(1)?,
+                        credit_pct: r.get(2)?,
+                    })
+                },
+            )?,
+            grade_scale: rows(
+                &tx,
+                "SELECT letter, min_pct, points FROM grade_scale ORDER BY min_pct DESC",
+                |r| {
+                    Ok(GradeScaleRow {
+                        letter: r.get(0)?,
+                        min_pct: r.get(1)?,
+                        points: r.get(2)?,
+                    })
+                },
+            )?,
         };
         serde_json::to_string_pretty(&doc)
             .map_err(|e| Error::Corrupt(format!("backup could not be written: {e}")))
@@ -425,10 +598,10 @@ impl Planner {
     pub fn restore_json(&mut self, json: &str) -> Result<()> {
         let invalid = |msg: &str| Error::Validation(msg.to_string());
 
-        let value: Value = serde_json::from_str(json)
+        let mut value: Value = serde_json::from_str(json)
             .map_err(|e| Error::Validation(format!("backup is not valid JSON: {e}")))?;
         let root = value
-            .as_object()
+            .as_object_mut()
             .ok_or_else(|| invalid("backup root is not a JSON object"))?;
         if root.get("format").and_then(Value::as_str) != Some(BACKUP_FORMAT) {
             return Err(invalid(
@@ -445,12 +618,34 @@ impl Planner {
                  ({SCHEMA_VERSION}); update the app"
             )));
         }
-        let backup: Backup = serde_json::from_value(value)
+        // R41: version 2 needs the four grading arrays; version 1 ignores them if present.
+        for key in GRADING_KEYS {
+            if version >= 2 && !root.contains_key(key) {
+                return Err(Error::Validation(format!(
+                    "backup has the wrong shape: missing field `{key}`"
+                )));
+            }
+            if version < 2 {
+                root.remove(key);
+            }
+        }
+        let mut backup: Backup = serde_json::from_value(value)
             .map_err(|e| Error::Validation(format!("backup has the wrong shape: {e}")))?;
+        if version < 2 {
+            // R41: a version 1 backup restores ungraded.
+            for c in &mut backup.courses {
+                c.credits = None;
+                c.rule_set_id = None;
+            }
+            for a in &mut backup.assessments {
+                a.component_id = None;
+                a.score = None;
+            }
+        }
         backup.check_texts()?;
 
         let tx = self.conn.transaction()?;
-        apply(&tx, &backup).map_err(apply_error)?;
+        apply(&tx, &backup, version).map_err(apply_error)?;
         tx.commit().map_err(apply_error)
     }
 }

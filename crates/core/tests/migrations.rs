@@ -8,11 +8,15 @@ use std::path::Path;
 use planner_core::{Error, Planner, SCHEMA_VERSION};
 use rusqlite::Connection;
 
-const TABLES: [&str; 8] = [
+const TABLES: [&str; 12] = [
     "assessment",
+    "attendance_band",
     "course",
+    "grade_scale",
     "holiday",
     "reminder_log",
+    "rule_component",
+    "rule_set",
     "session",
     "setting",
     "slot",
@@ -57,7 +61,7 @@ fn t20_fresh_db_migrated_and_reopen_is_noop() {
 
     let planner = Planner::open(Path::new(uri)).unwrap();
     assert_eq!(user_version(&keep), SCHEMA_VERSION);
-    assert_eq!(SCHEMA_VERSION, 1);
+    assert_eq!(SCHEMA_VERSION, 2);
     let tables: Vec<String> = schema(&keep)
         .into_iter()
         .filter(|(kind, _, _)| kind == "table")
@@ -88,7 +92,8 @@ fn t20_open_in_memory_migrates_each_fresh_db() {
 fn t26_newer_schema_version_refused() {
     let uri = "file:t26_newer?mode=memory&cache=shared";
     let keep = keeper(uri);
-    keep.pragma_update(None, "user_version", 2).unwrap();
+    keep.pragma_update(None, "user_version", SCHEMA_VERSION + 1)
+        .unwrap();
 
     let Err(err) = Planner::open(Path::new(uri)) else {
         panic!("opening a newer database must fail");
@@ -97,8 +102,8 @@ fn t26_newer_schema_version_refused() {
         matches!(
             err,
             Error::SchemaTooNew {
-                found: 2,
-                supported: 1
+                found: 3,
+                supported: 2
             }
         ),
         "unexpected error: {err:?}"
@@ -107,7 +112,7 @@ fn t26_newer_schema_version_refused() {
     assert!(message.contains("newer"), "unclear message: {message}");
 
     // The database is untouched: same version, no schema created.
-    assert_eq!(user_version(&keep), 2);
+    assert_eq!(user_version(&keep), SCHEMA_VERSION + 1);
     assert!(schema(&keep).is_empty());
 }
 

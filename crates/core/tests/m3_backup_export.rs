@@ -143,8 +143,8 @@ fn ids(rows: &Value) -> Vec<i64> {
         .collect()
 }
 
-/// R21: the document has exactly the ten top-level keys, the format name, the app's schema
-/// version, and the caller's `now` as `exported_at`.
+/// R21, R41: the document has exactly the fourteen top-level keys (ten plus the four grading
+/// arrays), the format name, the app's schema version, and the caller's `now` as `exported_at`.
 #[test]
 fn r21_export_has_exact_top_level_keys() {
     let pop = populated();
@@ -167,13 +167,17 @@ fn r21_export_has_exact_top_level_keys() {
         "sessions",
         "assessments",
         "settings",
+        "rule_sets",
+        "rule_components",
+        "attendance_bands",
+        "grade_scale",
     ]
     .into_iter()
     .collect();
     assert_eq!(keys, expected);
 
     assert_eq!(doc["format"], json!("academic-planner-backup"));
-    assert_eq!(doc["schema_version"], json!(1));
+    assert_eq!(doc["schema_version"], json!(2));
     assert_eq!(doc["exported_at"], json!("2026-01-25T18:30"));
 }
 
@@ -210,6 +214,8 @@ fn r21_export_rows_keep_ids_and_value_types() {
             "notes": null,
             "min_attendance_pct": 75,
             "archived": false,
+            "credits": null,
+            "rule_set_id": null,
         }])
     );
     assert_eq!(
@@ -267,6 +273,8 @@ fn r21_export_rows_keep_ids_and_value_types() {
                 "notes": "bring calculator",
                 "completed": false,
                 "remind_minutes_before": 30,
+                "component_id": null,
+                "score": null,
             },
             {
                 "id": pop.quiz_id,
@@ -277,6 +285,8 @@ fn r21_export_rows_keep_ids_and_value_types() {
                 "notes": null,
                 "completed": true,
                 "remind_minutes_before": null,
+                "component_id": null,
+                "score": null,
             },
         ])
     );
@@ -290,6 +300,73 @@ fn r21_export_rows_keep_ids_and_value_types() {
             "check_updates_on_start": "1",
         })
     );
+}
+
+/// R21, R41: the grading rows a fresh database exports: the Theory and Lab seeds.
+fn seeded_grading_json() -> Value {
+    let component = |id: i64, set: i64, position: i64, name: &str, kind: &str, weight: f64| {
+        json!({
+            "id": id,
+            "rule_set_id": set,
+            "position": position,
+            "name": name,
+            "kind": kind,
+            "weight_pct": weight,
+            "item_count": null,
+            "best_count": null,
+            "item_max": null,
+            "is_final": false,
+        })
+    };
+    let items = |mut row: Value, counts: (i64, i64), item_max: Value, is_final: bool| {
+        row["item_count"] = json!(counts.0);
+        row["best_count"] = json!(counts.1);
+        row["item_max"] = item_max;
+        row["is_final"] = json!(is_final);
+        row
+    };
+    let bands = |component_id: i64| -> Vec<Value> {
+        [
+            (0.0, 0.0),
+            (70.0, 60.0),
+            (75.0, 70.0),
+            (80.0, 80.0),
+            (85.0, 90.0),
+            (90.0, 100.0),
+        ]
+        .iter()
+        .map(|(min_pct, credit_pct)| {
+            json!({"component_id": component_id, "min_pct": min_pct, "credit_pct": credit_pct})
+        })
+        .collect()
+    };
+    let mut attendance_bands = bands(1);
+    attendance_bands.extend(bands(5));
+    json!({
+        "rule_sets": [{"id": 1, "name": "Theory"}, {"id": 2, "name": "Lab"}],
+        "rule_components": [
+            component(1, 1, 0, "Attendance", "attendance", 10.0),
+            items(component(2, 1, 1, "Quizzes", "items", 15.0), (4, 3), json!(15.0), false),
+            items(component(3, 1, 2, "Mid", "items", 25.0), (1, 1), Value::Null, false),
+            items(component(4, 1, 3, "Final", "items", 50.0), (1, 1), Value::Null, true),
+            component(5, 2, 0, "Attendance", "attendance", 30.0),
+            items(component(6, 2, 1, "Lab work", "items", 40.0), (1, 1), Value::Null, false),
+            items(component(7, 2, 2, "Lab final", "items", 30.0), (1, 1), Value::Null, true),
+        ],
+        "attendance_bands": attendance_bands,
+        "grade_scale": [
+            {"letter": "A+", "min_pct": 80.0, "points": 4.0},
+            {"letter": "A", "min_pct": 75.0, "points": 3.75},
+            {"letter": "A-", "min_pct": 70.0, "points": 3.5},
+            {"letter": "B+", "min_pct": 65.0, "points": 3.25},
+            {"letter": "B", "min_pct": 60.0, "points": 3.0},
+            {"letter": "B-", "min_pct": 55.0, "points": 2.75},
+            {"letter": "C+", "min_pct": 50.0, "points": 2.5},
+            {"letter": "C", "min_pct": 45.0, "points": 2.25},
+            {"letter": "D", "min_pct": 40.0, "points": 2.0},
+            {"letter": "F", "min_pct": 0.0, "points": 0.0},
+        ],
+    })
 }
 
 /// R21: rows are ordered by id, holidays by (term_id, date), and `settings` holds every key.
@@ -455,7 +532,8 @@ fn r21_export_includes_archived_inactive_and_all_statuses() {
     assert_eq!(statuses, expected);
 }
 
-/// R21: an empty database exports six empty arrays and the default settings.
+/// R21, R41: an empty database exports six empty arrays, the default settings, and the seeded
+/// grading rows.
 #[test]
 fn r21_export_empty_database() {
     let p = Planner::open_in_memory().unwrap();
@@ -479,6 +557,15 @@ fn r21_export_empty_database() {
             "notifications_enabled": "1",
         })
     );
+    let seeded = seeded_grading_json();
+    for key in [
+        "rule_sets",
+        "rule_components",
+        "attendance_bands",
+        "grade_scale",
+    ] {
+        assert_eq!(doc[key], seeded[key], "{key} should hold the seeded rows");
+    }
 }
 
 /// R21: two exports of unchanged data with the same `now` are byte-identical.

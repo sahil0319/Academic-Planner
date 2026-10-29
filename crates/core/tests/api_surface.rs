@@ -65,4 +65,13 @@ fn api_signatures_match_spec_section_5() {
 
     // M5
     let _: fn(&mut Planner, NaiveDateTime) -> Result<Vec<Reminder>> = Planner::due_reminders;
+
+    // M9 (§13.3)
+    let _: fn(&Planner) -> Result<Vec<RuleSet>> = Planner::list_rule_sets;
+    let _: fn(&mut Planner, RuleSetInput) -> Result<RuleSet> = Planner::save_rule_set;
+    let _: fn(&mut Planner, i64) -> Result<()> = Planner::delete_rule_set;
+    let _: fn(&Planner) -> Result<Vec<GradeRow>> = Planner::grade_scale;
+    let _: fn(&mut Planner, &[GradeRow]) -> Result<()> = Planner::save_grade_scale;
+    let _: fn(&Planner, i64) -> Result<CourseMarks> = Planner::course_marks;
+    let _: fn(&Planner) -> Result<GpaSummary> = Planner::term_gpa;
 }

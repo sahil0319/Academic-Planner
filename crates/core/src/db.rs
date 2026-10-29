@@ -20,7 +20,18 @@ pub const DB_ENV_VAR: &str = "ACADEMIC_PLANNER_DB";
 pub const DB_FILE_NAME: &str = "planner.sqlite";
 
 /// Embedded migrations; entry `i` upgrades the schema from version `i` to `i + 1`.
-const MIGRATIONS: &[&str] = &[include_str!("migrations/001_init.sql")];
+const MIGRATIONS: &[&str] = &[
+    include_str!("migrations/001_init.sql"),
+    // Migration 002 creates the grading tables; the seeds follow in the same script (D2).
+    concat!(
+        include_str!("migrations/002_grading.sql"),
+        include_str!("grading_seed.sql")
+    ),
+];
+
+/// R41: the default rule sets, bands, and grade scale; run by migration 002 and by a
+/// version-1 backup restore.
+pub(crate) const GRADING_SEED: &str = include_str!("grading_seed.sql");
 
 /// Schema version this app writes: the number of embedded migrations (R25).
 pub const SCHEMA_VERSION: i64 = MIGRATIONS.len() as i64;
@@ -153,9 +164,11 @@ impl Planner {
         let tx = self.conn.transaction()?;
         let term_id = active_term_id(&tx)?.ok_or(Error::NoActiveTerm)?;
         ensure_code_free(&tx, term_id, &input.code, None)?;
+        ensure_rule_set_exists(&tx, input.rule_set_id)?;
         tx.execute(
-            "INSERT INTO course (term_id, code, name, instructor, room, notes, min_attendance_pct)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            "INSERT INTO course (term_id, code, name, instructor, room, notes, min_attendance_pct,
+                 credits, rule_set_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
                 term_id,
                 input.code,
@@ -163,7 +176,9 @@ impl Planner {
                 input.instructor,
                 input.room,
                 input.notes,
-                input.min_attendance_pct
+                input.min_attendance_pct,
+                input.credits,
+                input.rule_set_id
             ],
         )?;
         let course = load_course(&tx, tx.last_insert_rowid())?;
@@ -177,10 +192,11 @@ impl Planner {
         let tx = self.conn.transaction()?;
         let term_id = load_course(&tx, id)?.term_id;
         ensure_code_free(&tx, term_id, &input.code, Some(id))?;
+        ensure_rule_set_exists(&tx, input.rule_set_id)?;
         tx.execute(
             "UPDATE course SET code = ?1, name = ?2, instructor = ?3, room = ?4, notes = ?5,
-                 min_attendance_pct = ?6
-             WHERE id = ?7",
+                 min_attendance_pct = ?6, credits = ?7, rule_set_id = ?8
+             WHERE id = ?9",
             params![
                 input.code,
                 input.name,
@@ -188,6 +204,8 @@ impl Planner {
                 input.room,
                 input.notes,
                 input.min_attendance_pct,
+                input.credits,
+                input.rule_set_id,
                 id
             ],
         )?;
@@ -347,16 +365,20 @@ impl Planner {
     pub fn create_assessment(&mut self, input: AssessmentInput) -> Result<Assessment> {
         input.validate()?;
         let tx = self.conn.transaction()?;
+        ensure_component_link(&tx, &input)?;
         tx.execute(
-            "INSERT INTO assessment (course_id, kind, title, due_at, notes, remind_minutes_before)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            "INSERT INTO assessment (course_id, kind, title, due_at, notes, remind_minutes_before,
+                 component_id, score)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
                 input.course_id,
                 input.kind.as_db(),
                 input.title,
                 fmt_datetime(input.due_at),
                 input.notes,
-                input.remind_minutes_before
+                input.remind_minutes_before,
+                input.component_id,
+                input.score
             ],
         )?;
         let assessment = load_assessment(&tx, tx.last_insert_rowid())?;
@@ -368,10 +390,11 @@ impl Planner {
     pub fn update_assessment(&mut self, id: i64, input: AssessmentInput) -> Result<Assessment> {
         input.validate()?;
         let tx = self.conn.transaction()?;
+        ensure_component_link(&tx, &input)?;
         let changed = tx.execute(
             "UPDATE assessment SET course_id = ?1, kind = ?2, title = ?3, due_at = ?4, notes = ?5,
-                 remind_minutes_before = ?6
-             WHERE id = ?7",
+                 remind_minutes_before = ?6, component_id = ?7, score = ?8
+             WHERE id = ?9",
             params![
                 input.course_id,
                 input.kind.as_db(),
@@ -379,6 +402,8 @@ impl Planner {
                 fmt_datetime(input.due_at),
                 input.notes,
                 input.remind_minutes_before,
+                input.component_id,
+                input.score,
                 id
             ],
         )?;
@@ -463,6 +488,66 @@ impl Planner {
     }
 }
 
+/// R33: a course's `rule_set_id`, when present, must name an existing rule set.
+fn ensure_rule_set_exists(conn: &Connection, rule_set_id: Option<i64>) -> Result<()> {
+    let Some(id) = rule_set_id else {
+        return Ok(());
+    };
+    let exists: bool = conn.query_row(
+        "SELECT EXISTS (SELECT 1 FROM rule_set WHERE id = ?1)",
+        [id],
+        |r| r.get(0),
+    )?;
+    if exists {
+        Ok(())
+    } else {
+        Err(Error::Validation(format!("rule set {id} does not exist")))
+    }
+}
+
+/// R36: an assessment linked to a component needs a component of its course's rule set (also
+/// for an ungraded course, so none can link), and a present score must not exceed the
+/// component's effective item max (`item_max`, or the component's marks when NULL).
+fn ensure_component_link(conn: &Connection, input: &AssessmentInput) -> Result<()> {
+    let Some(component_id) = input.component_id else {
+        return Ok(());
+    };
+    let course = load_course(conn, input.course_id)?;
+    let component: Option<(i64, f64, Option<f64>)> = conn
+        .query_row(
+            "SELECT rule_set_id, weight_pct, item_max FROM rule_component WHERE id = ?1",
+            [component_id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .optional()?;
+    let Some((rule_set_id, weight_pct, item_max)) = component else {
+        return Err(Error::Validation(format!(
+            "component {component_id} does not exist"
+        )));
+    };
+    if course.rule_set_id != Some(rule_set_id) {
+        return Err(Error::Validation(format!(
+            "component {component_id} is not in the rule set of course {}",
+            course.code
+        )));
+    }
+    if let Some(score) = input.score {
+        let max = item_max.or_else(|| {
+            course
+                .credits
+                .map(|credits| crate::marks::component_total(weight_pct, 100.0 * credits))
+        });
+        if let Some(max) = max {
+            if score > max + 1e-9 {
+                return Err(Error::Validation(format!(
+                    "score {score} is above the item maximum {max}"
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
 /// R2: course codes are unique within a term. `except` is the course being updated.
 fn ensure_code_free(
     conn: &Connection,
@@ -525,7 +610,8 @@ pub(crate) fn load_term(conn: &Connection, id: i64) -> Result<Term> {
 }
 
 const COURSE_COLS: &str =
-    "id, term_id, code, name, instructor, room, notes, min_attendance_pct, archived";
+    "id, term_id, code, name, instructor, room, notes, min_attendance_pct, archived, \
+     credits, rule_set_id";
 
 fn course_from_row(r: &Row) -> rusqlite::Result<Course> {
     Ok(Course {
@@ -538,9 +624,8 @@ fn course_from_row(r: &Row) -> rusqlite::Result<Course> {
         notes: r.get(6)?,
         min_attendance_pct: r.get(7)?,
         archived: r.get(8)?,
-        // R33: columns arrive with migration 002 (M9 T005).
-        credits: None,
-        rule_set_id: None,
+        credits: r.get(9)?,
+        rule_set_id: r.get(10)?,
     })
 }
 
@@ -603,7 +688,7 @@ pub(crate) fn load_slot(conn: &Connection, id: i64) -> Result<Slot> {
 }
 
 const ASSESSMENT_COLS: &str = "a.id, a.course_id, c.code, a.kind, a.title, a.due_at, a.notes, \
-     a.completed, a.remind_minutes_before";
+     a.completed, a.remind_minutes_before, a.component_id, a.score";
 
 fn assessment_from_row(r: &Row) -> rusqlite::Result<Assessment> {
     Ok(Assessment {
@@ -616,9 +701,8 @@ fn assessment_from_row(r: &Row) -> rusqlite::Result<Assessment> {
         notes: r.get(6)?,
         completed: r.get(7)?,
         remind_minutes_before: r.get(8)?,
-        // R36: columns arrive with migration 002 (M9 T005).
-        component_id: None,
-        score: None,
+        component_id: r.get(9)?,
+        score: r.get(10)?,
     })
 }
 

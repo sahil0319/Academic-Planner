@@ -329,8 +329,8 @@ impl TermInput {
 }
 
 impl CourseInput {
-    /// R2: code and name are required; the attendance target is 0–100. Duplicate codes
-    /// are checked against the database in `db.rs`.
+    /// R2: code and name are required; the attendance target is 0–100. R33: present credits
+    /// are positive. Duplicate codes are checked against the database in `db.rs`.
     pub(crate) fn validate(&self) -> Result<()> {
         require_text(&self.code, "course code")?;
         require_text(&self.name, "course name")?;
@@ -338,6 +338,14 @@ impl CourseInput {
             if !(0..=100).contains(&pct) {
                 return Err(Error::Validation(format!(
                     "attendance target {pct}% is outside 0–100"
+                )));
+            }
+        }
+        // R33: credits, when present, must be positive. The rule set is checked in `db.rs`.
+        if let Some(credits) = self.credits {
+            if credits.is_nan() || credits <= 0.0 {
+                return Err(Error::Validation(format!(
+                    "credits {credits} must be greater than 0"
                 )));
             }
         }
@@ -360,9 +368,19 @@ impl SlotInput {
 }
 
 impl AssessmentInput {
-    /// R2: the title is required.
+    /// R2: the title is required. R36: a present score is not negative.
     pub(crate) fn validate(&self) -> Result<()> {
-        require_text(&self.title, "assessment title")
+        require_text(&self.title, "assessment title")?;
+        // R36: a score, when present, must be 0 or more. The item maximum is checked with
+        // the marks logic.
+        if let Some(score) = self.score {
+            if score.is_nan() || score < 0.0 {
+                return Err(Error::Validation(format!(
+                    "score {score} must be 0 or more"
+                )));
+            }
+        }
+        Ok(())
     }
 }
 
