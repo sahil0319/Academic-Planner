@@ -1,7 +1,7 @@
 ---
 name: builder
 description: Implements a milestone's tasks.md in the core crate until its T-tests and the gate pass. Commits one coherent step at a time.
-model: opus
+model: sonnet
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 ---
 
