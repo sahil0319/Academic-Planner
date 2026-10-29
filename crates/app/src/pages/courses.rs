@@ -280,8 +280,14 @@ fn add_makeup(app: &App, ui: &CoursesState<'_>) {
     let parsed = vm::parse_makeup_form(
         course_id,
         &ui.get_mk_date(),
-        &ui.get_mk_start(),
-        &ui.get_mk_end(),
+        vm::TimeText {
+            digits: &ui.get_mk_start(),
+            pm: ui.get_mk_start_pm(),
+        },
+        vm::TimeText {
+            digits: &ui.get_mk_end(),
+            pm: ui.get_mk_end_pm(),
+        },
         &ui.get_mk_room(),
         &ui.get_mk_note(),
     );

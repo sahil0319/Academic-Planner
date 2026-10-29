@@ -22,8 +22,10 @@ mod tests;
 const DASH: &str = "\u{2014}";
 /// FR-007: the error states the expected date format.
 const DATE_FORMAT_ERR: &str = "Use DD-MM-YYYY, e.g. 29-10-2026";
-/// FR-007: the error states the expected time format.
-const TIME_FORMAT_ERR: &str = "Use HH:MM, e.g. 09:30";
+/// FR-007, R32: the error states the expected time format.
+#[allow(dead_code)]
+const TIME_FORMAT_ERR: &str =
+    "Enter the time as digits, e.g. 930 (hour 1\u{2013}12, minutes 00\u{2013}59)";
 const WHOLE_NUMBER_ERR: &str = "Enter a whole number";
 const CHOOSE_COURSE_ERR: &str = "Choose a course";
 /// Human decision (§6): the holiday range check belongs to the view model.
@@ -185,21 +187,31 @@ pub fn parse_optional_date(text: &str) -> Result<Option<NaiveDate>, String> {
     }
 }
 
-/// Strict `HH:MM` after trimming (FR-007).
-pub fn parse_time(text: &str) -> Result<NaiveTime, String> {
-    let s = text.trim();
-    let b = s.as_bytes();
-    let shape_ok = b.len() == 5
-        && b.iter().enumerate().all(|(i, c)| match i {
-            2 => *c == b':',
-            _ => c.is_ascii_digit(),
-        });
-    if !shape_ok {
-        return Err(TIME_FORMAT_ERR.to_string());
-    }
-    let hour: u32 = s[0..2].parse().map_err(|_| TIME_FORMAT_ERR.to_string())?;
-    let minute: u32 = s[3..5].parse().map_err(|_| TIME_FORMAT_ERR.to_string())?;
-    NaiveTime::from_hms_opt(hour, minute, 0).ok_or_else(|| TIME_FORMAT_ERR.to_string())
+/// R32: one time field as typed: the digits text and the AM/PM toggle (pm == false is AM).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TimeText<'a> {
+    pub digits: &'a str,
+    pub pm: bool,
+}
+
+/// R32: digits plus AM/PM toggle to a 24-hour time (FR-007).
+pub fn parse_time(digits: &str, pm: bool) -> Result<NaiveTime, String> {
+    let _ = (digits, pm);
+    todo!("M8: R32")
+}
+
+/// R32: pre-fill for editing: (`hmm` digits, pm).
+#[allow(dead_code)]
+pub fn format_time_input(t: NaiveTime) -> (String, bool) {
+    let _ = t;
+    todo!("M8")
+}
+
+/// R31: rewrites every standalone `HH:MM` token to 12-hour form.
+#[allow(dead_code)]
+pub fn times_to_12h(text: &str) -> String {
+    let _ = text;
+    todo!("M8")
 }
 
 // ---- Text and numbers ----
@@ -328,8 +340,8 @@ pub fn parse_course_form(
 pub fn parse_slot_form(
     course_id: Option<i64>,
     weekday: i32,
-    start: &str,
-    end: &str,
+    start: TimeText<'_>,
+    end: TimeText<'_>,
     room: &str,
     valid_from: &str,
     valid_to: &str,
@@ -343,8 +355,8 @@ pub fn parse_slot_form(
         "weekday",
         weekday_from_index(weekday).ok_or_else(|| "Choose a weekday".to_string()),
     );
-    let start_time = errors.check("start", parse_time(start));
-    let end_time = errors.check("end", parse_time(end));
+    let start_time = errors.check("start", parse_time(start.digits, start.pm));
+    let end_time = errors.check("end", parse_time(end.digits, end.pm));
     let valid_from = errors.check("valid_from", parse_date(valid_from));
     let valid_to = errors.check("valid_to", parse_optional_date(valid_to));
     match (
@@ -374,15 +386,15 @@ pub fn parse_slot_form(
 pub fn parse_makeup_form(
     course_id: i64,
     date: &str,
-    start: &str,
-    end: &str,
+    start: TimeText<'_>,
+    end: TimeText<'_>,
     room: &str,
     note: &str,
 ) -> Result<MakeupInput, FormErrors> {
     let mut errors = FormErrors::default();
     let date = errors.check("date", parse_date(date));
-    let start_time = errors.check("start", parse_time(start));
-    let end_time = errors.check("end", parse_time(end));
+    let start_time = errors.check("start", parse_time(start.digits, start.pm));
+    let end_time = errors.check("end", parse_time(end.digits, end.pm));
     match (date, start_time, end_time) {
         (Some(date), Some(start_time), Some(end_time)) => Ok(MakeupInput {
             course_id,
@@ -402,7 +414,7 @@ pub fn parse_assessment_form(
     kind: i32,
     title: &str,
     due_date: &str,
-    due_time: &str,
+    due_time: TimeText<'_>,
     notes: &str,
     remind: &str,
 ) -> Result<AssessmentInput, FormErrors> {
@@ -416,7 +428,7 @@ pub fn parse_assessment_form(
         assessment_kind_from_index(kind).ok_or_else(|| "Choose a kind".to_string()),
     );
     let date = errors.check("due_date", parse_date(due_date));
-    let time = errors.check("due_time", parse_time(due_time));
+    let time = errors.check("due_time", parse_time(due_time.digits, due_time.pm));
     let remind = errors.check("remind", parse_optional_minutes(remind));
     match (course_id, kind, date, time, remind) {
         (Some(course_id), Some(kind), Some(date), Some(time), Some(remind_minutes_before)) => {

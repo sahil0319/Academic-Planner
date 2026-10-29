@@ -310,17 +310,21 @@ fn parse_optional_date_parses_or_errors() {
 /// FR-007: valid times parse.
 #[test]
 fn parse_time_accepts_hh_mm() {
-    assert_eq!(parse_time("09:30"), Ok(t(9, 30)));
-    assert_eq!(parse_time("00:00"), Ok(t(0, 0)));
-    assert_eq!(parse_time("23:59"), Ok(t(23, 59)));
-    assert_eq!(parse_time(" 09:30 "), Ok(t(9, 30)));
+    assert_eq!(parse_time("09:30", false), Ok(t(9, 30)));
+    assert_eq!(parse_time("00:00", false), Ok(t(0, 0)));
+    assert_eq!(parse_time("23:59", false), Ok(t(23, 59)));
+    assert_eq!(parse_time(" 09:30 ", false), Ok(t(9, 30)));
 }
 
 /// FR-007: bad times give one error text that states the format.
 #[test]
 fn parse_time_rejects_bad_input_with_format_hint() {
     for bad in ["", "9:30", "24:00", "12:60", "0930"] {
-        assert_eq!(parse_time(bad), Err(TIME_ERR.to_string()), "input {bad:?}");
+        assert_eq!(
+            parse_time(bad, false),
+            Err(TIME_ERR.to_string()),
+            "input {bad:?}"
+        );
     }
 }
 
@@ -471,8 +475,14 @@ fn parse_slot_form_valid() {
     let input = parse_slot_form(
         Some(1),
         1,
-        "09:00",
-        "10:30",
+        TimeText {
+            digits: "09:00",
+            pm: false,
+        },
+        TimeText {
+            digits: "10:30",
+            pm: false,
+        },
         " B12 ",
         "01-09-2026",
         "20-12-2026",
@@ -495,7 +505,22 @@ fn parse_slot_form_valid() {
 /// Slot form: empty valid-to means until term end.
 #[test]
 fn parse_slot_form_empty_valid_to_is_none() {
-    let input = parse_slot_form(Some(1), 0, "09:00", "10:30", "", "01-09-2026", "").unwrap();
+    let input = parse_slot_form(
+        Some(1),
+        0,
+        TimeText {
+            digits: "09:00",
+            pm: false,
+        },
+        TimeText {
+            digits: "10:30",
+            pm: false,
+        },
+        "",
+        "01-09-2026",
+        "",
+    )
+    .unwrap();
     assert_eq!(input.valid_to, None);
     assert_eq!(input.room, None);
 }
@@ -503,7 +528,22 @@ fn parse_slot_form_empty_valid_to_is_none() {
 /// Slot form: every bad field is reported at once (FR-007).
 #[test]
 fn parse_slot_form_reports_all_errors_at_once() {
-    let err = parse_slot_form(None, 9, "9:00", "25:00", "", "x", "y").unwrap_err();
+    let err = parse_slot_form(
+        None,
+        9,
+        TimeText {
+            digits: "9:00",
+            pm: false,
+        },
+        TimeText {
+            digits: "25:00",
+            pm: false,
+        },
+        "",
+        "x",
+        "y",
+    )
+    .unwrap_err();
     assert_eq!(err.get("course"), "Choose a course");
     assert_eq!(err.get("weekday"), "Choose a weekday");
     assert_eq!(err.get("start"), TIME_ERR);
@@ -515,7 +555,22 @@ fn parse_slot_form_reports_all_errors_at_once() {
 /// Slot form: valid-from is required.
 #[test]
 fn parse_slot_form_requires_valid_from() {
-    let err = parse_slot_form(Some(1), 0, "09:00", "10:30", "", "", "").unwrap_err();
+    let err = parse_slot_form(
+        Some(1),
+        0,
+        TimeText {
+            digits: "09:00",
+            pm: false,
+        },
+        TimeText {
+            digits: "10:30",
+            pm: false,
+        },
+        "",
+        "",
+        "",
+    )
+    .unwrap_err();
     assert_eq!(err.get("valid_from"), DATE_ERR);
     assert_eq!(err.get("valid_to"), "");
 }
@@ -523,7 +578,22 @@ fn parse_slot_form_requires_valid_from() {
 /// R2: slot end not after start is core's check; the form passes it through.
 #[test]
 fn parse_slot_form_passes_end_before_start_to_core() {
-    let input = parse_slot_form(Some(1), 0, "10:30", "09:00", "", "01-09-2026", "").unwrap();
+    let input = parse_slot_form(
+        Some(1),
+        0,
+        TimeText {
+            digits: "10:30",
+            pm: false,
+        },
+        TimeText {
+            digits: "09:00",
+            pm: false,
+        },
+        "",
+        "01-09-2026",
+        "",
+    )
+    .unwrap();
     assert_eq!(input.start_time, t(10, 30));
     assert_eq!(input.end_time, t(9, 0));
 }
@@ -531,7 +601,21 @@ fn parse_slot_form_passes_end_before_start_to_core() {
 /// R9, R10: makeup form builds a `MakeupInput`; the note is optional.
 #[test]
 fn parse_makeup_form_valid() {
-    let input = parse_makeup_form(4, "15-01-2026", "14:00", "15:30", "C3", " moved ").unwrap();
+    let input = parse_makeup_form(
+        4,
+        "15-01-2026",
+        TimeText {
+            digits: "14:00",
+            pm: false,
+        },
+        TimeText {
+            digits: "15:30",
+            pm: false,
+        },
+        "C3",
+        " moved ",
+    )
+    .unwrap();
     assert_eq!(
         input,
         MakeupInput {
@@ -548,7 +632,21 @@ fn parse_makeup_form_valid() {
 /// R9, R10: empty room and note become `None`.
 #[test]
 fn parse_makeup_form_empty_optional_fields_are_none() {
-    let input = parse_makeup_form(4, "15-01-2026", "14:00", "15:30", "", "").unwrap();
+    let input = parse_makeup_form(
+        4,
+        "15-01-2026",
+        TimeText {
+            digits: "14:00",
+            pm: false,
+        },
+        TimeText {
+            digits: "15:30",
+            pm: false,
+        },
+        "",
+        "",
+    )
+    .unwrap();
     assert_eq!(input.room, None);
     assert_eq!(input.note, None);
 }
@@ -556,7 +654,21 @@ fn parse_makeup_form_empty_optional_fields_are_none() {
 /// R9, R10: all three required fields report errors at once.
 #[test]
 fn parse_makeup_form_reports_all_errors_at_once() {
-    let err = parse_makeup_form(4, "", "2pm", "", "", "").unwrap_err();
+    let err = parse_makeup_form(
+        4,
+        "",
+        TimeText {
+            digits: "2pm",
+            pm: false,
+        },
+        TimeText {
+            digits: "",
+            pm: false,
+        },
+        "",
+        "",
+    )
+    .unwrap_err();
     assert_eq!(err.get("date"), DATE_ERR);
     assert_eq!(err.get("start"), TIME_ERR);
     assert_eq!(err.get("end"), TIME_ERR);
@@ -565,8 +677,19 @@ fn parse_makeup_form_reports_all_errors_at_once() {
 /// Assessment form: `due_at` is date plus time; remind minutes parse.
 #[test]
 fn parse_assessment_form_valid() {
-    let input =
-        parse_assessment_form(Some(1), 1, " Midterm ", "30-10-2026", "23:59", "", "60").unwrap();
+    let input = parse_assessment_form(
+        Some(1),
+        1,
+        " Midterm ",
+        "30-10-2026",
+        TimeText {
+            digits: "23:59",
+            pm: false,
+        },
+        "",
+        "60",
+    )
+    .unwrap();
     assert_eq!(
         input,
         AssessmentInput {
@@ -583,7 +706,19 @@ fn parse_assessment_form_valid() {
 /// Assessment form: empty remind means no reminder.
 #[test]
 fn parse_assessment_form_empty_remind_is_none() {
-    let input = parse_assessment_form(Some(1), 0, "Quiz 1", "30-10-2026", "09:00", "", "").unwrap();
+    let input = parse_assessment_form(
+        Some(1),
+        0,
+        "Quiz 1",
+        "30-10-2026",
+        TimeText {
+            digits: "09:00",
+            pm: false,
+        },
+        "",
+        "",
+    )
+    .unwrap();
     assert_eq!(input.remind_minutes_before, None);
     assert_eq!(input.kind, AssessmentKind::Quiz);
 }
@@ -591,7 +726,19 @@ fn parse_assessment_form_empty_remind_is_none() {
 /// Assessment form: every bad field is reported at once (FR-007).
 #[test]
 fn parse_assessment_form_reports_all_errors_at_once() {
-    let err = parse_assessment_form(None, 9, "", "30/10", "noon", "", "-5").unwrap_err();
+    let err = parse_assessment_form(
+        None,
+        9,
+        "",
+        "30/10",
+        TimeText {
+            digits: "noon",
+            pm: false,
+        },
+        "",
+        "-5",
+    )
+    .unwrap_err();
     assert_eq!(err.get("course"), "Choose a course");
     assert_eq!(err.get("kind"), "Choose a kind");
     assert_eq!(err.get("due_date"), DATE_ERR);
@@ -602,7 +749,19 @@ fn parse_assessment_form_reports_all_errors_at_once() {
 /// R2: an empty title is core's check; the form passes it through.
 #[test]
 fn parse_assessment_form_passes_empty_title_to_core() {
-    let input = parse_assessment_form(Some(1), 3, "", "30-10-2026", "09:00", "", "").unwrap();
+    let input = parse_assessment_form(
+        Some(1),
+        3,
+        "",
+        "30-10-2026",
+        TimeText {
+            digits: "09:00",
+            pm: false,
+        },
+        "",
+        "",
+    )
+    .unwrap();
     assert_eq!(input.title, "");
 }
 

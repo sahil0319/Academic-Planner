@@ -252,8 +252,14 @@ fn reschedule(app: &App, id: i32) {
     let parsed = vm::parse_makeup_form(
         view.session.course_id,
         &g.get_rs_date(),
-        &g.get_rs_start(),
-        &g.get_rs_end(),
+        vm::TimeText {
+            digits: &g.get_rs_start(),
+            pm: g.get_rs_start_pm(),
+        },
+        vm::TimeText {
+            digits: &g.get_rs_end(),
+            pm: g.get_rs_end_pm(),
+        },
         &g.get_rs_room(),
         &g.get_rs_note(),
     );
@@ -397,8 +403,14 @@ fn save_slot(app: &App, window: &AppWindow) {
     let parsed = vm::parse_slot_form(
         course_id,
         g.get_slot_weekday(),
-        &g.get_slot_start(),
-        &g.get_slot_end(),
+        vm::TimeText {
+            digits: &g.get_slot_start(),
+            pm: g.get_slot_start_pm(),
+        },
+        vm::TimeText {
+            digits: &g.get_slot_end(),
+            pm: g.get_slot_end_pm(),
+        },
         &g.get_slot_room(),
         &g.get_slot_from(),
         &g.get_slot_to(),

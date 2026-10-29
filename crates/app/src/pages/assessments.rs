@@ -270,7 +270,10 @@ fn save(app: &App) {
         st.get_kind(),
         &st.get_title(),
         &st.get_due_date(),
-        &st.get_due_time(),
+        vm::TimeText {
+            digits: &st.get_due_time(),
+            pm: st.get_due_time_pm(),
+        },
         &st.get_notes(),
         &st.get_remind(),
     ) {
