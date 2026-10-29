@@ -57,7 +57,7 @@ fn theme_saved_light_then_system_reads_back() {
 
 /// §5 Settings theme, human decision 2026-10-29: changing theme leaves the other settings alone.
 #[test]
-fn theme_theme_does_not_change_other_settings() {
+fn theme_does_not_change_other_settings() {
     let mut p = Planner::open_in_memory().unwrap();
     let s = Settings {
         class_reminder_minutes: 30,
