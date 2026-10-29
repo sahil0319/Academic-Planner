@@ -6,7 +6,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use chrono::{Datelike, Days, Duration, NaiveDate, NaiveDateTime, NaiveTime, Weekday};
+use chrono::{Datelike, Days, Duration, NaiveDate, NaiveDateTime, NaiveTime, Timelike, Weekday};
 use planner_core::{
     Assessment, AssessmentFilter, AssessmentInput, AssessmentKind, AttendanceSummary, Course,
     CourseInput, Dashboard, Holiday, MakeupInput, SessionView, Settings, Slot, SlotInput, Status,
@@ -23,7 +23,6 @@ const DASH: &str = "\u{2014}";
 /// FR-007: the error states the expected date format.
 const DATE_FORMAT_ERR: &str = "Use DD-MM-YYYY, e.g. 29-10-2026";
 /// FR-007, R32: the error states the expected time format.
-#[allow(dead_code)]
 const TIME_FORMAT_ERR: &str =
     "Enter the time as digits, e.g. 930 (hour 1\u{2013}12, minutes 00\u{2013}59)";
 const WHOLE_NUMBER_ERR: &str = "Enter a whole number";
@@ -111,17 +110,21 @@ pub fn display_status_text(raw: &str) -> String {
     raw.to_string()
 }
 
-/// `09:05` (seconds dropped).
+/// R31: `9:05 AM` (12-hour clock, no leading zero, seconds dropped; 00:xx is 12:xx AM and
+/// 12:xx is 12:xx PM).
 pub fn format_time(t: NaiveTime) -> String {
-    t.format("%H:%M").to_string()
+    let hour = t.hour();
+    let hour12 = if hour % 12 == 0 { 12 } else { hour % 12 };
+    let suffix = if hour < 12 { "AM" } else { "PM" };
+    format!("{hour12}:{:02} {suffix}", t.minute())
 }
 
-/// `09:00–10:30` (en dash, no spaces).
+/// R31: `9:00 AM–10:30 PM` (en dash, no spaces).
 pub fn format_time_range(start: NaiveTime, end: NaiveTime) -> String {
     format!("{}\u{2013}{}", format_time(start), format_time(end))
 }
 
-/// `October 30, 2026, 23:59` (long date, comma, 24-hour time).
+/// R31: `October 30, 2026, 11:59 PM` (long date, comma, 12-hour time).
 pub fn format_datetime(dt: NaiveDateTime) -> String {
     format!("{}, {}", format_date(dt.date()), format_time(dt.time()))
 }
@@ -195,23 +198,66 @@ pub struct TimeText<'a> {
 }
 
 /// R32: digits plus AM/PM toggle to a 24-hour time (FR-007).
+///
+/// Spaces and `:` are ignored; 1-2 digits are an hour, 3-4 digits are hour then two-digit
+/// minutes. Hour must be 1-12 and minutes 0-59.
 pub fn parse_time(digits: &str, pm: bool) -> Result<NaiveTime, String> {
-    let _ = (digits, pm);
-    todo!("M8: R32")
+    let err = || TIME_FORMAT_ERR.to_string();
+    let cleaned: String = digits.trim().chars().filter(|c| *c != ':').collect();
+    if cleaned.is_empty() || cleaned.len() > 4 || !cleaned.chars().all(|c| c.is_ascii_digit()) {
+        return Err(err());
+    }
+    let (hour_text, minute_text) = if cleaned.len() <= 2 {
+        (cleaned.as_str(), "0")
+    } else {
+        cleaned.split_at(cleaned.len() - 2)
+    };
+    let hour: u32 = hour_text.parse().map_err(|_| err())?;
+    let minute: u32 = minute_text.parse().map_err(|_| err())?;
+    if !(1..=12).contains(&hour) || minute > 59 {
+        return Err(err());
+    }
+    let hour24 = if pm { hour % 12 + 12 } else { hour % 12 };
+    NaiveTime::from_hms_opt(hour24, minute, 0).ok_or_else(err)
 }
 
 /// R32: pre-fill for editing: (`hmm` digits, pm).
-#[allow(dead_code)]
 pub fn format_time_input(t: NaiveTime) -> (String, bool) {
-    let _ = t;
-    todo!("M8")
+    let hour = t.hour();
+    let hour12 = if hour % 12 == 0 { 12 } else { hour % 12 };
+    (format!("{hour12}{:02}", t.minute()), hour >= 12)
 }
 
-/// R31: rewrites every standalone `HH:MM` token to 12-hour form.
-#[allow(dead_code)]
+/// R31: rewrites every standalone `HH:MM` token to 12-hour form (a valid time, no digit
+/// directly before or after); other text is unchanged. Same idea as the T09
+/// `display_status_text` precedent: stored text stays as is, only the display changes.
 pub fn times_to_12h(text: &str) -> String {
-    let _ = text;
-    todo!("M8")
+    let bytes = text.as_bytes();
+    let mut out = String::with_capacity(text.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if i + 5 <= bytes.len() && text.is_char_boundary(i + 5) {
+            let tok = &bytes[i..i + 5];
+            let shape = tok[0].is_ascii_digit()
+                && tok[1].is_ascii_digit()
+                && tok[2] == b':'
+                && tok[3].is_ascii_digit()
+                && tok[4].is_ascii_digit();
+            let digit_before = i > 0 && bytes[i - 1].is_ascii_digit();
+            let digit_after = i + 5 < bytes.len() && bytes[i + 5].is_ascii_digit();
+            if shape && !digit_before && !digit_after {
+                if let Ok(t) = NaiveTime::parse_from_str(&text[i..i + 5], "%H:%M") {
+                    out.push_str(&format_time(t));
+                    i += 5;
+                    continue;
+                }
+            }
+        }
+        let ch = text[i..].chars().next().unwrap_or(' ');
+        out.push(ch);
+        i += ch.len_utf8();
+    }
+    out
 }
 
 // ---- Text and numbers ----
@@ -909,14 +955,16 @@ pub fn show_next_card(next: Option<&SessionRow>, today: &[SessionRow]) -> bool {
 // ---- Errors, files, timer ----
 
 /// R2, R25: user-facing error text; `Validation` messages are capitalized.
+/// R31: any `HH:MM` inside a `Validation` message is shown in 12-hour form.
 pub fn error_text(e: &planner_core::Error) -> String {
     match e {
         planner_core::Error::Validation(msg) => {
             let mut chars = msg.chars();
-            match chars.next() {
+            let capitalised: String = match chars.next() {
                 Some(first) => first.to_uppercase().chain(chars).collect(),
                 None => String::new(),
-            }
+            };
+            times_to_12h(&capitalised)
         }
         other => other.to_string(),
     }

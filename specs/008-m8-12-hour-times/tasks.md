@@ -65,10 +65,10 @@ All in crates/app/src/viewmodel/tests.rs (one file, so in order). Doc comments c
 
 ### View-model functions (make round 2 green)
 
-- [ ] T011 [US1] (builder) Implement `format_time` in crates/app/src/viewmodel.rs: `h % 12` shown as 12 when 0, no leading zero, two-digit minutes, `AM` when hour < 12 else `PM`, seconds dropped. Doc comments with `/// R31:` on `format_time`, `format_time_range`, `format_datetime` (bodies of the latter two unchanged). Needs T010
-- [ ] T012 [US1] (builder) Implement `times_to_12h` (rewrite each standalone `HH:MM` token: two digits, `:`, two digits, a valid time, no digit directly before or after; other text unchanged) and apply it in `error_text` to `Error::Validation` messages after the existing capitalisation. Remove its `#[allow(dead_code)]`. Doc `/// R31:` citing the T09 `display_status_text` precedent. Needs T011
-- [ ] T013 [US2] (builder) Implement `parse_time(digits, pm)` per data-model.md "Parse rules": trim; remove every `:`; 1–4 ASCII digits else error; 1–2 digits = hour with minute 0; 3–4 digits = hour from all but the last two digits, minute from the last two; hour 1–12 and minute 0–59 else error; AM → `hour % 12`, PM → `hour % 12 + 12`; every error is `TIME_FORMAT_ERR`. Doc `/// R32:`. Needs T011
-- [ ] T014 [US3] (builder) Implement `format_time_input`: `hmm` = 12-hour hour without a leading zero followed by two-digit minutes, plus `pm = hour >= 12`. Doc `/// R32:`. Run `cargo test -p app`; all tests pass. Needs T013
+- [x] T011 [US1] (builder) Implement `format_time` in crates/app/src/viewmodel.rs: `h % 12` shown as 12 when 0, no leading zero, two-digit minutes, `AM` when hour < 12 else `PM`, seconds dropped. Doc comments with `/// R31:` on `format_time`, `format_time_range`, `format_datetime` (bodies of the latter two unchanged). Needs T010
+- [x] T012 [US1] (builder) Implement `times_to_12h` (rewrite each standalone `HH:MM` token: two digits, `:`, two digits, a valid time, no digit directly before or after; other text unchanged) and apply it in `error_text` to `Error::Validation` messages after the existing capitalisation. Remove its `#[allow(dead_code)]`. Doc `/// R31:` citing the T09 `display_status_text` precedent. Needs T011
+- [x] T013 [US2] (builder) Implement `parse_time(digits, pm)` per data-model.md "Parse rules": trim; remove every `:`; 1–4 ASCII digits else error; 1–2 digits = hour with minute 0; 3–4 digits = hour from all but the last two digits, minute from the last two; hour 1–12 and minute 0–59 else error; AM → `hour % 12`, PM → `hour % 12 + 12`; every error is `TIME_FORMAT_ERR`. Doc `/// R32:`. Needs T011
+- [x] T014 [US3] (builder) Implement `format_time_input`: `hmm` = 12-hour hour without a leading zero followed by two-digit minutes, plus `pm = hour >= 12`. Doc `/// R32:`. Run `cargo test -p app`; all tests pass. Needs T013
 
 ### UI components and page wiring
 
