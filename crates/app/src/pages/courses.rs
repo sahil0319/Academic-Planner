@@ -42,6 +42,8 @@ fn fill(
     let courses = planner.list_courses(show_archived).map_err(err)?;
     let rows: Vec<_> = courses.iter().map(vm::course_row).collect();
     ui.set_courses(bridge::rows(&rows, bridge::course_row)?);
+    // R40: term GPA in the page header.
+    ui.set_gpa_text(vm::gpa_header_text(&planner.term_gpa().map_err(err)?).into());
     // R33: the rule set choice offers "Not graded" and the current rule sets.
     let names: Vec<String> = planner
         .list_rule_sets()
@@ -69,6 +71,22 @@ fn fill(
         app.state().detail_course = None;
         return Ok(());
     };
+
+    // R37, R38: marks card and needed-in-final table of the open course.
+    let marks = vm::marks_view(&planner.course_marks(course.id).map_err(err)?);
+    ui.set_graded(marks.graded);
+    ui.set_not_graded_line(vm::NOT_GRADED_LINE.into());
+    ui.set_mark_rows(bridge::model(
+        marks.rows.iter().map(bridge::mark_row).collect(),
+    ));
+    ui.set_marks_secured(marks.secured.into());
+    ui.set_marks_projected(marks.projected.into());
+    ui.set_needed_caption(marks.needed_caption.into());
+    ui.set_needed_rows(bridge::model(
+        marks.needed.iter().map(bridge::needed_row).collect(),
+    ));
+    ui.set_needed_assumptions(bridge::strings(&marks.assumptions));
+    ui.set_actual_grade(marks.actual.into());
 
     let summary = planner.attendance_summary(course.id).map_err(err)?;
     let sessions = planner

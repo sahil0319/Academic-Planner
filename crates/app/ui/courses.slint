@@ -4,7 +4,15 @@
 // Bindings only; every data-derived string comes from src/viewmodel.rs.
 import { CheckBox, ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { Chip, CourseRow, SessionRow, StatusAction, SummaryView } from "types.slint";
+import {
+    Chip,
+    CourseRow,
+    MarkRow,
+    NeededRowView,
+    SessionRow,
+    StatusAction,
+    SummaryView,
+} from "types.slint";
 import {
     PageTitle,
     EmptyState,
@@ -33,6 +41,19 @@ export global CoursesState {
     in property <[SessionRow]> sessions;
     // R14: chip text, from viewmodel::BELOW_TARGET_LABEL.
     in property <string> below-target-label;
+    // R40: "Term GPA 3.67 (projected)" in the page header.
+    in property <string> gpa-text;
+    // R33, R37: Marks card; `graded` false shows `not-graded-line` only.
+    in property <bool> graded;
+    in property <string> not-graded-line;
+    in property <[MarkRow]> mark-rows;
+    in property <string> marks-secured;
+    in property <string> marks-projected;
+    // R38: needed-in-final table, assumption lines, or the actual grade (non-empty = final scored).
+    in property <string> needed-caption;
+    in property <[NeededRowView]> needed-rows;
+    in property <[string]> needed-assumptions;
+    in property <string> actual-grade;
 
     // Course form; `editing-id` is -1 for a new course.
     in-out property <bool> form-open;
@@ -127,6 +148,14 @@ export component CoursesPage inherits VerticalLayout {
 
     PageTitle {
         text: "Courses";
+    }
+
+    Text {
+        text: CoursesState.gpa-text;
+        color: Theme.on-surface;
+        font-family: Theme.font-body;
+        font-size: Theme.body-md-size;
+        font-weight: Theme.label-md-weight;
     }
 
     if CoursesState.message != "": FormError {
@@ -273,6 +302,67 @@ export component CoursesPage inherits VerticalLayout {
                         }
                     }
                 }
+            }
+        }
+
+        // R33, R35-R37: marks card.
+        Caption {
+            text: "Marks";
+        }
+
+        if !CoursesState.graded: Meta {
+            text: CoursesState.not-graded-line;
+            overflow: elide;
+        }
+
+        if CoursesState.graded: VerticalLayout {
+            for m in CoursesState.mark-rows: ListRow {
+                Body {
+                    text: m.name;
+                    horizontal-stretch: 1;
+                }
+                Body {
+                    text: m.marks;
+                    horizontal-stretch: 0;
+                }
+            }
+            HorizontalLayout {
+                spacing: Theme.space-xl;
+                alignment: start;
+                Figure {
+                    caption: "Secured";
+                    value: CoursesState.marks-secured;
+                }
+                Figure {
+                    caption: "Projected";
+                    value: CoursesState.marks-projected;
+                }
+            }
+        }
+
+        // R38: needed in final, or the actual grade once the final is scored.
+        if CoursesState.graded && CoursesState.actual-grade != "": Body {
+            text: CoursesState.actual-grade;
+        }
+
+        if CoursesState.graded && CoursesState.actual-grade == "": VerticalLayout {
+            spacing: Theme.space-xs;
+            Caption {
+                text: CoursesState.needed-caption;
+            }
+            for r in CoursesState.needed-rows: ListRow {
+                Body {
+                    text: r.letter;
+                    horizontal-stretch: 1;
+                }
+                Body {
+                    text: r.needed;
+                    horizontal-stretch: 0;
+                }
+            }
+            for line in CoursesState.needed-assumptions: Meta {
+                text: line;
+                overflow: elide;
             }
         }
 

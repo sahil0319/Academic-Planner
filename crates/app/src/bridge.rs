@@ -10,8 +10,8 @@ use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use crate::viewmodel::{self as vm, ChipKind};
 use crate::{
     AppWindow, AssessmentRow, BandRow, CalendarDay, CalendarWeek, Chip, ComponentRow, CourseRow,
-    DayGroup, GradeRowView, HolidayRow, Palette, RuleSetRow, SessionRow, SlotRow, StatusAction,
-    SummaryView, Theme,
+    DayGroup, GradeRowView, HolidayRow, MarkRow, NeededRowView, Palette, RuleSetRow, SessionRow,
+    SlotRow, StatusAction, SummaryView, Theme,
 };
 
 /// R-D18: Slint `int` is `i32`; an id that does not fit is reported, never truncated.
@@ -253,5 +253,21 @@ pub fn grade_row((letter, min, points): &(String, String, String)) -> GradeRowVi
         min: min.as_str().into(),
         points: points.as_str().into(),
         error: SharedString::new(),
+    }
+}
+
+/// R35/R36: marks card row from `(component name, "earned of possible")`.
+pub fn mark_row((name, marks): &(String, String)) -> MarkRow {
+    MarkRow {
+        name: name.as_str().into(),
+        marks: marks.as_str().into(),
+    }
+}
+
+/// R38: needed-in-final table row.
+pub fn needed_row(r: &vm::NeededRowView) -> NeededRowView {
+    NeededRowView {
+        letter: r.letter.as_str().into(),
+        needed: r.text.as_str().into(),
     }
 }

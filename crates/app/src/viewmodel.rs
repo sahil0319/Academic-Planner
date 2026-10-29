@@ -9,9 +9,10 @@ use std::path::Path;
 use chrono::{Datelike, Days, Duration, NaiveDate, NaiveDateTime, NaiveTime, Timelike, Weekday};
 use planner_core::{
     Assessment, AssessmentFilter, AssessmentInput, AssessmentKind, Assumption, AttendanceBand,
-    AttendanceSummary, ComponentKind, Course, CourseInput, Dashboard, FinalOutlook, GpaStatus,
-    GpaSummary, GradeRow, Holiday, MakeupInput, Needed, RuleComponent, RuleComponentInput, RuleSet,
-    SessionView, Settings, Slot, SlotInput, Status, TermInput, ThemeMode,
+    AttendanceSummary, ComponentKind, Course, CourseInput, CourseMarks, Dashboard, FinalOutlook,
+    GpaStatus, GpaSummary, GradeRow, Holiday, MakeupInput, Needed, RuleComponent,
+    RuleComponentInput, RuleSet, SessionView, Settings, Slot, SlotInput, Status, TermInput,
+    ThemeMode,
 };
 
 use crate::updater::InstallKind;
@@ -1429,11 +1430,8 @@ pub fn progress_fraction(received: u64, total: Option<u64>) -> f32 {
 }
 
 // ---- M9: credits, rule sets, marks, GPA (contracts/ui-grading.md) ----
-// The `allow(dead_code)` attributes below are removed in the final app task (T027) once the
-// pages call these functions.
 
 /// R38: one row of the needed-in-final table as display text.
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NeededRowView {
     pub letter: String,
@@ -1441,20 +1439,17 @@ pub struct NeededRowView {
 }
 
 /// R37: a mark such as `45` or `37.5`, without a trailing `.0`. Two decimals at most.
-#[allow(dead_code)]
 pub fn format_mark(value: f64) -> String {
     let rounded = (value * 100.0).round() / 100.0;
     format!("{rounded}")
 }
 
 /// R35/R36: `"39.0 of 45"`, earned with one decimal, possible as a plain mark.
-#[allow(dead_code)]
 pub fn format_marks(earned: f64, possible: f64) -> String {
     format!("{earned:.1} of {}", format_mark(possible))
 }
 
 /// R37: `"80.0% · A+"`; `None` shows an em dash.
-#[allow(dead_code)]
 pub fn format_projected(pct: Option<f64>, letter: Option<&str>) -> String {
     match (pct, letter) {
         (Some(pct), Some(letter)) => format!("{pct:.1}% \u{b7} {letter}"),
@@ -1464,7 +1459,6 @@ pub fn format_projected(pct: Option<f64>, letter: Option<&str>) -> String {
 }
 
 /// R38: `"111.0"`, `"Secured"`, or `"Not reachable"`.
-#[allow(dead_code)]
 pub fn needed_text(needed: &Needed) -> String {
     match needed {
         Needed::Score(v) => format!("{v:.1}"),
@@ -1474,7 +1468,6 @@ pub fn needed_text(needed: &Needed) -> String {
 }
 
 /// R38: one row per grade letter in scale order; empty for `FinalOutlook::Actual`.
-#[allow(dead_code)]
 pub fn needed_rows(outlook: &FinalOutlook) -> Vec<NeededRowView> {
     match outlook {
         FinalOutlook::Needed { rows, .. } => rows
@@ -1489,7 +1482,6 @@ pub fn needed_rows(outlook: &FinalOutlook) -> Vec<NeededRowView> {
 }
 
 /// R38: `"Quizzes: assumes 0 for 1 item not entered"`.
-#[allow(dead_code)]
 pub fn assumption_text(assumption: &Assumption) -> String {
     format!(
         "{}: assumes 0 for {} not entered",
@@ -1499,13 +1491,11 @@ pub fn assumption_text(assumption: &Assumption) -> String {
 }
 
 /// R38: `"Final grade: A"`; `None` gives `"Final grade: —"`.
-#[allow(dead_code)]
 pub fn actual_grade_text(letter: Option<&str>) -> String {
     format!("Final grade: {}", letter.unwrap_or(DASH))
 }
 
 /// R40: `"Term GPA 3.67 (projected)"`, with the left-out count appended when above 0.
-#[allow(dead_code)]
 pub fn gpa_header_text(summary: &GpaSummary) -> String {
     let mut text = match summary.gpa {
         Some(gpa) => {
@@ -1526,8 +1516,71 @@ pub fn gpa_header_text(summary: &GpaSummary) -> String {
     text
 }
 
+/// R33: the Marks card line shown for a course without credits or a rule set.
+pub const NOT_GRADED_LINE: &str =
+    "Not graded. Add credits and a rule set to the course to see marks.";
+
+/// R35-R38: display text of the course detail's Marks card and Needed in final table.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct MarksView {
+    /// R33: false shows only [`NOT_GRADED_LINE`].
+    pub graded: bool,
+    /// R35/R36: `(component name, "39.0 of 45")` in rule set order.
+    pub rows: Vec<(String, String)>,
+    /// R37: `"129.0 of 300"`, secured marks of the course total.
+    pub secured: String,
+    /// R37: `"86.0% · A+"` or an em dash.
+    pub projected: String,
+    /// R38: `"Score needed in the final, out of 150"`; empty when the final is scored.
+    pub needed_caption: String,
+    /// R38: one row per grade letter; empty when the final is scored.
+    pub needed: Vec<NeededRowView>,
+    /// R38: assumption lines under the table.
+    pub assumptions: Vec<String>,
+    /// R38: `"Final grade: A"` when the final is scored, else empty.
+    pub actual: String,
+}
+
+/// R33, R35-R38: view of a course's marks.
+pub fn marks_view(marks: &CourseMarks) -> MarksView {
+    if !marks.graded {
+        return MarksView::default();
+    }
+    let mut view = MarksView {
+        graded: true,
+        rows: marks
+            .components
+            .iter()
+            .map(|c| (c.name.clone(), format_marks(c.earned, c.marks)))
+            .collect(),
+        secured: format_marks(marks.secured, marks.total),
+        projected: format_projected(marks.projected_pct, marks.letter.as_deref()),
+        ..MarksView::default()
+    };
+    match &marks.outlook {
+        Some(
+            outlook @ FinalOutlook::Needed {
+                assumptions,
+                final_item_max,
+                ..
+            },
+        ) => {
+            view.needed_caption = format!(
+                "Score needed in the final, out of {}",
+                format_mark(*final_item_max)
+            );
+            view.needed = needed_rows(outlook);
+            view.assumptions = assumptions.iter().map(assumption_text).collect();
+        }
+        Some(FinalOutlook::Actual { letter }) => {
+            view.actual = actual_grade_text(letter.as_deref());
+        }
+        None => {}
+    }
+    view
+}
+
 /// R34: `"Items · 15% · best 3 of 4, out of 15"`.
-#[allow(dead_code)]
 pub fn component_summary(component: &RuleComponent) -> String {
     let weight = format_mark(component.weight_pct);
     match component.kind {
@@ -1550,7 +1603,6 @@ pub fn component_summary(component: &RuleComponent) -> String {
 }
 
 /// R35: `"≥ 90% → 100%"`.
-#[allow(dead_code)]
 pub fn band_text(band: &AttendanceBand) -> String {
     format!(
         "\u{2265} {}% \u{2192} {}%",
@@ -1560,7 +1612,6 @@ pub fn band_text(band: &AttendanceBand) -> String {
 }
 
 /// R36: `"/ 15"` for `Some(15.0)`; `None` gives `""`.
-#[allow(dead_code)]
 pub fn score_max_label(item_max: Option<f64>) -> String {
     item_max
         .map(|m| format!("/ {}", format_mark(m)))
@@ -1570,7 +1621,7 @@ pub fn score_max_label(item_max: Option<f64>) -> String {
 /// R34: parses the number fields of one component row; range checks stay in core.
 ///
 /// An attendance row has no item fields (they are ignored); an items row has no bands.
-#[allow(dead_code, clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments)]
 pub fn parse_component_row(
     id: Option<i64>,
     name: &str,
@@ -1616,7 +1667,6 @@ pub fn parse_component_row(
 }
 
 /// R35: parses one attendance band row; range checks stay in core.
-#[allow(dead_code)]
 pub fn parse_band_row(min: &str, credit: &str) -> Result<AttendanceBand, FormErrors> {
     let mut errors = FormErrors::default();
     let min_pct = errors.check("min", parse_number(min));
@@ -1631,7 +1681,6 @@ pub fn parse_band_row(min: &str, credit: &str) -> Result<AttendanceBand, FormErr
 }
 
 /// R39: parses one grade scale row; range checks stay in core. The letter is trimmed.
-#[allow(dead_code)]
 pub fn parse_grade_row(letter: &str, min: &str, points: &str) -> Result<GradeRow, FormErrors> {
     let mut errors = FormErrors::default();
     let letter = letter.trim();

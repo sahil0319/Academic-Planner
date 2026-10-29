@@ -3019,3 +3019,205 @@ fn r34_field_errors_text_one_line() {
     );
     assert_eq!(field_errors_text(&FormErrors::default()), "");
 }
+
+fn component_marks(name: &str, marks: f64, earned: f64) -> planner_core::ComponentMarks {
+    planner_core::ComponentMarks {
+        component_id: 1,
+        name: name.to_string(),
+        kind: ComponentKind::Items,
+        is_final: false,
+        marks,
+        earned,
+        assessed_fraction: 1.0,
+        item_max: None,
+        scores_entered: 0,
+        missing_items: 0,
+    }
+}
+
+fn course_marks(outlook: Option<FinalOutlook>) -> CourseMarks {
+    CourseMarks {
+        course_id: 1,
+        graded: true,
+        total: 300.0,
+        components: vec![
+            component_marks("Quizzes", 45.0, 39.0),
+            component_marks("Attendance", 30.0, 27.0),
+        ],
+        secured: 129.0,
+        assessed: 150.0,
+        projected_pct: Some(86.0),
+        letter: Some("A+".to_string()),
+        fully_assessed: false,
+        outlook,
+    }
+}
+
+/// T37, T38, T39: the marks card shows each component, the secured total, the projection, and
+/// the needed-in-final table with its assumption lines.
+#[test]
+fn t39_marks_view_needed_table_with_assumptions() {
+    let outlook = FinalOutlook::Needed {
+        rows: vec![
+            NeededRow {
+                letter: "A+".to_string(),
+                min_pct: 80.0,
+                needed: Needed::Score(111.0),
+            },
+            NeededRow {
+                letter: "F".to_string(),
+                min_pct: 0.0,
+                needed: Needed::Secured,
+            },
+        ],
+        final_item_max: 150.0,
+        assumptions: vec![Assumption {
+            component_name: "Quizzes".to_string(),
+            missing_items: 1,
+        }],
+    };
+    let view = marks_view(&course_marks(Some(outlook)));
+    assert!(view.graded);
+    assert_eq!(
+        view.rows,
+        vec![
+            ("Quizzes".to_string(), "39.0 of 45".to_string()),
+            ("Attendance".to_string(), "27.0 of 30".to_string()),
+        ]
+    );
+    assert_eq!(view.secured, "129.0 of 300");
+    assert_eq!(view.projected, "86.0% \u{b7} A+");
+    assert_eq!(view.needed_caption, "Score needed in the final, out of 150");
+    assert_eq!(view.needed.len(), 2);
+    assert_eq!(view.needed[0].letter, "A+");
+    assert_eq!(view.needed[0].text, "111.0");
+    assert_eq!(view.needed[1].text, "Secured");
+    assert_eq!(
+        view.assumptions,
+        vec!["Quizzes: assumes 0 for 1 item not entered".to_string()]
+    );
+    assert_eq!(view.actual, "");
+}
+
+/// R38: a scored final replaces the table with the actual grade.
+#[test]
+fn r38_marks_view_actual_grade_replaces_table() {
+    let view = marks_view(&course_marks(Some(FinalOutlook::Actual {
+        letter: Some("A".to_string()),
+    })));
+    assert!(view.needed.is_empty());
+    assert_eq!(view.needed_caption, "");
+    assert_eq!(view.actual, "Final grade: A");
+}
+
+/// R33: an ungraded course has no rows and the card shows only the ungraded line.
+#[test]
+fn r33_marks_view_ungraded_is_empty() {
+    let mut marks = course_marks(None);
+    marks.graded = false;
+    let view = marks_view(&marks);
+    assert!(!view.graded);
+    assert!(view.rows.is_empty());
+    assert!(view.needed.is_empty());
+}
+
+/// T37, T39 end to end (92% attendance is in the 100% band): the worked example of the spec (3-credit Theory, attendance 92%,
+/// quizzes 12/11/13/14, mid 60 of 75) reads through core into the card and table text.
+#[test]
+fn t39_worked_example_end_to_end() {
+    use planner_core::Planner;
+
+    let at = |h: u32, m: u32| NaiveTime::from_hms_opt(h, m, 0).unwrap();
+    let mut p = Planner::open_in_memory().unwrap();
+    p.save_term(TermInput {
+        id: None,
+        name: "Winter 2026".to_string(),
+        start_date: d(2026, 1, 5),
+        end_date: d(2026, 1, 25),
+    })
+    .unwrap();
+    let theory = p.list_rule_sets().unwrap().remove(0);
+    assert_eq!(theory.name, "Theory");
+    let course = p
+        .create_course(CourseInput {
+            code: "CSE101".to_string(),
+            name: "Intro".to_string(),
+            instructor: None,
+            room: None,
+            notes: None,
+            min_attendance_pct: None,
+            credits: Some(3.0),
+            rule_set_id: Some(theory.id),
+        })
+        .unwrap();
+    // 23 attended and 2 absent makeups give 92.0%.
+    for i in 0..25i64 {
+        let start = at(6, 0) + Duration::hours(i / 21);
+        let makeup = p
+            .add_makeup(planner_core::MakeupInput {
+                course_id: course.id,
+                date: d(2026, 1, 5) + Days::new((i % 21) as u64),
+                start_time: start,
+                end_time: start + Duration::minutes(30),
+                room: None,
+                note: None,
+            })
+            .unwrap();
+        let status = if i < 2 {
+            Status::Absent
+        } else {
+            Status::Attended
+        };
+        p.set_status(makeup.id, status, dt(2026, 2, 1, 0, 0))
+            .unwrap();
+    }
+    let component = |name: &str| {
+        theory
+            .components
+            .iter()
+            .find(|c| c.name == name)
+            .unwrap()
+            .id
+    };
+    let mut score = |name: &str, title: &str, score: f64| {
+        p.create_assessment(AssessmentInput {
+            course_id: course.id,
+            kind: AssessmentKind::Other,
+            title: title.to_string(),
+            due_at: dt(2026, 1, 12, 10, 0),
+            notes: None,
+            remind_minutes_before: None,
+            component_id: Some(component(name)),
+            score: Some(score),
+        })
+        .unwrap();
+    };
+    for (i, s) in [12.0, 11.0, 13.0, 14.0].into_iter().enumerate() {
+        score("Quizzes", &format!("Quiz {}", i + 1), s);
+    }
+    score("Mid", "Mid", 60.0);
+
+    let view = marks_view(&p.course_marks(course.id).unwrap());
+    let row = |name: &str| view.rows.iter().find(|r| r.0 == name).unwrap().1.clone();
+    assert_eq!(row("Quizzes"), "39.0 of 45");
+    assert_eq!(row("Attendance"), "30.0 of 30");
+    assert_eq!(view.secured, "129.0 of 300");
+    assert_eq!(view.projected, "86.0% \u{b7} A+");
+    assert_eq!(view.needed_caption, "Score needed in the final, out of 150");
+    let needed = |letter: &str| {
+        view.needed
+            .iter()
+            .find(|r| r.letter == letter)
+            .unwrap()
+            .text
+            .clone()
+    };
+    assert_eq!(needed("A+"), "111.0");
+    assert_eq!(needed("A"), "96.0");
+    assert_eq!(needed("D"), "Secured");
+    assert!(view.assumptions.is_empty());
+    assert_eq!(
+        gpa_header_text(&p.term_gpa().unwrap()),
+        "Term GPA 4.00 (projected)"
+    );
+}
