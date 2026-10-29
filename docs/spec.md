@@ -256,7 +256,7 @@ One window. Left nav with 5 pages. Forms are inline panels or dialogs. Every lis
 4. **Assessments:** a list with filters (upcoming / overdue / completed / all), create/edit/delete, and a complete checkbox.
 5. **Settings:** term (name, start, end), holidays (add a single date or an inclusive date range with one label, expanded into one holiday per day; remove per day), reminder minutes, upcoming window, notifications on/off, Backup (save JSON), Restore (open JSON, with a confirm dialog), Export CSV, and the DB file location shown as text.
 
-Date/time inputs: text fields validated as `YYYY-MM-DD` / `HH:MM` with inline errors. Date pickers are out of scope.
+Date/time inputs: text fields validated as `DD-MM-YYYY` / `HH:MM` with inline errors (human decision 2026-10-29). Dates shown to the user read like "October 26, 2026" wherever space allows; storage, JSON backup, and CSV exports keep `YYYY-MM-DD` (§1, R21, R23). Date pickers are out of scope.
 
 ## 7. Milestones
 

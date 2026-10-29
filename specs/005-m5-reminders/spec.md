@@ -139,7 +139,7 @@ one desktop notification appears (the manual check of §7).
   Reminders outside that window are never returned and never logged.
 - **FR-005** (router decision): Results are ordered by `fire_at`, then session before assessment,
   then `ref_id`. Titles: session "`{code} {name} at {HH:MM}`" plus " in {room}" when a room is
-  known; assessment "`{code} {kind}: {title} due {YYYY-MM-DD HH:MM}`".
+  known; assessment "`{code} {kind}: {title} due {Month D, YYYY, HH:MM}`" (long date per the 2026-10-29 display-format change).
 - **FR-006** (§7): The app MUST run a 60-second timer (the existing R6 timer may be reused) that,
   when `notifications_enabled` is on, calls `due_reminders(local now)` and shows each reminder as a
   desktop notification through `notify-rust`, from the app's `notify.rs` module (§2).

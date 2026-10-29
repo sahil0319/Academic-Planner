@@ -52,7 +52,7 @@ sessions grouped by weekday.
 
 1. **Given** a fresh database, **When** the student opens the app, **Then** every page shows an
    empty state, and the Settings page lets them create a term (R1).
-2. **Given** a term form with end before start, or a date not in `YYYY-MM-DD`, **When** the student
+2. **Given** a term form with end before start, or a date not in `DD-MM-YYYY`, **When** the student
    saves, **Then** an inline error appears under the offending field and nothing is saved (R2).
 3. **Given** an active term, **When** the student creates a course with an empty code or name, a
    duplicate code, or a target outside 0–100, **Then** an inline error is shown and nothing is
@@ -175,7 +175,7 @@ the dashboard; ticking complete moves it to "completed".
 **Acceptance Scenarios**:
 
 1. **Given** the form, **When** the student saves with an empty title or a due date-time not in
-   `YYYY-MM-DD` and `HH:MM`, **Then** an inline error is shown and nothing is saved (R2).
+   `DD-MM-YYYY` and `HH:MM`, **Then** an inline error is shown and nothing is saved (R2).
 2. **Given** a valid form (course, kind quiz / exam / assignment / other, title, due date and time,
    optional notes, optional reminder minutes), **When** saved, **Then** it appears in the matching
    filters.
@@ -205,7 +205,7 @@ backups folder. Export CSVs and open them in a spreadsheet.
 2. **Given** the holiday form, **When** the student enters a start date, an end date, and a label,
    **Then** every date from start to end inclusive becomes a holiday with that label (human
    decision, §6).
-3. **Given** a range whose end is before its start, or a date not in `YYYY-MM-DD`, **Then** an
+3. **Given** a range whose end is before its start, or a date not in `DD-MM-YYYY`, **Then** an
    inline error is shown and no holiday is added.
 4. **Given** the holiday list, **When** the student removes one date, **Then** only that date is
    removed and sessions are synced again (R6).
@@ -272,7 +272,7 @@ backups folder. Export CSVs and open them in a spreadsheet.
   module, each covered by unit tests.
 - **FR-006** (§5): The UI MUST use only the frozen §5 core API, passing the current date and time
   in; every mutation is saved immediately (§1, no save-all button).
-- **FR-007** (§6): Date and time inputs MUST be text fields validated as `YYYY-MM-DD` and `HH:MM`,
+- **FR-007** (§6): Date and time inputs MUST be text fields validated as `DD-MM-YYYY` and `HH:MM` (human decision 2026-10-29),
   with the error message directly under the field stating the expected format. Core validation
   errors (R2) MUST be shown inline in the form that caused them.
 - **FR-008** (R24, R25): On start the app MUST open the database at the R24 path (honouring the
@@ -398,3 +398,16 @@ No new stored entities; the schema is unchanged.
 - Screenshot critique uses the `impeccable` skill per §12.0; if it is not installed in this
   environment, the router raises it with the human at the end of M4.
 - Out of scope per §10: visual time grid, date pickers, multiple simultaneous terms in the UI.
+
+## Change 2026-10-29: date input and display format (human request)
+
+- Date inputs are typed as `DD-MM-YYYY` (dash separator; day and month may have 1 or 2 digits;
+  4-digit year). Invalid input shows "Use DD-MM-YYYY, e.g. 29-10-2026". Pre-filled date fields
+  (edit forms, defaults) show zero-padded `DD-MM-YYYY`.
+- Dates shown as text read like "October 26, 2026" wherever space allows: with a weekday
+  "Monday, October 26, 2026"; with a time "October 30, 2026, 23:59" (times stay 24-hour `HH:MM`);
+  week title "October 26 – November 1, 2026" (both years shown when the week spans two years).
+- The core `display_status` text "Rescheduled → 2026-01-13" (§5, T09) is unchanged in core; the
+  app reformats its date part to "Rescheduled → January 13, 2026".
+- Unchanged and still ISO: database storage (§1), JSON backup (R21), CSV exports (R23), the
+  backup and pre-restore file names, and the database path.

@@ -258,7 +258,7 @@ rounded pills for status chips.
   Attended / Absent / Cancelled.
 - **Input field:** paper background, 1px border, 30px tall; the border turns terracotta on focus.
   On invalid input the border and helper text switch to the error color, and the message states
-  the expected format (`YYYY-MM-DD`, `HH:MM`).
+  the expected format (`DD-MM-YYYY`, `HH:MM`). Dates shown as text read like "October 26, 2026".
 - **List row:** 34px, paper background, 1px bottom border. Primary text left, muted metadata next
   to it, status chip and actions right-aligned.
 - **Status chip:** pill with the status text label in label-small type on its tinted background.
