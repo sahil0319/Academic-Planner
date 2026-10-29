@@ -7,8 +7,8 @@
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Weekday};
 use planner_core::{
-    AssessmentInput, AssessmentKind, Course, CourseInput, Holiday, MakeupInput, Planner, Session,
-    SessionKind, Slot, SlotInput, Status, Term, TermInput,
+    Assessment, AssessmentInput, AssessmentKind, Course, CourseInput, Holiday, MakeupInput,
+    Planner, Session, SessionKind, Slot, SlotInput, Status, Term, TermInput,
 };
 
 pub fn d(s: &str) -> NaiveDate {
@@ -223,5 +223,65 @@ pub fn assert_pct(actual: Option<f64>, expected: Option<f64>) {
         (None, None) => {}
         (Some(a), Some(e)) => assert!((a - e).abs() < 1e-9, "pct {a} != {e}"),
         _ => panic!("pct {actual:?} != {expected:?}"),
+    }
+}
+
+// ---- M9 helpers (graded courses, scores, attendance) ----
+
+/// A course with `credits` and the rule set called `rule_set_name` (R33), created in the
+/// active term. Panics when no rule set has that name.
+pub fn graded_course(p: &mut Planner, code: &str, credits: f64, rule_set_name: &str) -> Course {
+    let rule_set_id = p
+        .list_rule_sets()
+        .unwrap()
+        .into_iter()
+        .find(|set| set.name == rule_set_name)
+        .unwrap_or_else(|| panic!("no rule set named {rule_set_name}"))
+        .id;
+    p.create_course(CourseInput {
+        credits: Some(credits),
+        rule_set_id: Some(rule_set_id),
+        ..course_input(code)
+    })
+    .unwrap()
+}
+
+/// Id of the component `component_name` in the rule set `rule_set_name`; panics when absent.
+pub fn component_id(p: &Planner, rule_set_name: &str, component_name: &str) -> i64 {
+    p.list_rule_sets()
+        .unwrap()
+        .into_iter()
+        .find(|set| set.name == rule_set_name)
+        .unwrap_or_else(|| panic!("no rule set named {rule_set_name}"))
+        .components
+        .into_iter()
+        .find(|c| c.name == component_name)
+        .unwrap_or_else(|| panic!("no component {component_name} in {rule_set_name}"))
+        .id
+}
+
+/// An assessment linked to `component_id` with a score (R36), due inside the fixture term.
+pub fn scored(
+    p: &mut Planner,
+    course_id: i64,
+    component_id: i64,
+    title: &str,
+    score: f64,
+) -> Assessment {
+    p.create_assessment(AssessmentInput {
+        component_id: Some(component_id),
+        score: Some(score),
+        ..assessment_input(course_id, AssessmentKind::Other, title, "2026-01-12T10:00")
+    })
+    .unwrap()
+}
+
+/// Gives a course `attended` attended and `absent` absent makeups, so the R13 percentage is
+/// `attended / (attended + absent)`. Built on `add_marked_makeups`: all makeups are added as
+/// attended, then the first `absent` of them are marked absent.
+pub fn mark_attendance(p: &mut Planner, course_id: i64, attended: usize, absent: usize) {
+    add_marked_makeups(p, course_id, attended + absent, Status::Attended);
+    for session in sessions_of(p, course_id).into_iter().take(absent) {
+        mark(p, session.id, Status::Absent, after_term());
     }
 }
