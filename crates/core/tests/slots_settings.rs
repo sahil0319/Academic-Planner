@@ -92,6 +92,7 @@ fn settings_defaults_on_fresh_db() {
             upcoming_window_days: 7,
             notifications_enabled: true,
             theme: ThemeMode::System,
+            check_updates_on_start: true,
         }
     );
 }
@@ -104,6 +105,7 @@ fn save_settings_round_trip() {
         upcoming_window_days: 14,
         notifications_enabled: false,
         theme: ThemeMode::System,
+        check_updates_on_start: true,
     };
     p.save_settings(&s).unwrap();
     assert_eq!(p.settings().unwrap(), s);

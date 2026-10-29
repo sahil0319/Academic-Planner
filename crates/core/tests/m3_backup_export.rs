@@ -76,6 +76,7 @@ fn populated() -> Populated {
         upcoming_window_days: 14,
         notifications_enabled: false,
         theme: ThemeMode::System,
+        check_updates_on_start: true,
     })
     .unwrap();
 

@@ -264,6 +264,8 @@ pub struct Settings {
     pub upcoming_window_days: u32,
     pub notifications_enabled: bool,
     pub theme: ThemeMode,
+    /// §3, R29: check for an update once per launch. Default on.
+    pub check_updates_on_start: bool,
 }
 
 impl Default for Settings {
@@ -274,6 +276,7 @@ impl Default for Settings {
             upcoming_window_days: 7,
             notifications_enabled: true,
             theme: ThemeMode::System,
+            check_updates_on_start: true,
         }
     }
 }

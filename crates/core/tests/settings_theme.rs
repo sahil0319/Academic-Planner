@@ -64,6 +64,7 @@ fn theme_does_not_change_other_settings() {
         upcoming_window_days: 14,
         notifications_enabled: false,
         theme: ThemeMode::Dark,
+        check_updates_on_start: true,
     };
     p.save_settings(&s).unwrap();
     assert_eq!(p.settings().unwrap(), s);

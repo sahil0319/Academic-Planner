@@ -650,6 +650,7 @@ fn parse_settings_form_valid() {
             upcoming_window_days: 7,
             notifications_enabled: false,
             theme: ThemeMode::System,
+            check_updates_on_start: true,
         }
     );
 }

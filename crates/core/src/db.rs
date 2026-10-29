@@ -297,6 +297,7 @@ impl Planner {
             upcoming_window_days: number(SETTING_UPCOMING_WINDOW, defaults.upcoming_window_days)?,
             notifications_enabled,
             theme,
+            check_updates_on_start: defaults.check_updates_on_start,
         })
     }
 

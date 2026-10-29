@@ -461,6 +461,7 @@ pub fn parse_settings_form(
             upcoming_window_days,
             notifications_enabled: notifications,
             theme: ThemeMode::System,
+            check_updates_on_start: true,
         }),
         _ => Err(errors),
     }
