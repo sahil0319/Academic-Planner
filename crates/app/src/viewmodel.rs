@@ -959,40 +959,53 @@ pub fn pre_restore_failed_message(cause: &str) -> String {
 
 // ---- Mini calendar (§6 mini calendar change) ----
 
+/// R16: empty sentence of the day panel when today is selected (unchanged Today's classes text).
+const TODAY_EMPTY_TEXT: &str =
+    "No classes today. Add courses in Courses and weekly slots in Timetable \u{2192} Rules.";
+/// §6 mini calendar change: empty sentence of the day panel for any other day.
+const OTHER_DAY_EMPTY_TEXT: &str = "Nothing on this day.";
+/// §6 mini calendar change: six weeks of seven days.
+const GRID_CELLS: u64 = 42;
+
 /// First day of `d`'s month.
-#[allow(dead_code, unused_variables)]
 pub fn month_start(d: NaiveDate) -> NaiveDate {
-    todo!()
+    d.with_day(1).unwrap_or(d)
 }
 
 /// First day of the month `months` away, across year ends.
-#[allow(dead_code, unused_variables)]
 pub fn shift_month(month_start: NaiveDate, months: i32) -> NaiveDate {
-    todo!()
+    let index = month_start.year() * 12 + month_start.month0() as i32 + months;
+    let year = index.div_euclid(12);
+    let month0 = index.rem_euclid(12) as u32;
+    NaiveDate::from_ymd_opt(year, month0 + 1, 1).unwrap_or(month_start)
 }
 
 /// `October 2026`.
-#[allow(dead_code, unused_variables)]
 pub fn month_title(month_start: NaiveDate) -> String {
-    todo!()
+    month_start.format("%B %Y").to_string()
 }
 
 /// R3, R12: one entry per non-cancelled session (pending, attended, absent), duplicates kept;
-/// cancelled sessions and rescheduled originals are excluded.
-#[allow(dead_code, unused_variables)]
+/// cancelled sessions and rescheduled originals (status `Cancelled`) are excluded.
 pub fn class_days(views: &[SessionView]) -> Vec<NaiveDate> {
-    todo!()
+    views
+        .iter()
+        .filter(|v| v.session.status != Status::Cancelled)
+        .map(|v| v.session.date)
+        .collect()
 }
 
 /// R16: one entry per incomplete assessment (`due_at.date()`), duplicates kept.
-#[allow(dead_code, unused_variables)]
 pub fn due_days(assessments: &[Assessment]) -> Vec<NaiveDate> {
-    todo!()
+    assessments
+        .iter()
+        .filter(|a| !a.completed)
+        .map(|a| a.due_at.date())
+        .collect()
 }
 
 /// One cell of the mini calendar grid.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(dead_code)]
 pub struct CalendarDay {
     pub key: String,
     pub day: String,
@@ -1004,8 +1017,27 @@ pub struct CalendarDay {
     pub label: String,
 }
 
-/// Always 42 cells starting at the Monday on or before `month_start`.
-#[allow(dead_code, unused_variables)]
+/// First day of the grid for `month_start`: the Monday on or before the 1st.
+pub fn grid_start(month_start: NaiveDate) -> NaiveDate {
+    week_start(month_start)
+}
+
+/// Last day of the grid for `month_start` (41 days after [`grid_start`]).
+pub fn grid_end(month_start: NaiveDate) -> NaiveDate {
+    grid_start(month_start) + Days::new(GRID_CELLS - 1)
+}
+
+/// `1 class` / `2 classes`, and so on.
+fn count_text(n: usize, one: &str, many: &str) -> String {
+    if n == 1 {
+        format!("1 {one}")
+    } else {
+        format!("{n} {many}")
+    }
+}
+
+/// Always 42 cells starting at the Monday on or before `month_start`. The label is the long
+/// weekday date, then `, today`, then the class and due counts when non-zero (R3, R16).
 pub fn month_grid(
     month_start: NaiveDate,
     today: NaiveDate,
@@ -1013,29 +1045,70 @@ pub fn month_grid(
     class_days: &[NaiveDate],
     due_days: &[NaiveDate],
 ) -> Vec<CalendarDay> {
-    todo!()
+    let first = grid_start(month_start);
+    (0..GRID_CELLS)
+        .map(|offset| {
+            let date = first + Days::new(offset);
+            let classes = class_days.iter().filter(|d| **d == date).count();
+            let dues = due_days.iter().filter(|d| **d == date).count();
+            let is_today = date == today;
+            let mut label = format!("{}, {}", weekday_name(date.weekday()), format_date(date));
+            if is_today {
+                label.push_str(", today");
+            }
+            if classes > 0 {
+                label.push_str(", ");
+                label.push_str(&count_text(classes, "class", "classes"));
+            }
+            if dues > 0 {
+                label.push_str(", ");
+                label.push_str(&count_text(dues, "assessment due", "assessments due"));
+            }
+            CalendarDay {
+                key: date.format("%Y-%m-%d").to_string(),
+                day: date.day().to_string(),
+                in_month: date.year() == month_start.year() && date.month() == month_start.month(),
+                is_today,
+                is_selected: date == selected,
+                has_class: classes > 0,
+                has_due: dues > 0,
+                label,
+            }
+        })
+        .collect()
 }
 
 /// `M T W T F S S`.
-#[allow(dead_code)]
 pub fn weekday_initials() -> [&'static str; 7] {
-    todo!()
+    ["M", "T", "W", "T", "F", "S", "S"]
 }
 
-/// `Today's classes` for today, else the long weekday date.
-#[allow(dead_code, unused_variables)]
+/// R16: `Today's classes` for today, else the long weekday date.
 pub fn day_panel_title(selected: NaiveDate, today: NaiveDate) -> String {
-    todo!()
+    if selected == today {
+        "Today's classes".to_string()
+    } else {
+        format!(
+            "{}, {}",
+            weekday_name(selected.weekday()),
+            format_date(selected)
+        )
+    }
 }
 
-/// Empty text of the day panel.
-#[allow(dead_code, unused_variables)]
+/// R16: empty text of the day panel; today keeps the Today's classes sentence.
 pub fn day_panel_empty_text(selected: NaiveDate, today: NaiveDate) -> String {
-    todo!()
+    if selected == today {
+        TODAY_EMPTY_TEXT.to_string()
+    } else {
+        OTHER_DAY_EMPTY_TEXT.to_string()
+    }
 }
 
 /// Parses a `CalendarDay.key` (`2026-10-26`); anything else is `None`.
-#[allow(dead_code, unused_variables)]
 pub fn parse_date_key(key: &str) -> Option<NaiveDate> {
-    todo!()
+    if key.len() != 10 {
+        return None;
+    }
+    NaiveDate::parse_from_str(key, "%Y-%m-%d").ok()
 }
