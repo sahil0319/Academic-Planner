@@ -1,5 +1,7 @@
 //! Error type returned by every core operation.
 
+use std::path::{Path, PathBuf};
+
 use thiserror::Error;
 
 /// Every failure a core operation can report. User input never causes a panic.
@@ -22,6 +24,19 @@ pub enum Error {
         "database schema version {found} is newer than this app supports ({supported}); update the app"
     )]
     SchemaTooNew { found: i64, supported: i64 },
+
+    /// R26: a migration failed; the database stays at version `at`.
+    #[error(
+        "upgrading the database to schema version {version} failed; it was left at version {at}{}",
+        backup_sentence(.backup.as_deref())
+    )]
+    MigrationFailed {
+        version: i64,
+        at: i64,
+        backup: Option<PathBuf>,
+        #[source]
+        source: rusqlite::Error,
+    },
 
     /// R24: no `ACADEMIC_PLANNER_DB` override and the OS reports no user data directory.
     #[error("no user data directory found; set ACADEMIC_PLANNER_DB to choose a database path")]
@@ -50,6 +65,13 @@ impl From<rusqlite::Error> for Error {
             other => Error::Db(other),
         }
     }
+}
+
+/// R26: the optional last sentence of `MigrationFailed`, naming the pre-migration copy.
+fn backup_sentence(backup: Option<&Path>) -> String {
+    backup
+        .map(|path| format!(". A copy from before the upgrade is at {}", path.display()))
+        .unwrap_or_default()
 }
 
 /// Result alias used by every core operation.
