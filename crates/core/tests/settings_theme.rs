@@ -31,14 +31,14 @@ fn save_theme(p: &mut Planner, theme: ThemeMode) {
 
 /// §5 Settings theme, human decision 2026-10-29: a fresh database reads `ThemeMode::System`.
 #[test]
-fn t01_fresh_db_theme_is_system() {
+fn theme_fresh_db_theme_is_system() {
     let p = Planner::open_in_memory().unwrap();
     assert_eq!(p.settings().unwrap().theme, ThemeMode::System);
 }
 
 /// §5 Settings theme, human decision 2026-10-29: a saved Dark theme is read back as Dark.
 #[test]
-fn t02_saved_dark_reads_back() {
+fn theme_saved_dark_reads_back() {
     let mut p = Planner::open_in_memory().unwrap();
     save_theme(&mut p, ThemeMode::Dark);
     assert_eq!(p.settings().unwrap().theme, ThemeMode::Dark);
@@ -47,7 +47,7 @@ fn t02_saved_dark_reads_back() {
 /// §5 Settings theme, human decision 2026-10-29: a saved Light theme is read back as Light,
 /// and saving System afterwards reads back as System.
 #[test]
-fn t03_saved_light_then_system_reads_back() {
+fn theme_saved_light_then_system_reads_back() {
     let mut p = Planner::open_in_memory().unwrap();
     save_theme(&mut p, ThemeMode::Light);
     assert_eq!(p.settings().unwrap().theme, ThemeMode::Light);
@@ -57,7 +57,7 @@ fn t03_saved_light_then_system_reads_back() {
 
 /// §5 Settings theme, human decision 2026-10-29: changing theme leaves the other settings alone.
 #[test]
-fn t04_theme_does_not_change_other_settings() {
+fn theme_theme_does_not_change_other_settings() {
     let mut p = Planner::open_in_memory().unwrap();
     let s = Settings {
         class_reminder_minutes: 30,
@@ -71,7 +71,7 @@ fn t04_theme_does_not_change_other_settings() {
 
 /// §5 Settings theme, human decision 2026-10-29, R21: the JSON export carries `"theme":"dark"`.
 #[test]
-fn t05_export_contains_theme_dark() {
+fn theme_export_contains_theme_dark() {
     let mut p = Planner::open_in_memory().unwrap();
     save_theme(&mut p, ThemeMode::Dark);
     let doc = parse(&p.export_json(dt(NOW)).unwrap());
@@ -80,7 +80,7 @@ fn t05_export_contains_theme_dark() {
 
 /// §5 Settings theme, human decision 2026-10-29, R22: restore applies the backup's theme.
 #[test]
-fn t06_restore_applies_theme() {
+fn theme_restore_applies_theme() {
     let mut source = Planner::open_in_memory().unwrap();
     save_theme(&mut source, ThemeMode::Light);
     let backup = source.export_json(dt(NOW)).unwrap();
@@ -94,7 +94,7 @@ fn t06_restore_applies_theme() {
 /// §5 Settings theme, human decision 2026-10-29, R22: a backup without a `theme` key restores
 /// fine and the theme reads System (a missing row reads as system).
 #[test]
-fn t07_restore_without_theme_key_reads_system() {
+fn theme_restore_without_theme_key_reads_system() {
     let mut p = Planner::open_in_memory().unwrap();
     save_theme(&mut p, ThemeMode::Dark);
     let backup = backup_with_settings(|settings| {
@@ -107,7 +107,7 @@ fn t07_restore_without_theme_key_reads_system() {
 /// §5 Settings theme, human decision 2026-10-29, R22: a `theme` value other than
 /// system|light|dark is rejected with `Error::Validation` and nothing changes (all-or-nothing).
 #[test]
-fn t08_restore_rejects_unknown_theme() {
+fn theme_restore_rejects_unknown_theme() {
     for bad in ["purple", "", "Dark", "SYSTEM"] {
         let mut p = Planner::open_in_memory().unwrap();
         save_theme(&mut p, ThemeMode::Dark);
