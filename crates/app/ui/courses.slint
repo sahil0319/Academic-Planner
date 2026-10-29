@@ -11,6 +11,7 @@ import {
     PrimaryButton,
     SecondaryButton,
     Field,
+    TimeField,
     StatusChip,
     SectionCard,
     ListRow,
@@ -353,14 +354,16 @@ export component CoursesPage inherits VerticalLayout {
                 text <=> CoursesState.mk-date;
                 error: CoursesState.mk-date-error;
             }
-            Field {
-                label: "Start (HH:MM)";
+            TimeField {
+                label: "Start";
                 text <=> CoursesState.mk-start;
+                pm <=> CoursesState.mk-start-pm;
                 error: CoursesState.mk-start-error;
             }
-            Field {
-                label: "End (HH:MM)";
+            TimeField {
+                label: "End";
                 text <=> CoursesState.mk-end;
+                pm <=> CoursesState.mk-end-pm;
                 error: CoursesState.mk-end-error;
             }
             Field {
