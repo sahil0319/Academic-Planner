@@ -114,7 +114,11 @@ pub fn display_status_text(raw: &str) -> String {
 /// 12:xx is 12:xx PM).
 pub fn format_time(t: NaiveTime) -> String {
     let hour = t.hour();
-    let hour12 = if hour % 12 == 0 { 12 } else { hour % 12 };
+    let hour12 = if hour.is_multiple_of(12) {
+        12
+    } else {
+        hour % 12
+    };
     let suffix = if hour < 12 { "AM" } else { "PM" };
     format!("{hour12}:{:02} {suffix}", t.minute())
 }
@@ -224,7 +228,11 @@ pub fn parse_time(digits: &str, pm: bool) -> Result<NaiveTime, String> {
 /// R32: pre-fill for editing: (`hmm` digits, pm).
 pub fn format_time_input(t: NaiveTime) -> (String, bool) {
     let hour = t.hour();
-    let hour12 = if hour % 12 == 0 { 12 } else { hour % 12 };
+    let hour12 = if hour.is_multiple_of(12) {
+        12
+    } else {
+        hour % 12
+    };
     (format!("{hour12}{:02}", t.minute()), hour >= 12)
 }
 

@@ -86,7 +86,7 @@ All in crates/app/src/viewmodel/tests.rs (one file, so in order). Doc comments c
 
 ## Phase 4: Gate and Done-when
 
-- [ ] T024 (builder) Remove leftover `#[allow(dead_code)]` from T001; run `cargo test -p app t34_`, `cargo test -p app t35_`, the gate `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`, and the theme grep `! grep -rnE '#[0-9a-fA-F]{6}|[0-9]+px' crates/app/ui --include=*.slint | grep -v theme.slint`; confirm `git diff --stat` shows no file under `crates/core/`; paste the summary. Needs T019–T022 (and T023 if kept)
+- [x] T024 (builder) Remove leftover `#[allow(dead_code)]` from T001; run `cargo test -p app t34_`, `cargo test -p app t35_`, the gate `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`, and the theme grep `! grep -rnE '#[0-9a-fA-F]{6}|[0-9]+px' crates/app/ui --include=*.slint | grep -v theme.slint`; confirm `git diff --stat` shows no file under `crates/core/`; paste the summary. Needs T019–T022 (and T023 if kept)
 - [ ] T025 (human) Manual checks from quickstart.md "Manual" steps 1–7 with `cargo run -p app` (every page 12-hour, each of the 7 time fields saves `930` + PM as 9:30 PM, pre-fill on edit, keyboard toggle, backup/CSV still 24-hour); report any failure to the router. Needs T024
 
 ---
