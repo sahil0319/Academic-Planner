@@ -31,7 +31,6 @@ const MIGRATIONS: &[&str] = &[
 
 /// R41: the default rule sets, bands, and grade scale; run by migration 002 and by a
 /// version-1 backup restore.
-#[allow(dead_code)] // used by the backup restore in M9 T016
 pub(crate) const GRADING_SEED: &str = include_str!("grading_seed.sql");
 
 /// Schema version this app writes: the number of embedded migrations (R25).
