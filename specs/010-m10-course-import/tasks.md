@@ -291,13 +291,13 @@ are warnings, nothing is written on error.
 
 **Independent test**: read the file against contracts/import-docs.md items 1–6.
 
-- [ ] T026 [US5] (builder) [app] Write docs/import/ai-prompt.md per contracts/import-docs.md
+- [x] T026 [US5] (builder) [app] Write docs/import/ai-prompt.md per contracts/import-docs.md
   items 1–4 and 6: the "convert my timetable to this format…" request, output-only-JSON
   instruction, the template, the known keys and rules (24-hour `HH:MM`, `day` forms, dates,
   `rule_set` "Theory"/"Lab" or `null`, unknown → `null`), and the period → time rule for merged
   cells (first period's start to last period's end). Leave a section heading
   "Worked example: 7th semester" for T027. Needs T012
-- [ ] T027 [US5] (builder) [app] Fill the worked example in docs/import/ai-prompt.md
+- [x] T027 [US5] (builder) [app] Fill the worked example in docs/import/ai-prompt.md
   (contracts/import-docs.md item 5) from the table the human gave in T001: period header with
   times, the grid with its merged cell(s), and the resulting JSON in 24-hour times; check the JSON
   previews with no errors (paste it into the app on a scratch DB, or a throwaway local test that
