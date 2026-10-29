@@ -1175,7 +1175,6 @@ pub fn parse_date_key(key: &str) -> Option<NaiveDate> {
 // Contract: `specs/007-m7-updater/contracts/ui-about.md`.
 
 /// R27, R28: where the update flow is, as shown on the About page.
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UpdatePhase {
     Idle,
@@ -1189,7 +1188,6 @@ pub enum UpdatePhase {
 }
 
 /// R27, R28: the About page's update status line, action button, and progress.
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct UpdateView {
     pub status: String,
@@ -1200,50 +1198,97 @@ pub struct UpdateView {
     pub is_error: bool,
 }
 
-/// R27, R28: status text, action label, and progress for `phase`.
-#[allow(dead_code)]
+/// R27, R28: status text, action label, and progress for `phase`. The action is disabled
+/// while a check, download, or install is running. Progress is 0 and its text empty outside
+/// Downloading.
 pub fn update_view(phase: &UpdatePhase) -> UpdateView {
-    let _ = phase;
-    todo!("M7")
+    const CHECK: &str = "Check for updates";
+    const INSTALL: &str = "Install";
+    const RETRY: &str = "Retry";
+    let (status, action, action_enabled, is_error) = match phase {
+        UpdatePhase::Idle => (String::new(), CHECK, true, false),
+        UpdatePhase::Checking => ("Checking for updates…".to_string(), CHECK, false, false),
+        UpdatePhase::UpToDate => ("You're up to date.".to_string(), CHECK, true, false),
+        UpdatePhase::Available { version } => (banner_text(version), INSTALL, true, false),
+        UpdatePhase::Downloading { .. } => ("Downloading…".to_string(), INSTALL, false, false),
+        UpdatePhase::Installing => ("Installing…".to_string(), INSTALL, false, false),
+        UpdatePhase::CheckFailed => ("Couldn't check for updates".to_string(), RETRY, true, true),
+        UpdatePhase::InstallFailed => (
+            "The update couldn't be installed. Nothing was changed.".to_string(),
+            RETRY,
+            true,
+            true,
+        ),
+    };
+    let (progress, progress_text) = match phase {
+        UpdatePhase::Downloading { received, total } => (
+            progress_fraction(*received, *total),
+            download_text(*received, *total),
+        ),
+        _ => (0.0, String::new()),
+    };
+    UpdateView {
+        status,
+        action: action.to_string(),
+        action_enabled,
+        progress,
+        progress_text,
+        is_error,
+    }
+}
+
+/// R28: the total download size when it is known and non-zero; `Some(0)` counts as unknown.
+fn known_total(total: Option<u64>) -> Option<u64> {
+    total.filter(|&t| t > 0)
+}
+
+/// R28: the whole download percentage, rounded down so 100% shows only when done.
+pub fn download_percent(received: u64, total: Option<u64>) -> Option<u64> {
+    known_total(total).map(|t| (u128::from(received.min(t)) * 100 / u128::from(t)) as u64)
+}
+
+/// R28: "Downloading… 42%", or "Downloading…" when the total size is unknown.
+fn download_text(received: u64, total: Option<u64>) -> String {
+    match download_percent(received, total) {
+        Some(percent) => format!("Downloading… {percent}%"),
+        None => "Downloading…".to_string(),
+    }
 }
 
 /// §13.1 UI: "Version 0.1.1".
-#[allow(dead_code)]
 pub fn version_text(version: &str) -> String {
-    let _ = version;
-    todo!("M7")
+    format!("Version {version}")
 }
 
 /// §13.1 UI: the one-line license statement.
-#[allow(dead_code)]
 pub fn license_text() -> String {
-    todo!("M7")
+    "Free software under the GNU GPL v3 or later.".to_string()
 }
 
 /// R29: the update banner, e.g. "Version 0.2.0 is available.".
-#[allow(dead_code)]
 pub fn banner_text(version: &str) -> String {
-    let _ = version;
-    todo!("M7")
+    format!("Version {version} is available.")
 }
 
 /// R28: the confirm panel title, e.g. "Install version 0.2.0?".
-#[allow(dead_code)]
 pub fn confirm_title(version: &str) -> String {
-    let _ = version;
-    todo!("M7")
+    format!("Install version {version}?")
 }
 
 /// R28: the confirm button label for this kind of install.
-#[allow(dead_code)]
 pub fn confirm_label(kind: InstallKind) -> String {
-    let _ = kind;
-    todo!("M7")
+    match kind {
+        InstallKind::SelfInstall => "Install and restart",
+        InstallKind::OpenReleasePage => "Open release page",
+    }
+    .to_string()
 }
 
-/// R28: download progress clamped to 0.0..=1.0, or -1.0 when the total size is unknown.
-#[allow(dead_code)]
+/// R28: download progress clamped to 0.0..=1.0, or -1.0 when the total size is unknown
+/// (missing or zero).
 pub fn progress_fraction(received: u64, total: Option<u64>) -> f32 {
-    let _ = (received, total);
-    todo!("M7")
+    match known_total(total) {
+        Some(t) => (received as f64 / t as f64).clamp(0.0, 1.0) as f32,
+        None => -1.0,
+    }
 }

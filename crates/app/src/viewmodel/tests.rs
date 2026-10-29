@@ -2072,3 +2072,53 @@ fn confirm_label_by_install_kind() {
         "Open release page"
     );
 }
+
+// Router decisions on M7 tester ambiguities (R28): the percentage rounds down, a zero total
+// counts as unknown, and phases other than Downloading carry no progress.
+
+/// R28: the download percentage rounds down, so 100% shows only once everything arrived.
+#[test]
+fn update_view_download_percent_rounds_down() {
+    let u = view(UpdatePhase::Downloading {
+        received: 999,
+        total: Some(1000),
+    });
+    assert_eq!(u.progress_text, "Downloading… 99%");
+    let done = view(UpdatePhase::Downloading {
+        received: 1000,
+        total: Some(1000),
+    });
+    assert_eq!(done.progress_text, "Downloading… 100%");
+}
+
+/// R28: a total size of zero is treated as unknown (indeterminate progress).
+#[test]
+fn update_view_zero_total_is_unknown() {
+    assert_eq!(progress_fraction(5, Some(0)), -1.0);
+    let u = view(UpdatePhase::Downloading {
+        received: 5,
+        total: Some(0),
+    });
+    assert_eq!(u.progress, -1.0);
+    assert_eq!(u.progress_text, "Downloading…");
+}
+
+/// R28: outside Downloading the progress is 0 and its text is empty.
+#[test]
+fn update_view_no_progress_outside_downloading() {
+    for phase in [
+        UpdatePhase::Idle,
+        UpdatePhase::Checking,
+        UpdatePhase::UpToDate,
+        UpdatePhase::Available {
+            version: "0.2.0".into(),
+        },
+        UpdatePhase::Installing,
+        UpdatePhase::CheckFailed,
+        UpdatePhase::InstallFailed,
+    ] {
+        let u = update_view(&phase);
+        assert_eq!(u.progress, 0.0, "{phase:?}");
+        assert_eq!(u.progress_text, "", "{phase:?}");
+    }
+}
