@@ -15,15 +15,17 @@ What's new in each version is in the [release notes](docs/releases/).
 
 ## Screenshots
 
-![Dashboard with today's classes, the next class, upcoming and overdue assessments, and classes awaiting attendance](docs/screenshots/dashboard.png)
+![Dashboard with the below-target banner, classes awaiting attendance, and the mini calendar with today's classes](docs/screenshots/dashboard.png)
 
-![Timetable week view with the week's classes grouped by weekday](docs/screenshots/timetable.png)
+![Timetable week view with the week's classes grouped by day](docs/screenshots/timetable.png)
 
-![Courses page with a course's attendance summary and session list](docs/screenshots/courses.png)
+![Courses list with instructor, room, and attendance target for each course](docs/screenshots/courses.png)
 
-![Assessments list with upcoming, overdue, completed, and all filters](docs/screenshots/assessments.png)
+![Assessments page with the upcoming filter and the new assessment form](docs/screenshots/assessments.png)
 
-![Settings page with term, holidays, reminders, backup, restore, CSV export, and the database location](docs/screenshots/settings.png)
+![Settings page with the term, a midterm-week holiday range, and reminder settings](docs/screenshots/settings.png)
+
+![The timetable in dark mode, chosen with the appearance switch in the top-right corner](docs/screenshots/dark-mode.png)
 
 ## Download and install
 
