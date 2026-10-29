@@ -8,8 +8,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 use crate::db::{
-    fmt_datetime, parse_date, parse_datetime, parse_time, Planner, SCHEMA_VERSION, SETTING_CHECK_UPDATES,
-    SETTING_THEME,
+    fmt_datetime, parse_date, parse_datetime, parse_time, Planner, SCHEMA_VERSION,
+    SETTING_CHECK_UPDATES, SETTING_THEME,
 };
 use crate::error::{Error, Result};
 use crate::model::ThemeMode;

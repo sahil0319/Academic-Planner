@@ -31,7 +31,9 @@ pub(crate) fn run(
     // In-memory databases report "memory"; either answer is fine.
     let _mode: String = conn.pragma_update_and_check(None, "journal_mode", "WAL", |r| r.get(0))?;
     let backup = match db_path {
-        Some(path) if (1..supported).contains(&found) => Some(write_copy(conn, path, found, supported)?),
+        Some(path) if (1..supported).contains(&found) => {
+            Some(write_copy(conn, path, found, supported)?)
+        }
         _ => None,
     };
     for (version, sql) in (1_i64..).zip(migrations).skip(found as usize) {
