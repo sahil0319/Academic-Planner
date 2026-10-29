@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 
 use super::*;
-use planner_core::Error;
+use planner_core::{Error, GpaStatus, NeededRow};
 
 const DATE_ERR: &str = "Use DD-MM-YYYY, e.g. 29-10-2026";
 const TIME_ERR: &str = "Enter the time as digits, e.g. 930 (hour 1–12, minutes 00–59)";
@@ -2421,4 +2421,457 @@ fn update_view_no_progress_outside_downloading() {
         assert_eq!(u.progress, 0.0, "{phase:?}");
         assert_eq!(u.progress_text, "", "{phase:?}");
     }
+}
+
+// ---- M9: grading formatting (contracts/ui-grading.md) ----
+
+fn rule_component(
+    name: &str,
+    kind: ComponentKind,
+    weight_pct: f64,
+    counts: Option<(u32, u32)>,
+    item_max: Option<f64>,
+    is_final: bool,
+) -> RuleComponent {
+    RuleComponent {
+        id: 1,
+        rule_set_id: 1,
+        position: 0,
+        name: name.to_string(),
+        kind,
+        weight_pct,
+        item_count: counts.map(|(count, _)| count),
+        best_count: counts.map(|(_, best)| best),
+        item_max,
+        is_final,
+        bands: Vec::new(),
+    }
+}
+
+/// R37: a mark drops a trailing `.0` and keeps one real decimal.
+#[test]
+fn t37_format_mark_drops_trailing_zero() {
+    assert_eq!(format_mark(45.0), "45");
+    assert_eq!(format_mark(37.5), "37.5");
+    assert_eq!(format_mark(1.5), "1.5");
+}
+
+/// R37, T37: Quizzes of the seeded Theory rule set show `39.0 of 45`.
+#[test]
+fn t37_format_marks_quizzes() {
+    assert_eq!(format_marks(39.0, 45.0), "39.0 of 45");
+}
+
+/// R35, T38: Attendance of the seeded Theory rule set shows `27.0 of 30`.
+#[test]
+fn t38_format_marks_attendance() {
+    assert_eq!(format_marks(27.0, 30.0), "27.0 of 30");
+}
+
+/// R37, T40: projected percentage and letter in one string; no data shows an em dash.
+#[test]
+fn t37_format_projected_with_and_without_data() {
+    assert_eq!(format_projected(Some(80.0), Some("A+")), "80.0% · A+");
+    assert_eq!(format_projected(None, None), "—");
+}
+
+/// R38, T39: a needed score shows with one decimal.
+#[test]
+fn t39_needed_text_score() {
+    assert_eq!(needed_text(&Needed::Score(111.0)), "111.0");
+}
+
+/// R38, T39: secured and not reachable have their own wording.
+#[test]
+fn t39_needed_text_secured_and_not_reachable() {
+    assert_eq!(needed_text(&Needed::Secured), "Secured");
+    assert_eq!(needed_text(&Needed::NotReachable), "Not reachable");
+}
+
+/// R38, T39: one view row per grade letter, in scale order.
+#[test]
+fn t39_needed_rows_follow_scale_order() {
+    let outlook = FinalOutlook::Needed {
+        rows: vec![
+            NeededRow {
+                letter: "A+".to_string(),
+                min_pct: 80.0,
+                needed: Needed::Score(111.0),
+            },
+            NeededRow {
+                letter: "A".to_string(),
+                min_pct: 75.0,
+                needed: Needed::Secured,
+            },
+            NeededRow {
+                letter: "B".to_string(),
+                min_pct: 70.0,
+                needed: Needed::NotReachable,
+            },
+        ],
+        final_item_max: 150.0,
+        assumptions: Vec::new(),
+    };
+    let rows = needed_rows(&outlook);
+    let pairs: Vec<(&str, &str)> = rows
+        .iter()
+        .map(|r| (r.letter.as_str(), r.text.as_str()))
+        .collect();
+    assert_eq!(
+        pairs,
+        vec![("A+", "111.0"), ("A", "Secured"), ("B", "Not reachable")]
+    );
+}
+
+/// R38: once the final has a score there is no needed table.
+#[test]
+fn t39_needed_rows_empty_for_actual() {
+    let outlook = FinalOutlook::Actual {
+        letter: Some("A".to_string()),
+    };
+    assert!(needed_rows(&outlook).is_empty());
+}
+
+/// R38, T39: a missing quiz is listed as assumed 0; one item and several items.
+#[test]
+fn t39_assumption_text_one_and_two_items() {
+    let one = Assumption {
+        component_name: "Quizzes".to_string(),
+        missing_items: 1,
+    };
+    let two = Assumption {
+        component_name: "Quizzes".to_string(),
+        missing_items: 2,
+    };
+    assert_eq!(
+        assumption_text(&one),
+        "Quizzes: assumes 0 for 1 item not entered"
+    );
+    assert_eq!(
+        assumption_text(&two),
+        "Quizzes: assumes 0 for 2 items not entered"
+    );
+}
+
+/// R38: the actual grade line, with and without a letter.
+#[test]
+fn t39_actual_grade_text() {
+    assert_eq!(actual_grade_text(Some("A")), "Final grade: A");
+    assert_eq!(actual_grade_text(None), "Final grade: —");
+}
+
+/// R40, T41: header for a projected GPA, a final GPA, and no GPA.
+#[test]
+fn t41_gpa_header_projected_final_and_none() {
+    let summary = |gpa, status| GpaSummary {
+        gpa,
+        status,
+        included: 2,
+        left_out: 0,
+    };
+    assert_eq!(
+        gpa_header_text(&summary(Some(3.67), GpaStatus::Projected)),
+        "Term GPA 3.67 (projected)"
+    );
+    assert_eq!(
+        gpa_header_text(&summary(Some(3.67), GpaStatus::Final)),
+        "Term GPA 3.67 (final)"
+    );
+    assert_eq!(
+        gpa_header_text(&summary(None, GpaStatus::Projected)),
+        "Term GPA —"
+    );
+}
+
+/// R40: a graded course left out for lack of marks is counted in the header.
+#[test]
+fn t41_gpa_header_mentions_left_out_course() {
+    let summary = GpaSummary {
+        gpa: Some(3.67),
+        status: GpaStatus::Projected,
+        included: 2,
+        left_out: 1,
+    };
+    assert_eq!(
+        gpa_header_text(&summary),
+        "Term GPA 3.67 (projected) · 1 graded course without marks"
+    );
+}
+
+/// R34: component summaries for the seeded Attendance, Quizzes, and Final components.
+#[test]
+fn t37_component_summary_seeded_components() {
+    let attendance = rule_component(
+        "Attendance",
+        ComponentKind::Attendance,
+        10.0,
+        None,
+        None,
+        false,
+    );
+    let quizzes = rule_component(
+        "Quizzes",
+        ComponentKind::Items,
+        15.0,
+        Some((4, 3)),
+        Some(15.0),
+        false,
+    );
+    let final_exam = rule_component(
+        "Final",
+        ComponentKind::Items,
+        50.0,
+        Some((1, 1)),
+        None,
+        true,
+    );
+    assert_eq!(component_summary(&attendance), "Attendance · 10%");
+    assert_eq!(
+        component_summary(&quizzes),
+        "Items · 15% · best 3 of 4, out of 15"
+    );
+    assert_eq!(
+        component_summary(&final_exam),
+        "Items · 50% · 1 of 1 · final"
+    );
+}
+
+/// R35: an attendance band reads `min → credit`.
+#[test]
+fn t38_band_text() {
+    let band = AttendanceBand {
+        min_pct: 90.0,
+        credit_pct: 100.0,
+    };
+    assert_eq!(band_text(&band), "≥ 90% → 100%");
+}
+
+/// R36: the score field shows the item max after a slash; no max shows nothing.
+#[test]
+fn t37_score_max_label() {
+    assert_eq!(score_max_label(Some(15.0)), "/ 15");
+    assert_eq!(score_max_label(None), "");
+}
+
+// ---- M9: grading forms ----
+
+fn course_form_with(credits: &str, rule_set_id: Option<i64>) -> Result<CourseInput, FormErrors> {
+    parse_course_form("CSE101", "Intro", "", "", "", "", credits, rule_set_id)
+}
+
+fn assessment_form_with(
+    component_id: Option<i64>,
+    score: &str,
+) -> Result<AssessmentInput, FormErrors> {
+    parse_assessment_form(
+        Some(1),
+        0,
+        "Quiz 1",
+        "30-10-2026",
+        TimeText {
+            digits: "900",
+            pm: false,
+        },
+        "",
+        "",
+        component_id,
+        score,
+    )
+}
+
+/// R33: empty credits mean not graded; numbers (whole or fractional) parse.
+#[test]
+fn t33_course_form_credits_parse() {
+    assert_eq!(course_form_with("", None).unwrap().credits, None);
+    assert_eq!(course_form_with("3", None).unwrap().credits, Some(3.0));
+    assert_eq!(course_form_with("1.5", None).unwrap().credits, Some(1.5));
+}
+
+/// R33: credits that are not a number or not above 0 give an inline error on `credits`.
+#[test]
+fn t33_course_form_bad_credits_inline_error() {
+    for bad in ["abc", "0", "-1"] {
+        let err = course_form_with(bad, None).unwrap_err();
+        assert!(!err.get("credits").is_empty(), "credits {bad:?}");
+    }
+}
+
+/// R33: the rule set choice passes through unchanged, `None` included.
+#[test]
+fn t33_course_form_rule_set_passes_through() {
+    assert_eq!(course_form_with("3", None).unwrap().rule_set_id, None);
+    assert_eq!(course_form_with("3", Some(5)).unwrap().rule_set_id, Some(5));
+}
+
+/// R36: an empty score means no score; whole and fractional scores parse.
+#[test]
+fn t36_assessment_form_score_parse() {
+    assert_eq!(assessment_form_with(None, "").unwrap().score, None);
+    assert_eq!(assessment_form_with(None, "12").unwrap().score, Some(12.0));
+    assert_eq!(
+        assessment_form_with(None, "12.5").unwrap().score,
+        Some(12.5)
+    );
+}
+
+/// R36: a score that is not a number or is below 0 gives an inline error on `score`.
+#[test]
+fn t36_assessment_form_bad_score_inline_error() {
+    for bad in ["x", "-1"] {
+        let err = assessment_form_with(None, bad).unwrap_err();
+        assert!(!err.get("score").is_empty(), "score {bad:?}");
+    }
+}
+
+/// R36: the component choice passes through unchanged, `None` included.
+#[test]
+fn t36_assessment_form_component_passes_through() {
+    assert_eq!(assessment_form_with(None, "").unwrap().component_id, None);
+    assert_eq!(
+        assessment_form_with(Some(7), "").unwrap().component_id,
+        Some(7)
+    );
+}
+
+/// R34: number fields parse; an empty item max is `None` (the component's marks).
+#[test]
+fn t34_component_row_parses_numbers() {
+    let quizzes = parse_component_row(
+        Some(3),
+        "Quizzes",
+        ComponentKind::Items,
+        "15",
+        "4",
+        "3",
+        "15",
+        false,
+        Vec::new(),
+    )
+    .unwrap();
+    assert_eq!(
+        quizzes,
+        RuleComponentInput {
+            id: Some(3),
+            name: "Quizzes".to_string(),
+            kind: ComponentKind::Items,
+            weight_pct: 15.0,
+            item_count: Some(4),
+            best_count: Some(3),
+            item_max: Some(15.0),
+            is_final: false,
+            bands: Vec::new(),
+        }
+    );
+    let final_exam = parse_component_row(
+        None,
+        "Final",
+        ComponentKind::Items,
+        "50",
+        "1",
+        "1",
+        "",
+        true,
+        Vec::new(),
+    )
+    .unwrap();
+    assert_eq!(final_exam.item_max, None);
+    assert!(final_exam.is_final);
+    assert_eq!(final_exam.id, None);
+}
+
+/// R34: an attendance row keeps its bands and has no item counts.
+#[test]
+fn t34_component_row_attendance_keeps_bands() {
+    let bands = vec![
+        AttendanceBand {
+            min_pct: 90.0,
+            credit_pct: 100.0,
+        },
+        AttendanceBand {
+            min_pct: 80.0,
+            credit_pct: 90.0,
+        },
+    ];
+    let row = parse_component_row(
+        None,
+        "Attendance",
+        ComponentKind::Attendance,
+        "10",
+        "",
+        "",
+        "",
+        false,
+        bands.clone(),
+    )
+    .unwrap();
+    assert_eq!(row.kind, ComponentKind::Attendance);
+    assert_eq!(row.weight_pct, 10.0);
+    assert_eq!(row.item_count, None);
+    assert_eq!(row.best_count, None);
+    assert_eq!(row.item_max, None);
+    assert_eq!(row.bands, bands);
+}
+
+/// R34: every field that is not a number gets its own inline error, all reported at once.
+#[test]
+fn t34_component_row_bad_numbers_inline_errors() {
+    let err = parse_component_row(
+        None,
+        "Quizzes",
+        ComponentKind::Items,
+        "abc",
+        "x",
+        "y",
+        "z",
+        false,
+        Vec::new(),
+    )
+    .unwrap_err();
+    for field in ["weight", "item_count", "best_count", "item_max"] {
+        assert!(!err.get(field).is_empty(), "{field}");
+    }
+}
+
+/// R35: a band row parses both numbers.
+#[test]
+fn t35_band_row_parses() {
+    assert_eq!(
+        parse_band_row("90", "100").unwrap(),
+        AttendanceBand {
+            min_pct: 90.0,
+            credit_pct: 100.0,
+        }
+    );
+}
+
+/// R35: a band number that is not a number gives an inline error on its field.
+#[test]
+fn t35_band_row_bad_numbers_inline_errors() {
+    let err = parse_band_row("abc", "100").unwrap_err();
+    assert!(!err.get("min").is_empty());
+    assert!(err.get("credit").is_empty());
+    let err = parse_band_row("90", "").unwrap_err();
+    assert!(!err.get("credit").is_empty());
+    assert!(err.get("min").is_empty());
+}
+
+/// R39: a grade row parses its numbers.
+#[test]
+fn t39_grade_row_parses() {
+    assert_eq!(
+        parse_grade_row("A+", "80", "4").unwrap(),
+        GradeRow {
+            letter: "A+".to_string(),
+            min_pct: 80.0,
+            points: 4.0,
+        }
+    );
+}
+
+/// R39: a grade number that is not a number gives an inline error on its field.
+#[test]
+fn t39_grade_row_bad_numbers_inline_errors() {
+    let err = parse_grade_row("A+", "x", "y").unwrap_err();
+    assert!(!err.get("min").is_empty());
+    assert!(!err.get("points").is_empty());
 }
