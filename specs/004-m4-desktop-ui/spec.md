@@ -420,10 +420,12 @@ No new stored entities; the schema is unchanged.
   a 6-week grid (42 days) starting on the Monday on or before the 1st; weekday initials M T W T F S S.
   Each day shows its number; days outside the month are muted. Today is marked with a filled
   terracotta circle. A day with at least one non-cancelled class (pending, attended, or absent)
-  gets a light terracotta highlight and a small terracotta badge with its class count ("9+" above
-  nine); a day with at least one incomplete assessment due shows a small red dot under the number
-  (human decision 2026-10-29, replacing the earlier dot/square markers). A legend explains both
-  (never color alone, DESIGN.md).
+  has no extra marker (the day panel lists its classes). Holidays, including midterm and final exam
+  periods (entered as holidays), get a light terracotta highlight; Saturdays and Sundays get a
+  fainter oat highlight (a holiday on a weekend shows the holiday highlight); a day with at least
+  one incomplete assessment due shows a small red dot under the number (human decision 2026-10-29,
+  replacing the class highlight and count badge). A legend names all three (never color alone,
+  DESIGN.md). Selecting a holiday shows its label (e.g. "Midterm week") in the day panel.
   Archived courses are excluded (R3). Each day cell has an accessible label such as
   "Monday, October 26, 2026, 2 classes, 1 assessment due".
 - Clicking a day selects it (surface-selected fill) and the day panel lists that day's classes
