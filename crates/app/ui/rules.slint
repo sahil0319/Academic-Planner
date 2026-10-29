@@ -25,6 +25,8 @@ export global RulesState {
     in-out property <int> selected-id: -1;
     in-out property <string> set-name;
     in-out property <[ComponentRow]> components;
+    // R34, R35: read-only summary lines of the saved rule set (empty for a new set).
+    in property <[string]> saved-lines;
     // R35: bands of the attendance component; shown when a row is attendance.
     in property <bool> has-attendance;
     in-out property <[BandRow]> bands;
@@ -153,6 +155,18 @@ export component RulesPage inherits VerticalLayout {
         Field {
             label: "Name";
             text <=> RulesState.set-name;
+        }
+
+        if RulesState.saved-lines.length > 0: VerticalLayout {
+            spacing: Theme.space-xs;
+            Caption {
+                text: "Saved rules";
+            }
+            for line in RulesState.saved-lines: Body {
+                text: line;
+                color: Theme.on-surface-muted;
+                font-size: Theme.body-sm-size;
+            }
         }
 
         Caption {

@@ -231,6 +231,7 @@ fn begin_new(_app: &App, ui: &RulesState<'_>) {
     ui.set_set_name(SharedString::new());
     set_components(ui, Vec::new());
     ui.set_bands(bridge::model(Vec::new()));
+    ui.set_saved_lines(bridge::strings(&[]));
     ui.set_form_error(SharedString::new());
     ui.set_selected_id(NEW_SET);
     ui.set_form_open(true);
@@ -250,6 +251,16 @@ fn load_form(ui: &RulesState<'_>, set: &RuleSet) -> Result<(), String> {
         .find(|c| c.kind == ComponentKind::Attendance)
         .map(|c| c.bands.iter().map(vm::band_form_row).collect())
         .unwrap_or_default();
+    // R34, R35: read-only lines of the saved components and attendance bands.
+    let lines: Vec<String> = set
+        .components
+        .iter()
+        .flat_map(|c| {
+            std::iter::once(format!("{}: {}", c.name, vm::component_summary(c)))
+                .chain(c.bands.iter().map(|b| format!("  {}", vm::band_text(b))))
+        })
+        .collect();
+    ui.set_saved_lines(bridge::strings(&lines));
     ui.set_set_name(set.name.as_str().into());
     set_components(ui, rows);
     ui.set_bands(bridge::model(bands.iter().map(bridge::band_row).collect()));
