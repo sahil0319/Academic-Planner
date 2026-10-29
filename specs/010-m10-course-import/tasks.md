@@ -265,7 +265,7 @@ are warnings, nothing is written on error.
   `slot_change_lines` "Ends after …"/"From …" with effective 2026-01-14; `import_report_text`;
   `can_apply` false when no preview, text changed, date changed, errors, or empty plan, true
   otherwise. Confirm they fail on `todo!`. Needs T022
-- [ ] T024 [US4] (builder) [app] Implement crates/app/src/viewmodel/import.rs per
+- [x] T024 [US4] (builder) [app] Implement crates/app/src/viewmodel/import.rs per
   contracts/ui-import.md, reusing `format_date`, `format_time_range`, `weekday_name`, `or_dash`
   from crates/app/src/viewmodel.rs. T023 passes. Needs T023
 - [ ] T025 [US4] (builder) [app] UI and wiring: create crates/app/ui/import.slint (`export global
