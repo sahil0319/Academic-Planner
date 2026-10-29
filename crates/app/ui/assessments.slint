@@ -10,6 +10,7 @@ import {
     SectionCard,
     ListRow,
     Field,
+    TimeField,
     PrimaryButton,
     SecondaryButton,
 } from "components.slint";
@@ -310,9 +311,10 @@ export component AssessmentsPage inherits VerticalLayout {
                 text <=> AssessmentsState.due-date;
                 error: AssessmentsState.due-date-error;
             }
-            Field {
-                label: "Due time (HH:MM)";
+            TimeField {
+                label: "Due time";
                 text <=> AssessmentsState.due-time;
+                pm <=> AssessmentsState.due-time-pm;
                 error: AssessmentsState.due-time-error;
             }
             Field {

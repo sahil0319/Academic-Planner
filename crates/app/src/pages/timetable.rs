@@ -192,8 +192,12 @@ fn select_session(app: &App, id: i32) {
     };
     let s = &view.session;
     g.set_rs_date(vm::format_date_input(s.date).into());
-    g.set_rs_start(vm::format_time(s.start_time).into());
-    g.set_rs_end(vm::format_time(s.end_time).into());
+    let (start_digits, start_pm) = vm::format_time_input(s.start_time);
+    let (end_digits, end_pm) = vm::format_time_input(s.end_time);
+    g.set_rs_start(start_digits.into());
+    g.set_rs_start_pm(start_pm);
+    g.set_rs_end(end_digits.into());
+    g.set_rs_end_pm(end_pm);
     g.set_rs_room(s.room.clone().unwrap_or_default().into());
     g.set_rs_note(SharedString::new());
     clear_reschedule_errors(&g);
@@ -325,7 +329,9 @@ fn begin_add_slot(app: &App, window: &AppWindow) {
     g.set_slot_course(-1);
     g.set_slot_weekday(-1);
     g.set_slot_start(SharedString::new());
+    g.set_slot_start_pm(false);
     g.set_slot_end(SharedString::new());
+    g.set_slot_end_pm(false);
     g.set_slot_room(SharedString::new());
     g.set_slot_from(term_start.into());
     g.set_slot_to(SharedString::new());
@@ -376,8 +382,12 @@ fn begin_edit_slot(app: &App, id: i32) {
     g.set_slot_editing_id(id);
     g.set_slot_course(course_index);
     g.set_slot_weekday(vm::weekday_index(slot.weekday));
-    g.set_slot_start(vm::format_time(slot.start_time).into());
-    g.set_slot_end(vm::format_time(slot.end_time).into());
+    let (start_digits, start_pm) = vm::format_time_input(slot.start_time);
+    let (end_digits, end_pm) = vm::format_time_input(slot.end_time);
+    g.set_slot_start(start_digits.into());
+    g.set_slot_start_pm(start_pm);
+    g.set_slot_end(end_digits.into());
+    g.set_slot_end_pm(end_pm);
     g.set_slot_room(slot.room.unwrap_or_default().into());
     g.set_slot_from(vm::format_date_input(slot.valid_from).into());
     g.set_slot_to(

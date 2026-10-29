@@ -233,6 +233,148 @@ export component Field inherits VerticalLayout {
     }
 }
 
+// One AM or PM segment of `AmPmToggle`. The active segment sits on a surface fill with a border.
+component AmPmSegment inherits Rectangle {
+    in property <string> label;
+    in property <bool> active;
+    callback clicked();
+
+    border-radius: Theme.radius-full;
+    border-width: Theme.border-width;
+    border-color: focus-scope.has-focus ? Theme.primary : root.active ? Theme.border : transparent;
+    background: root.active ? Theme.surface : transparent;
+    accessible-role: button;
+    accessible-label: root.label;
+    accessible-action-default => {
+        root.clicked();
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    // Keyboard access: Tab reaches the segment, Enter or Space activates it.
+    focus-scope := FocusScope {
+        x: 0;
+        width: 0; // clicks go to the TouchArea
+        key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Space {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: Theme.space-sm;
+        padding-right: Theme.space-sm;
+        padding-top: Theme.space-xs;
+        padding-bottom: Theme.space-xs;
+        Text {
+            text: root.label;
+            vertical-alignment: center;
+            color: root.active || touch.has-hover ? Theme.on-surface : Theme.on-surface-muted;
+            font-family: Theme.font-body;
+            font-size: Theme.label-md-size;
+            font-weight: Theme.label-md-weight;
+            accessible-role: none;
+        }
+    }
+}
+
+// R32: AM / PM toggle (`pm` false is AM) for `TimeField`: two segments on a surface-alt pill.
+export component AmPmToggle inherits Rectangle {
+    in-out property <bool> pm;
+
+    width: layout.preferred-width;
+    height: layout.preferred-height;
+    border-radius: Theme.radius-full;
+    background: Theme.surface-alt;
+
+    layout := HorizontalLayout {
+        padding: Theme.border-width * 2;
+        AmPmSegment {
+            label: "AM";
+            active: !root.pm;
+            clicked => {
+                root.pm = false;
+            }
+        }
+        AmPmSegment {
+            label: "PM";
+            active: root.pm;
+            clicked => {
+                root.pm = true;
+            }
+        }
+    }
+}
+
+// FR-007, R32: labelled time input (digits such as 930) with an AM / PM toggle beside it; a
+// non-empty `error` turns the border red and is shown below, like `Field`.
+export component TimeField inherits VerticalLayout {
+    in property <string> label;
+    in-out property <string> text <=> input.text;
+    in-out property <bool> pm <=> toggle.pm;
+    in property <string> error;
+    callback edited(string);
+
+    spacing: Theme.space-xs;
+
+    Text {
+        text: root.label;
+        color: Theme.on-surface-muted;
+        font-family: Theme.font-body;
+        font-size: Theme.label-md-size;
+        font-weight: Theme.label-md-weight;
+    }
+
+    HorizontalLayout {
+        spacing: Theme.space-sm;
+
+        Rectangle {
+            height: Theme.input-height;
+            border-radius: Theme.radius-sm;
+            border-width: Theme.border-width;
+            border-color: root.error != "" ? Theme.error : input.has-focus ? Theme.primary : Theme.border;
+            background: Theme.surface;
+
+            HorizontalLayout {
+                padding-left: Theme.space-sm;
+                padding-right: Theme.space-sm;
+                input := TextInput {
+                    vertical-alignment: center;
+                    color: Theme.on-surface;
+                    font-family: Theme.font-body;
+                    font-size: Theme.body-md-size;
+                    single-line: true;
+                    edited => {
+                        root.edited(self.text);
+                    }
+                }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            toggle := AmPmToggle {}
+        }
+    }
+
+    if root.error != "": Text {
+        text: root.error;
+        color: Theme.error;
+        wrap: word-wrap;
+        font-family: Theme.font-body;
+        font-size: Theme.body-sm-size;
+        font-weight: Theme.body-sm-weight;
+    }
+}
+
 // R11: status pill. The text label is always shown next to the color (DESIGN.md).
 export component StatusChip inherits Rectangle {
     in property <Chip> chip;

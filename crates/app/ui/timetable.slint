@@ -9,6 +9,7 @@ import {
     PrimaryButton,
     SecondaryButton,
     Field,
+    TimeField,
     StatusChip,
     SectionCard,
     ListRow,
@@ -216,14 +217,16 @@ component SessionPanel inherits Rectangle {
                 text <=> TimetableState.rs-date;
                 error: TimetableState.rs-date-error;
             }
-            Field {
-                label: "Start (HH:MM)";
+            TimeField {
+                label: "Start";
                 text <=> TimetableState.rs-start;
+                pm <=> TimetableState.rs-start-pm;
                 error: TimetableState.rs-start-error;
             }
-            Field {
-                label: "End (HH:MM)";
+            TimeField {
+                label: "End";
                 text <=> TimetableState.rs-end;
+                pm <=> TimetableState.rs-end-pm;
                 error: TimetableState.rs-end-error;
             }
             Field {
@@ -355,14 +358,16 @@ component RulesTab inherits VerticalLayout {
         }
         HorizontalLayout {
             spacing: Theme.space-sm;
-            Field {
-                label: "Start (HH:MM)";
+            TimeField {
+                label: "Start";
                 text <=> TimetableState.slot-start;
+                pm <=> TimetableState.slot-start-pm;
                 error: TimetableState.slot-start-error;
             }
-            Field {
-                label: "End (HH:MM)";
+            TimeField {
+                label: "End";
                 text <=> TimetableState.slot-end;
+                pm <=> TimetableState.slot-end-pm;
                 error: TimetableState.slot-end-error;
             }
             Field {
