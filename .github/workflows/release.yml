@@ -42,20 +42,39 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # R28: the updater artifacts (.app.tar.gz, -setup.exe, .AppImage) are signed; the
+          # .sig files feed latest.json in the release job.
           - os: macos-latest
-            formats: dmg
-            files: target/release/*.dmg
+            formats: app,dmg
+            files: |
+              target/release/*.dmg
+              target/release/*.app.tar.gz
+              target/release/*.app.tar.gz.sig
           - os: windows-latest
             formats: nsis
-            files: target/release/*-setup.exe
+            files: |
+              target/release/*-setup.exe
+              target/release/*-setup.exe.sig
           - os: ubuntu-22.04
             formats: deb,appimage
             files: |
               target/release/*.deb
               target/release/*.AppImage
+              target/release/*.AppImage.sig
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
+      # R28: without the signing key no update could be verified, so the build stops here.
+      - name: Check signing secrets
+        shell: bash
+        env:
+          CARGO_PACKAGER_SIGN_PRIVATE_KEY: ${{ secrets.CARGO_PACKAGER_SIGN_PRIVATE_KEY }}
+          CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD: ${{ secrets.CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$CARGO_PACKAGER_SIGN_PRIVATE_KEY" ] || [ -z "$CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD" ]; then
+            echo "::error::Secrets CARGO_PACKAGER_SIGN_PRIVATE_KEY and CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD must both be set"
+            exit 1
+          fi
       - uses: actions/download-artifact@v8
         with:
           name: third-party-notices
@@ -68,6 +87,9 @@ jobs:
       - name: Install cargo-packager
         run: cargo install cargo-packager --locked --version 0.11.8
       - name: Package
+        env:
+          CARGO_PACKAGER_SIGN_PRIVATE_KEY: ${{ secrets.CARGO_PACKAGER_SIGN_PRIVATE_KEY }}
+          CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD: ${{ secrets.CARGO_PACKAGER_SIGN_PRIVATE_KEY_PASSWORD }}
         run: cargo packager -p app --release --formats ${{ matrix.formats }}
       - uses: actions/upload-artifact@v7
         with:
@@ -90,6 +112,18 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+      # GitHub stores asset names with spaces replaced by "."; renaming first keeps the
+      # manifest URLs equal to the uploaded names.
+      - name: Normalize artifact names
+        shell: bash
+        run: |
+          for f in dist/*' '*; do
+            [ -e "$f" ] || continue
+            mv -- "$f" "dist/$(basename "$f" | tr ' ' '.')"
+          done
+      # R27, R28: the updater manifest the app reads from releases/latest/download/latest.json.
+      - name: Write updater manifest
+        run: bash scripts/updater-manifest.sh "$GITHUB_REF_NAME" dist "docs/releases/${GITHUB_REF_NAME}.md" > dist/latest.json
       - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           name: Academic Planner ${{ github.ref_name }}

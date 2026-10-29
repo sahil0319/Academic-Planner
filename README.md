@@ -75,6 +75,16 @@ chmod +x academic-planner_<version>_x86_64.AppImage
 ./academic-planner_<version>_x86_64.AppImage
 ```
 
+## Updates
+
+Academic Planner checks GitHub Releases for a newer published version: once when it starts, if
+"Check for updates when the app starts" is on (About page, on by default), or when you click
+"Check for updates" on the About page. Nothing is downloaded or installed until you click
+"Install" and confirm. Every update is signature-checked before it is installed, and updating
+never changes your data. Installs from the `.deb` package (and builds run from source) open the
+release page instead, so you can download the new version yourself. This update check is the
+only time the app uses the network.
+
 ## Build from source
 
 1. Install Rust 1.90 or later with [rustup](https://rustup.rs).
