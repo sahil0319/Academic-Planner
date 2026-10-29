@@ -268,7 +268,7 @@ rounded pills for status chips.
 - **Section card:** paper card, 10px radius, 1px border, 16px padding, with a serif headline title.
 - **Empty state:** muted body text centered in the section, e.g. "No classes today."
 - **Mini calendar:** a section card with the month name in the headline serif and prev/next
-  secondary buttons; a 7-column grid of 32px day cells starting Monday, weekday initials in label-sm
+  secondary buttons; a 7-column grid of 36px day cells starting Monday, weekday initials in label-sm
   muted. Day numbers in body text; days outside the month muted. Today: a filled terracotta circle
   with white number. Selected day: surface-selected fill. A day with classes gets a
   light terracotta highlight (primary at about 15% opacity) and a small terracotta count badge with a
