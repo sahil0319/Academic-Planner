@@ -191,7 +191,7 @@ fn select_session(app: &App, id: i32) {
         return;
     };
     let s = &view.session;
-    g.set_rs_date(vm::format_date(s.date).into());
+    g.set_rs_date(vm::format_date_input(s.date).into());
     g.set_rs_start(vm::format_time(s.start_time).into());
     g.set_rs_end(vm::format_time(s.end_time).into());
     g.set_rs_room(s.room.clone().unwrap_or_default().into());
@@ -306,7 +306,7 @@ fn begin_add_slot(app: &App, window: &AppWindow) {
     g.set_message(SharedString::new());
     let term_start = match app.planner().active_term() {
         Ok(term) => term
-            .map(|t| vm::format_date(t.start_date))
+            .map(|t| vm::format_date_input(t.start_date))
             .unwrap_or_default(),
         Err(e) => {
             g.set_message(vm::error_text(&e).into());
@@ -373,14 +373,14 @@ fn begin_edit_slot(app: &App, id: i32) {
     g.set_slot_start(vm::format_time(slot.start_time).into());
     g.set_slot_end(vm::format_time(slot.end_time).into());
     g.set_slot_room(slot.room.unwrap_or_default().into());
-    g.set_slot_from(vm::format_date(slot.valid_from).into());
+    g.set_slot_from(vm::format_date_input(slot.valid_from).into());
     g.set_slot_to(
         slot.valid_to
-            .map(vm::format_date)
+            .map(vm::format_date_input)
             .unwrap_or_default()
             .into(),
     );
-    g.set_slot_effective(vm::format_date(app.today()).into());
+    g.set_slot_effective(vm::format_date_input(app.today()).into());
     clear_slot_errors(&g);
     g.set_slot_form_open(true);
 }
@@ -453,7 +453,7 @@ fn begin_end_slot(app: &App, id: i32) {
     g.set_message(SharedString::new());
     g.set_slot_form_open(false);
     g.set_end_slot_id(id);
-    g.set_end_date(vm::format_date(app.today()).into());
+    g.set_end_date(vm::format_date_input(app.today()).into());
     g.set_end_date_error(SharedString::new());
     g.set_end_form_error(SharedString::new());
     g.set_end_form_open(true);

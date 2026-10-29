@@ -52,8 +52,8 @@ fn load_forms(app: &App) {
     match planner.active_term() {
         Ok(Some(term)) => {
             page.set_term_name(term.name.as_str().into());
-            page.set_term_start(vm::format_date(term.start_date).into());
-            page.set_term_end(vm::format_date(term.end_date).into());
+            page.set_term_start(vm::format_date_input(term.start_date).into());
+            page.set_term_end(vm::format_date_input(term.end_date).into());
         }
         Ok(None) => {
             page.set_term_name(SharedString::new());
@@ -218,14 +218,19 @@ fn add_holiday(app: &App) {
 
 /// Human decision §6: removes one holiday date from the active term; R6: then syncs.
 fn remove_holiday(app: &App, date: &str) {
-    let date = match vm::parse_date(date) {
-        Ok(date) => date,
-        Err(e) => return message(app, &e),
-    };
     let term = match app.planner().active_term() {
         Ok(Some(term)) => term,
         Ok(None) => return message(app, &vm::error_text(&Error::NoActiveTerm)),
         Err(e) => return message(app, &vm::error_text(&e)),
+    };
+    // The row passes its display text (`format_date`, one text per date), so match on it.
+    let Some(date) = term
+        .holidays
+        .iter()
+        .map(|h| h.date)
+        .find(|d| vm::format_date(*d) == date)
+    else {
+        return message(app, "This holiday no longer exists");
     };
     let remaining = vm::remove_holiday(&term.holidays, date);
     let saved = app.planner_mut().set_holidays(term.id, &remaining);

@@ -100,13 +100,13 @@ export component SettingsPage inherits VerticalLayout {
             }
 
             Field {
-                label: "Start (YYYY-MM-DD)";
+                label: "Start (DD-MM-YYYY)";
                 text <=> SettingsState.term-start;
                 error: SettingsState.term-start-error;
             }
 
             Field {
-                label: "End (YYYY-MM-DD)";
+                label: "End (DD-MM-YYYY)";
                 text <=> SettingsState.term-end;
                 error: SettingsState.term-end-error;
             }
@@ -167,13 +167,13 @@ export component SettingsPage inherits VerticalLayout {
         HorizontalLayout {
             spacing: Theme.space-md;
             Field {
-                label: "Date or first day (YYYY-MM-DD)";
+                label: "Date or first day (DD-MM-YYYY)";
                 text <=> SettingsState.hol-start;
                 error: SettingsState.hol-start-error;
             }
 
             Field {
-                label: "Last day, optional (YYYY-MM-DD)";
+                label: "Last day, optional (DD-MM-YYYY)";
                 text <=> SettingsState.hol-end;
                 error: SettingsState.hol-end-error;
             }

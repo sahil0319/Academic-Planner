@@ -230,7 +230,7 @@ fn begin_edit(app: &App, id: i32) {
     st.set_course(course_index(app, Some(assessment.course_id)));
     st.set_kind(vm::assessment_kind_index(assessment.kind));
     st.set_title(assessment.title.as_str().into());
-    st.set_due_date(vm::format_date(assessment.due_at.date()).into());
+    st.set_due_date(vm::format_date_input(assessment.due_at.date()).into());
     st.set_due_time(vm::format_time(assessment.due_at.time()).into());
     st.set_notes(assessment.notes.unwrap_or_default().into());
     st.set_remind(

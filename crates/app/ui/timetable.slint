@@ -206,7 +206,7 @@ component SessionPanel inherits Rectangle {
         HorizontalLayout {
             spacing: Theme.space-sm;
             Field {
-                label: "Date (YYYY-MM-DD)";
+                label: "Date (DD-MM-YYYY)";
                 text <=> TimetableState.rs-date;
                 error: TimetableState.rs-date-error;
             }
@@ -367,13 +367,13 @@ component RulesTab inherits VerticalLayout {
         HorizontalLayout {
             spacing: Theme.space-sm;
             if !TimetableState.slot-editing: Field {
-                label: "Valid from (YYYY-MM-DD)";
+                label: "Valid from (DD-MM-YYYY)";
                 text <=> TimetableState.slot-from;
                 error: TimetableState.slot-from-error;
             }
             // R7: the change applies from this date; earlier sessions keep their values.
             if TimetableState.slot-editing: Field {
-                label: "Effective from (YYYY-MM-DD)";
+                label: "Effective from (DD-MM-YYYY)";
                 text <=> TimetableState.slot-effective;
                 error: TimetableState.slot-effective-error;
             }
@@ -409,7 +409,7 @@ component RulesTab inherits VerticalLayout {
         title: "End slot";
 
         Field {
-            label: "Last date (YYYY-MM-DD)";
+            label: "Last date (DD-MM-YYYY)";
             text <=> TimetableState.end-date;
             error: TimetableState.end-date-error;
         }

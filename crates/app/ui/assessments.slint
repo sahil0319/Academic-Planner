@@ -305,7 +305,7 @@ export component AssessmentsPage inherits VerticalLayout {
         HorizontalLayout {
             spacing: Theme.space-md;
             Field {
-                label: "Due date (YYYY-MM-DD)";
+                label: "Due date (DD-MM-YYYY)";
                 text <=> AssessmentsState.due-date;
                 error: AssessmentsState.due-date-error;
             }

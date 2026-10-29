@@ -347,7 +347,7 @@ export component CoursesPage inherits VerticalLayout {
         HorizontalLayout {
             spacing: Theme.space-md;
             Field {
-                label: "Date (YYYY-MM-DD)";
+                label: "Date (DD-MM-YYYY)";
                 text <=> CoursesState.mk-date;
                 error: CoursesState.mk-date-error;
             }
