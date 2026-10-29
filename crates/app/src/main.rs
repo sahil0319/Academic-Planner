@@ -10,6 +10,7 @@ mod controller;
 mod notify;
 mod pages;
 mod restore;
+mod updater;
 mod viewmodel;
 
 use std::rc::Rc;

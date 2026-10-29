@@ -13,6 +13,8 @@ use planner_core::{
     TermInput, ThemeMode,
 };
 
+use crate::updater::InstallKind;
+
 #[cfg(test)]
 mod tests;
 
@@ -1167,4 +1169,81 @@ pub fn parse_date_key(key: &str) -> Option<NaiveDate> {
         return None;
     }
     NaiveDate::parse_from_str(key, "%Y-%m-%d").ok()
+}
+
+// ---- About page and updates (§13.1 UI, R27–R29) ----
+// Contract: `specs/007-m7-updater/contracts/ui-about.md`.
+
+/// R27, R28: where the update flow is, as shown on the About page.
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UpdatePhase {
+    Idle,
+    Checking,
+    UpToDate,
+    Available { version: String },
+    Downloading { received: u64, total: Option<u64> },
+    Installing,
+    CheckFailed,
+    InstallFailed,
+}
+
+/// R27, R28: the About page's update status line, action button, and progress.
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq)]
+pub struct UpdateView {
+    pub status: String,
+    pub action: String,
+    pub action_enabled: bool,
+    pub progress: f32,
+    pub progress_text: String,
+    pub is_error: bool,
+}
+
+/// R27, R28: status text, action label, and progress for `phase`.
+#[allow(dead_code)]
+pub fn update_view(phase: &UpdatePhase) -> UpdateView {
+    let _ = phase;
+    todo!("M7")
+}
+
+/// §13.1 UI: "Version 0.1.1".
+#[allow(dead_code)]
+pub fn version_text(version: &str) -> String {
+    let _ = version;
+    todo!("M7")
+}
+
+/// §13.1 UI: the one-line license statement.
+#[allow(dead_code)]
+pub fn license_text() -> String {
+    todo!("M7")
+}
+
+/// R29: the update banner, e.g. "Version 0.2.0 is available.".
+#[allow(dead_code)]
+pub fn banner_text(version: &str) -> String {
+    let _ = version;
+    todo!("M7")
+}
+
+/// R28: the confirm panel title, e.g. "Install version 0.2.0?".
+#[allow(dead_code)]
+pub fn confirm_title(version: &str) -> String {
+    let _ = version;
+    todo!("M7")
+}
+
+/// R28: the confirm button label for this kind of install.
+#[allow(dead_code)]
+pub fn confirm_label(kind: InstallKind) -> String {
+    let _ = kind;
+    todo!("M7")
+}
+
+/// R28: download progress clamped to 0.0..=1.0, or -1.0 when the total size is unknown.
+#[allow(dead_code)]
+pub fn progress_fraction(received: u64, total: Option<u64>) -> f32 {
+    let _ = (received, total);
+    todo!("M7")
 }
