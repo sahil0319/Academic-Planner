@@ -5,7 +5,7 @@ mod common;
 use common::*;
 use planner_core::{
     AssessmentFilter, AssessmentInput, AssessmentKind, Error, Holiday, Planner, Settings, Status,
-    TermInput, ThemeMode,
+    TermInput, ThemeMode, SCHEMA_VERSION,
 };
 use serde_json::{json, Value};
 
@@ -210,8 +210,8 @@ fn t30_bad_format_rejected_and_db_unchanged() {
 fn t30_newer_schema_version_rejected_and_db_unchanged() {
     assert_all_rejected(vec![
         (
-            "schema_version 2",
-            edited(|doc| doc["schema_version"] = json!(2)),
+            "schema_version one above the app's",
+            edited(|doc| doc["schema_version"] = json!(SCHEMA_VERSION + 1)),
         ),
         (
             "schema_version 99",
@@ -236,7 +236,7 @@ fn t30_newer_schema_version_rejected_and_db_unchanged() {
 #[test]
 fn r22_restore_accepts_equal_and_lower_schema_version() {
     let expected = without_exported_at(&populated().p.export_json(dt(NOW)).unwrap());
-    for version in [1, 0] {
+    for version in 1..=SCHEMA_VERSION {
         let text = edited(|doc| doc["schema_version"] = json!(version));
         let mut p = target();
         p.restore_json(&text)
