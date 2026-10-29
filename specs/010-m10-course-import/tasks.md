@@ -56,7 +56,7 @@ stories are P1; US3 goes first only because US1 and US2 call its parser.
 
 ## Phase 2: Foundational (blocking)
 
-- [ ] T002 (builder) [core] Core types and stubs so tests and the app compile: create
+- [x] T002 (builder) [core] Core types and stubs so tests and the app compile: create
   crates/core/src/import/mod.rs (`impl Planner { preview_import, apply_import }` with the exact
   §13.4 signatures, bodies `todo!("M10")`, doc comments citing R42–R48), crates/core/src/import/types.rs
   (every public type of contracts/core-import.md: `ImportPlan` with `is_empty()`, `ImportIssue`
@@ -79,21 +79,21 @@ are warnings, nothing is written on error.
 
 **Independent test**: `cargo test -p planner-core --test m10_import r42_ t48_`.
 
-- [ ] T003 (tester) [core] Create crates/core/tests/m10_import.rs with helpers: `fresh()` (in-memory
+- [x] T003 (tester) [core] Create crates/core/tests/m10_import.rs with helpers: `fresh()` (in-memory
   planner, no term; M9 seeds rule sets), `with_term(name, start, end)` (active term via
   `save_term`), `add_course(code, archived)`, `add_slot(course, day, start, end, room, from)`,
   `snapshot(&Planner) -> String` (`export_json` at a fixed `NaiveDateTime`), `d("2026-01-14")`,
   and `doc(json!(…))` building import text with `serde_json::json!` (add `serde_json` to
   crates/core `[dev-dependencies]` only if not already reachable; it is a normal dependency, so the
   test can use it directly). Needs T002
-- [ ] T004 [US3] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T004 [US3] (tester) [core] In crates/core/tests/m10_import.rs write
   `t48_errors_collected_with_paths_db_unchanged`: one file with a bad day (`"Mo"` at
   `courses[0].slots[0].day`), end ≤ start (`courses[1].slots[0].end`), a duplicate code
   (`courses[2].code` duplicating `courses[0].code` written as `"cse 4711"` vs `"CSE 4711"`), and an
   unknown rule set (`courses[1].rule_set: "Foo"`); assert `preview_import` returns exactly those
   four errors (by path, any order), empty `add`/`update`/`term`; `apply_import` returns
   `Error::Validation` whose message contains all four paths; `snapshot` unchanged. Needs T003
-- [ ] T005 [US3] (tester) [core] Shape tests in crates/core/tests/m10_import.rs, one test each,
+- [x] T005 [US3] (tester) [core] Shape tests in crates/core/tests/m10_import.rs, one test each,
   asserting the path and that `apply_import` writes nothing: `r42_not_json_is_document_error`
   (path `document`, message has line and column), `r42_root_not_object`, `r42_format_missing_or_wrong`,
   `r42_version_not_1` (`2` and `"1"`), `r42_courses_missing_or_not_list`, `r42_course_not_object`,
@@ -102,7 +102,7 @@ are warnings, nothing is written on error.
   `r42_term_malformed_with_active_term_is_error` (bad `term.start` while an active term exists),
   `r42_term_end_before_start`, `r42_errors_collected_across_courses` (errors in `courses[0]` and
   `courses[3]` both reported). Needs T003
-- [ ] T006 [US3] (tester) [core] Value tests in crates/core/tests/m10_import.rs:
+- [x] T006 [US3] (tester) [core] Value tests in crates/core/tests/m10_import.rs:
   `r42_day_variants_accepted` (`"Mon"`, `"monday"`, `"MONDAY"`, `" Mon "`, `"1"`, `1` all →
   Monday in the planned slot; `"Sun"`, `7` → Sunday), `r42_day_variants_rejected` (`"Mo"`,
   `"Tues"`, `0`, `8`, `"0"`, `1.5`, `true` → error at that `.day` path), `r42_times`
@@ -111,12 +111,12 @@ are warnings, nothing is written on error.
   `r42_credits` (`0`, `-1`, `"3"` rejected; `1.5` accepted), `r42_min_attendance_pct` (`101`, `-1`,
   `75.5`, `"75"` rejected; `0`, `100` accepted), `r42_rule_set_unknown_lists_names` (message
   contains "Theory" and "Lab"). Needs T003
-- [ ] T007 [US3] (tester) [core] Warning tests in crates/core/tests/m10_import.rs:
+- [x] T007 [US3] (tester) [core] Warning tests in crates/core/tests/m10_import.rs:
   `r42_unknown_keys_warn_not_error`: unknown keys at root (`comment`), `term` (`id`), course
   (`teacher`, `notes`, `archived`), and slot (`type`) each produce one warning with its exact path
   (e.g. `courses[0].slots[1].type`), no errors, and the plan is otherwise the same as without
   them; apply succeeds and ignores them (course `notes` unchanged). Needs T003
-- [ ] T008 [US3] (builder) [core] Implement R42 in crates/core/src/import/parse.rs (research
+- [x] T008 [US3] (builder) [core] Implement R42 in crates/core/src/import/parse.rs (research
   D2–D4, D7–D10; contracts/import-format.md): `Value` walk, path builder, tri-state `Field<T>`,
   own `H:MM`/`HH:MM` time parser, day parser, number rules, duplicate detection by normalized code
   (research D6), unknown-key warnings, issue ordering per D4. In crates/core/src/import/plan.rs
@@ -137,7 +137,7 @@ are warnings, nothing is written on error.
 
 **Independent test**: `cargo test -p planner-core --test m10_import t44_ t50_ r47_ r50_`.
 
-- [ ] T009 [US1] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T009 [US1] (tester) [core] In crates/core/tests/m10_import.rs write
   `t44_import_into_db_with_no_term`: file with `term` (2026-01-05 to 2026-05-01) and two courses
   (one with `credits: 3, rule_set: "Theory"`, one with `rule_set: "Lab"`, slots on Mon and Fri);
   `apply_import(json, 2026-01-14, today 2026-01-14)`; assert the active term matches the file, both
@@ -146,20 +146,20 @@ are warnings, nothing is written on error.
   sessions exist on every matching weekday from 2026-01-14 to 2026-05-01 and none before.
   Also `r47_term_required_without_active_term` (no `term` → error at `term`, snapshot unchanged)
   and `r47_term_only_file_creates_term` (`courses: []`). Needs T008
-- [ ] T010 [US1] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T010 [US1] (tester) [core] In crates/core/tests/m10_import.rs write
   `t50_preview_writes_nothing_apply_matches`: on a DB with an active term and one existing course
   not in the file, preview a file that adds two courses with slots; snapshot equal before and after
   preview; then `apply_import` with the same input; assert `report.plan == preview` and the DB
   reflects exactly that plan (counts of courses and slots). The update path of T50 is in T014.
   Also `r48_apply_with_errors_writes_nothing` (Validation error, snapshot unchanged). Needs T008
-- [ ] T011 [US1] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T011 [US1] (tester) [core] In crates/core/tests/m10_import.rs write
   `r50_template_previews_cleanly`: `include_str!("../../../docs/import/template.json")`, preview on
   `fresh()` with effective 2026-01-05: no errors, no warnings, term planned, one course `CSE 4711`
   with two slots. Needs T003
-- [ ] T012 [US1] (builder) [core] Create docs/import/template.json with exactly the
+- [x] T012 [US1] (builder) [core] Create docs/import/template.json with exactly the
   `docs/spec.md` §13.4 example (contracts/import-docs.md), pretty-printed with two-space indent.
   Needs T011
-- [ ] T013 [US1] (builder) [core] Implement the add path and apply: in
+- [x] T013 [US1] (builder) [core] Implement the add path and apply: in
   crates/core/src/import/plan.rs, new-course planning (code as written, trimmed; absent/`null` →
   `None`; slots from E), term planning (R47: create when no active term), `ImportPlan::is_empty`;
   in crates/core/src/import/apply.rs, `apply_import` per contracts/core-import.md "Apply write
@@ -180,7 +180,7 @@ are warnings, nothing is written on error.
 
 **Independent test**: `cargo test -p planner-core --test m10_import t45_ t46_ t47_ t49_ r43_ r44_ r45_ r47_`.
 
-- [ ] T014 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T014 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
   `t45_same_file_twice_is_empty`: apply a file (term + 3 courses, one with `credits: 1.5`, one with
   slots listed out of day order, one with a slot `room`) at E; preview the same text at the same E:
   `is_empty()`, no slot changes, no field changes; snapshot before and after a second
@@ -189,7 +189,7 @@ are warnings, nothing is written on error.
   empty. Also `t50_update_path_apply_matches_preview`: a changed file (one field change and one slot
   change on a matched course): snapshot equal after preview, `report.plan == preview` after apply.
   Needs T013
-- [ ] T015 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T015 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
   `t46_slot_time_change_effective_0114`: term from 2026-01-05, course with Mon 10:30–11:45 imported
   at 2026-01-05 and synced; mark the 2026-01-05 session attended; re-import with Mon 11:00–12:15 at
   effective 2026-01-14, today 2026-01-14; assert sessions dated before 2026-01-14 keep 10:30–11:45
@@ -201,14 +201,14 @@ are warnings, nothing is written on error.
   also exists (R5, R7: non-pending sessions are never removed) and
   `r45_future_slot_also_ended` (OQ-3 default: slot from an earlier import with a later E is ended;
   no duplicate sessions). Needs T013
-- [ ] T016 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T016 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
   `t47_code_match_ignores_case_and_space` (DB `CSE 4711`, file `cse4711` with a new name: one
   course, code still `CSE 4711`, name updated), `t49_course_absent_from_file_unchanged` (DB course
   B with slots and sessions not in the file: course, slots, sessions identical after apply),
   `r43_ambiguous_match_is_error` (OQ-1 default: DB `CSE 4711` and `CSE4711`, file `cse 4711` →
   error at `courses[0].code`), `r43_match_includes_archived` (archived match, no duplicate created).
   Needs T013
-- [ ] T017 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T017 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
   `r44_absent_keeps_null_clears`: existing course with every field set; file A omits `instructor`,
   `room`, `credits`, `rule_set`, `min_attendance_pct`, `name` → plan has no field change and apply
   keeps all; file B sets each to `null` → one `FieldChange` per field with `new` = `None`, apply
@@ -216,23 +216,23 @@ are warnings, nothing is written on error.
   vs stored `3.0`) → no change; `notes` set in the DB is kept in all cases.
   `r44_archived_match_warns_and_stays_archived`: warning at `courses[0]`, fields and slots updated,
   `archived` still true. Needs T013
-- [ ] T018 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T018 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
   `r45_slot_set_equal_any_order_no_change`, `r45_slot_room_difference_is_change` (`null` vs
   `"301"`), `r45_absent_room_equals_null_room`, `r45_empty_slots_ends_all` (`"slots": []` →
   every current slot `valid_to = E − 1`, nothing added, pending sessions from E removed),
   `r45_missing_slots_key_untouched` (field change only; slots identical),
   `r45_duplicate_identical_slots_counted` (file lists the same slot twice vs DB once → change).
   Needs T013
-- [ ] T019 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T019 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
   `r47_active_term_differs_warns` (file term name or dates differ → warning at `term`, active term
   unchanged, no term in plan) and `r47_active_term_equal_no_warning`. Needs T013
-- [ ] T020 [US2] (builder) [core] Implement matching and merge in crates/core/src/import/plan.rs:
+- [x] T020 [US2] (builder) [core] Implement matching and merge in crates/core/src/import/plan.rs:
   load active-term courses including archived, normalized-code index (research D6), ambiguous
   match error (OQ-1 default), `FieldChange` list per research D14 (present and different only;
   absent keep; `null` clear), archived warning, term-differs warning (research D15/D16); in
   crates/core/src/import/apply.rs write changed fields onto the stored course (keep `notes`,
   `archived`, code). Doc comments cite R43, R44, R46, R47. T016, T017, T019 pass. Needs T016, T017, T019
-- [ ] T021 [US2] (builder) [core] Implement R45 in crates/core/src/import/plan.rs and
+- [x] T021 [US2] (builder) [core] Implement R45 in crates/core/src/import/plan.rs and
   crates/core/src/import/apply.rs (research D11): slots valid on E per course, multiset comparison
   of `(weekday, start, end, room)` after sorting, "current" slots = not ended before E (OQ-3
   default), `SlotChange { end, add }` only when different, apply sets `valid_to = E − 1` and

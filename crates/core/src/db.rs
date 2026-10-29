@@ -609,11 +609,11 @@ pub(crate) fn load_term(conn: &Connection, id: i64) -> Result<Term> {
     Ok(Term { holidays, ..term })
 }
 
-const COURSE_COLS: &str =
+pub(crate) const COURSE_COLS: &str =
     "id, term_id, code, name, instructor, room, notes, min_attendance_pct, archived, \
      credits, rule_set_id";
 
-fn course_from_row(r: &Row) -> rusqlite::Result<Course> {
+pub(crate) fn course_from_row(r: &Row) -> rusqlite::Result<Course> {
     Ok(Course {
         id: r.get(0)?,
         term_id: r.get(1)?,

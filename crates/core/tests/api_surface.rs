@@ -74,4 +74,9 @@ fn api_signatures_match_spec_section_5() {
     let _: fn(&mut Planner, &[GradeRow]) -> Result<()> = Planner::save_grade_scale;
     let _: fn(&Planner, i64) -> Result<CourseMarks> = Planner::course_marks;
     let _: fn(&Planner) -> Result<GpaSummary> = Planner::term_gpa;
+
+    // M10 (§13.4)
+    let _: fn(&Planner, &str, NaiveDate) -> Result<ImportPlan> = Planner::preview_import;
+    let _: fn(&mut Planner, &str, NaiveDate, NaiveDate) -> Result<ImportReport> =
+        Planner::apply_import;
 }
