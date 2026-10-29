@@ -15,17 +15,15 @@ What's new in each version is in the [release notes](docs/releases/).
 
 ## Screenshots
 
-![Dashboard with the below-target banner, classes awaiting attendance, and the mini calendar with today's classes](docs/screenshots/dashboard.png)
+Every page comes in a light and a dark appearance; switch with the control in the top-right corner.
 
-![Timetable week view with the week's classes grouped by day](docs/screenshots/timetable.png)
-
-![Courses list with instructor, room, and attendance target for each course](docs/screenshots/courses.png)
-
-![Assessments page with the upcoming filter and the new assessment form](docs/screenshots/assessments.png)
-
-![Settings page with the term, a midterm-week holiday range, and reminder settings](docs/screenshots/settings.png)
-
-![The timetable in dark mode, chosen with the appearance switch in the top-right corner](docs/screenshots/dark-mode.png)
+| | Light | Dark |
+| --- | --- | --- |
+| **Dashboard** | ![Dashboard in light mode: the below-target banner, classes awaiting attendance, and the mini calendar with today's classes](docs/screenshots/dashboard-light.png) | ![Dashboard in dark mode: the below-target banner, classes awaiting attendance, and the mini calendar with today's classes](docs/screenshots/dashboard-dark.png) |
+| **Timetable** | ![Timetable in light mode: the week view with each day's classes](docs/screenshots/timetable-light.png) | ![Timetable in dark mode: the week view with each day's classes](docs/screenshots/timetable-dark.png) |
+| **Courses** | ![Courses in light mode: the course list with instructor, room, and attendance target](docs/screenshots/courses-light.png) | ![Courses in dark mode: the course list with instructor, room, and attendance target](docs/screenshots/courses-dark.png) |
+| **Assessments** | ![Assessments in light mode: upcoming assessments and the new assessment form](docs/screenshots/assessments-light.png) | ![Assessments in dark mode: upcoming assessments and the new assessment form](docs/screenshots/assessments-dark.png) |
+| **Settings** | ![Settings in light mode: the term, a midterm-week holiday range, and reminder settings](docs/screenshots/settings-light.png) | ![Settings in dark mode: the term, a midterm-week holiday range, and reminder settings](docs/screenshots/settings-dark.png) |
 
 ## Download and install
 
