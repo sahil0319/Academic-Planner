@@ -110,3 +110,38 @@ fn t26_newer_schema_version_refused() {
     assert_eq!(user_version(&keep), 2);
     assert!(schema(&keep).is_empty());
 }
+
+/// The names in `dir/backups`, or none when the folder is absent.
+fn backup_names(dir: &Path) -> Vec<String> {
+    match std::fs::read_dir(dir.join("backups")) {
+        Ok(entries) => entries
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
+/// R26, T31: opening a new database file with the real migration list writes no backup.
+#[test]
+fn t31_fresh_file_db_makes_no_backup() {
+    let dir = tempfile::TempDir::new().unwrap();
+    let path = dir.path().join("planner.sqlite");
+
+    let planner = Planner::open(&path).unwrap();
+    drop(planner);
+
+    assert!(path.exists());
+    assert!(backup_names(dir.path()).is_empty());
+}
+
+/// R26, T31: reopening a file database that is already current writes no backup.
+#[test]
+fn t31_current_file_db_reopen_makes_no_backup() {
+    let dir = tempfile::TempDir::new().unwrap();
+    let path = dir.path().join("planner.sqlite");
+
+    drop(Planner::open(&path).unwrap());
+    drop(Planner::open(&path).unwrap());
+
+    assert!(backup_names(dir.path()).is_empty());
+}
