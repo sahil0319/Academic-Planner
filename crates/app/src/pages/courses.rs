@@ -185,6 +185,8 @@ fn clear_makeup_form(ui: &CoursesState<'_>) {
     ] {
         set(ui, SharedString::new());
     }
+    ui.set_mk_start_pm(false);
+    ui.set_mk_end_pm(false);
 }
 
 /// Opens an empty form for a new course.

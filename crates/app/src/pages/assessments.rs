@@ -200,6 +200,7 @@ fn clear_form(app: &App) {
     st.set_title(SharedString::new());
     st.set_due_date(SharedString::new());
     st.set_due_time(SharedString::new());
+    st.set_due_time_pm(false);
     st.set_notes(SharedString::new());
     st.set_remind(SharedString::new());
     // A new assessment offers active courses only; drop an archived course kept for editing.
@@ -231,7 +232,9 @@ fn begin_edit(app: &App, id: i32) {
     st.set_kind(vm::assessment_kind_index(assessment.kind));
     st.set_title(assessment.title.as_str().into());
     st.set_due_date(vm::format_date_input(assessment.due_at.date()).into());
-    st.set_due_time(vm::format_time(assessment.due_at.time()).into());
+    let (time_digits, time_pm) = vm::format_time_input(assessment.due_at.time());
+    st.set_due_time(time_digits.into());
+    st.set_due_time_pm(time_pm);
     st.set_notes(assessment.notes.unwrap_or_default().into());
     st.set_remind(
         assessment
