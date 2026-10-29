@@ -31,7 +31,9 @@ export global TimetableState {
     // Reschedule form of the selected session (R9).
     in-out property <string> rs-date;
     in-out property <string> rs-start;
+    in-out property <bool> rs-start-pm;
     in-out property <string> rs-end;
+    in-out property <bool> rs-end-pm;
     in-out property <string> rs-room;
     in-out property <string> rs-note;
     in property <string> rs-date-error;
@@ -49,7 +51,9 @@ export global TimetableState {
     in-out property <int> slot-course: -1;
     in-out property <int> slot-weekday: -1;
     in-out property <string> slot-start;
+    in-out property <bool> slot-start-pm;
     in-out property <string> slot-end;
+    in-out property <bool> slot-end-pm;
     in-out property <string> slot-room;
     in-out property <string> slot-from;
     in-out property <string> slot-to;
