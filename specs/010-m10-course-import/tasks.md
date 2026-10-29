@@ -56,7 +56,7 @@ stories are P1; US3 goes first only because US1 and US2 call its parser.
 
 ## Phase 2: Foundational (blocking)
 
-- [ ] T002 (builder) [core] Core types and stubs so tests and the app compile: create
+- [x] T002 (builder) [core] Core types and stubs so tests and the app compile: create
   crates/core/src/import/mod.rs (`impl Planner { preview_import, apply_import }` with the exact
   §13.4 signatures, bodies `todo!("M10")`, doc comments citing R42–R48), crates/core/src/import/types.rs
   (every public type of contracts/core-import.md: `ImportPlan` with `is_empty()`, `ImportIssue`
