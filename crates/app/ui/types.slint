@@ -104,4 +104,7 @@ export global AppState {
     in property <string> startup-error;
     // Rust refreshes all pages with a fresh `now`.
     callback page-selected(int);
+    // §6 "Appearance:": appearance switch segment clicked (0 System, 1 Light, 2 Dark). Rust sets
+    // Theme.mode at once and saves the choice in settings.
+    callback theme-selected(int);
 }

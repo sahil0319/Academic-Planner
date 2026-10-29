@@ -1,9 +1,9 @@
 // Main window: left navigation and the current page (docs/spec.md §6, FR-004), or only the
 // startup error when the database cannot be opened (FR-008).
-import { ScrollView } from "std-widgets.slint";
+import { ScrollView, Palette } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { AppState } from "types.slint";
-import { NavItem, PageTitle } from "components.slint";
+import { NavItem, PageTitle, AppearanceSwitch } from "components.slint";
 import { DashboardPage, DashboardState } from "dashboard.slint";
 import { TimetablePage, TimetableState } from "timetable.slint";
 import { CoursesPage, CoursesState } from "courses.slint";
@@ -23,6 +23,8 @@ export {
     AppState,
 } from "types.slint";
 export { DashboardState, TimetableState, CoursesState, AssessmentsState, SettingsState }
+// Rust sets Theme.mode and the std-widgets color scheme (§6 "Appearance:").
+export { Theme, Palette }
 
 export component AppWindow inherits Window {
     title: "Academic Planner";
@@ -115,6 +117,27 @@ export component AppWindow inherits Window {
                     if AppState.current-page == 4: SettingsPage { }
                 }
             }
+
+            // §6 "Appearance:": fixed in the content area's top-right corner; it does not scroll
+            // and sits in the title row, whose page title is on the left.
+            AppearanceSwitch {
+                x: parent.width - self.width - Theme.space-lg;
+                y: Theme.space-lg;
+                selected: Theme.mode;
+                select(i) => {
+                    AppState.theme-selected(i);
+                }
+            }
+        }
+    }
+
+    // §6 "Appearance:": the switch also shows on the startup error screen.
+    if AppState.startup-error != "": AppearanceSwitch {
+        x: parent.width - self.width - Theme.space-lg;
+        y: Theme.space-lg;
+        selected: Theme.mode;
+        select(i) => {
+            AppState.theme-selected(i);
         }
     }
 }

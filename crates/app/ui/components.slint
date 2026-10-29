@@ -359,3 +359,102 @@ export component PageTitle inherits Text {
     font-size: Theme.title-lg-size;
     font-weight: Theme.title-lg-weight;
 }
+
+// One icon segment of the appearance switch (DESIGN.md "Appearance switch"). `icon` holds SVG
+// path commands in a 16 x 16 view box; the icon is stroked, never filled.
+component AppearanceSegment inherits Rectangle {
+    in property <string> label;
+    in property <string> icon;
+    in property <bool> active;
+    callback clicked();
+
+    width: Theme.appearance-segment;
+    height: Theme.appearance-segment;
+    border-radius: Theme.radius-full;
+    border-width: Theme.border-width;
+    border-color: focus-scope.has-focus ? Theme.primary : root.active ? Theme.border : transparent;
+    background: root.active ? Theme.surface : transparent;
+    accessible-role: button;
+    accessible-label: root.label;
+    accessible-action-default => {
+        root.clicked();
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    // Keyboard access: Tab reaches the segment, Enter or Space activates it.
+    focus-scope := FocusScope {
+        x: 0;
+        width: 0; // clicks go to the TouchArea
+        key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Space {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    Path {
+        x: (root.width - self.width) / 2;
+        y: (root.height - self.height) / 2;
+        width: Theme.appearance-icon;
+        height: Theme.appearance-icon;
+        viewbox-width: 16;
+        viewbox-height: 16;
+        commands: root.icon;
+        fill: transparent;
+        stroke: root.active || touch.has-hover ? Theme.on-surface : Theme.on-surface-muted;
+        stroke-width: Theme.appearance-icon-stroke;
+        accessible-role: none;
+    }
+}
+
+// Three-way System / Light / Dark switch (§6 "Appearance:", DESIGN.md "Appearance switch"):
+// monitor, sun, and moon segments on a surface-alt pill. `selected` is 0 System, 1 Light, 2 Dark;
+// `select(i)` reports the clicked segment and Rust applies and saves it.
+export component AppearanceSwitch inherits Rectangle {
+    in property <int> selected;
+    callback select(int);
+
+    width: layout.preferred-width;
+    height: layout.preferred-height;
+    border-radius: Theme.radius-full;
+    background: Theme.surface-alt;
+
+    layout := HorizontalLayout {
+        padding: Theme.border-width * 2;
+        AppearanceSegment {
+            label: "Use system appearance";
+            // Monitor: screen, neck, and base.
+            icon: "M 2 3 L 14 3 L 14 11 L 2 11 Z M 8 11 L 8 13.5 M 5.5 13.5 L 10.5 13.5";
+            active: root.selected == 0;
+            clicked => {
+                root.select(0);
+            }
+        }
+        AppearanceSegment {
+            label: "Light";
+            // Sun: a circle with eight rays.
+            icon: "M 11 8 A 3 3 0 1 1 5 8 A 3 3 0 1 1 11 8 Z M 8 1.5 L 8 3 M 8 13 L 8 14.5 M 1.5 8 L 3 8 M 13 8 L 14.5 8 M 3.4 3.4 L 4.5 4.5 M 11.5 11.5 L 12.6 12.6 M 3.4 12.6 L 4.5 11.5 M 11.5 4.5 L 12.6 3.4";
+            active: root.selected == 1;
+            clicked => {
+                root.select(1);
+            }
+        }
+        AppearanceSegment {
+            label: "Dark";
+            // Moon: a crescent.
+            icon: "M 13.5 10 A 6 6 0 1 1 6 2.5 A 4.8 4.8 0 0 0 13.5 10 Z";
+            active: root.selected == 2;
+            clicked => {
+                root.select(2);
+            }
+        }
+    }
+}

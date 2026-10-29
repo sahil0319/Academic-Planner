@@ -48,6 +48,17 @@ fn main() -> anyhow::Result<()> {
             window
                 .global::<AppState>()
                 .set_startup_error(viewmodel::error_text(&e).into());
+            // §6 "Appearance:": the switch works on this screen too; with no database the choice
+            // is shown but not saved.
+            bridge::apply_theme(&window, planner_core::ThemeMode::System);
+            let weak = window.as_weak();
+            window.global::<AppState>().on_theme_selected(move |index| {
+                if let (Some(window), Some(theme)) =
+                    (weak.upgrade(), viewmodel::theme_from_index(index))
+                {
+                    bridge::apply_theme(&window, theme);
+                }
+            });
             None
         }
         Ok((planner, path)) => {
@@ -64,6 +75,15 @@ fn main() -> anyhow::Result<()> {
                     app.refresh_all();
                 }
             });
+            let weak = Rc::downgrade(&app);
+            window.global::<AppState>().on_theme_selected(move |index| {
+                if let Some(app) = weak.upgrade() {
+                    app.select_theme(index);
+                }
+            });
+
+            // §5 Settings theme: show the saved appearance before the first frame.
+            app.load_theme();
 
             // R6: sync on app start, then fill every page.
             app.changed(true);

@@ -6,7 +6,7 @@ use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::rc::{Rc, Weak};
 
-use planner_core::Error;
+use planner_core::{Error, Settings};
 use slint::{ComponentHandle, SharedString};
 
 use crate::controller::App;
@@ -264,7 +264,14 @@ fn save_settings(app: &App) {
     };
     page.set_reminder_error(SharedString::new());
     page.set_window_error(SharedString::new());
-    let saved = app.planner_mut().save_settings(&settings);
+    // §5 Settings theme: the form has no theme field, so the saved theme is kept.
+    let current = app.planner().settings();
+    let saved = current.and_then(|current| {
+        app.planner_mut().save_settings(&Settings {
+            theme: current.theme,
+            ..settings
+        })
+    });
     match saved {
         Err(e) => page.set_settings_form_error(vm::error_text(&e).into()),
         Ok(()) => {
@@ -352,6 +359,8 @@ fn restore_confirm(app: &App) {
     }
     changed_with_note(app, true, &vm::restored_message(&copy));
     load_forms(app);
+    // §5 Settings theme: the restored backup carries its own theme.
+    app.load_theme();
 }
 
 /// R23: writes `attendance.csv` and `assessments.csv` to a folder picked in a dialog. Cancel does

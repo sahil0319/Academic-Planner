@@ -445,7 +445,8 @@ pub fn parse_holiday_form(start: &str, end: &str, label: &str) -> Result<Vec<Hol
     })
 }
 
-/// Checks `reminder` and `window` via [`parse_count`].
+/// Checks `reminder` and `window` via [`parse_count`]. The form has no theme field: the result
+/// carries the default `theme`, and the caller keeps the saved one (§5 Settings theme).
 pub fn parse_settings_form(
     reminder_minutes: &str,
     window_days: &str,
@@ -706,18 +707,24 @@ pub fn assessment_kind_from_index(i: i32) -> Option<AssessmentKind> {
     }
 }
 
-/// Appearance switch segment for a theme mode: System 0, Light 1, Dark 2.
-#[allow(dead_code)]
+/// §5 Settings theme, §6 "Appearance:": appearance switch segment for a theme mode: System 0,
+/// Light 1, Dark 2 (also the value of `Theme.mode` in `ui/theme.slint`).
 pub fn theme_index(mode: ThemeMode) -> i32 {
-    let _ = mode;
-    todo!("M4 dark mode: theme_index")
+    match mode {
+        ThemeMode::System => 0,
+        ThemeMode::Light => 1,
+        ThemeMode::Dark => 2,
+    }
 }
 
-/// Theme mode for an appearance switch segment; `None` when out of range.
-#[allow(dead_code)]
+/// §5 Settings theme: theme mode for an appearance switch segment; `None` when out of range.
 pub fn theme_from_index(i: i32) -> Option<ThemeMode> {
-    let _ = i;
-    todo!("M4 dark mode: theme_from_index")
+    match i {
+        0 => Some(ThemeMode::System),
+        1 => Some(ThemeMode::Light),
+        2 => Some(ThemeMode::Dark),
+        _ => None,
+    }
 }
 
 /// Inverse of [`assessment_kind_from_index`].

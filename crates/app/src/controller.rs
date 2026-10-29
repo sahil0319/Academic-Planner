@@ -12,7 +12,7 @@ use slint::{ComponentHandle, SharedString};
 
 use crate::viewmodel::{self, FilterChoice};
 use crate::{
-    notify, pages, AppState, AppWindow, AssessmentsState, CoursesState, DashboardState,
+    bridge, notify, pages, AppState, AppWindow, AssessmentsState, CoursesState, DashboardState,
     SettingsState, TimetableState,
 };
 
@@ -202,6 +202,38 @@ impl App {
         match due {
             Ok(reminders) => reminders.iter().for_each(notify::show),
             Err(e) => self.show_message(&viewmodel::error_text(&e)),
+        }
+    }
+
+    /// §5 Settings theme: shows the saved theme (on start and after a restore). A read error is
+    /// shown in the current page's message and the theme stays as it is.
+    pub fn load_theme(&self) {
+        let Some(window) = self.window() else {
+            return;
+        };
+        let settings = self.planner().settings();
+        match settings {
+            Ok(settings) => bridge::apply_theme(&window, settings.theme),
+            Err(e) => self.show_message(&viewmodel::error_text(&e)),
+        }
+    }
+
+    /// §6 "Appearance:": the switch segment `index` was clicked. Applies the theme at once, then
+    /// saves it with the other settings unchanged. A save error is shown in the current page's
+    /// message; the theme stays applied for this session.
+    pub fn select_theme(&self, index: i32) {
+        let (Some(window), Some(theme)) = (self.window(), viewmodel::theme_from_index(index))
+        else {
+            return;
+        };
+        bridge::apply_theme(&window, theme);
+        let current = self.planner().settings();
+        let saved = current.and_then(|settings| {
+            self.planner_mut()
+                .save_settings(&planner_core::Settings { theme, ..settings })
+        });
+        if let Err(e) = saved {
+            self.show_message(&viewmodel::error_text(&e));
         }
     }
 

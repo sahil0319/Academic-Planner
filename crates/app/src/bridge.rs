@@ -1,18 +1,30 @@
 //! Bridge: view-model rows to the Slint structs of `ui/types.slint` (contracts/ui-bridge.md,
 //! research R-D18). Field copies only; all formatting happens in `viewmodel.rs`.
 
-use planner_core::Status;
-use slint::{ModelRc, SharedString, VecModel};
+use planner_core::{Status, ThemeMode};
+use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 
 use crate::viewmodel::{self as vm, ChipKind};
 use crate::{
-    AssessmentRow, CalendarDay, CalendarWeek, Chip, CourseRow, DayGroup, HolidayRow, SessionRow,
-    SlotRow, StatusAction, SummaryView,
+    AppWindow, AssessmentRow, CalendarDay, CalendarWeek, Chip, CourseRow, DayGroup, HolidayRow,
+    Palette, SessionRow, SlotRow, StatusAction, SummaryView, Theme,
 };
 
 /// R-D18: Slint `int` is `i32`; an id that does not fit is reported, never truncated.
 pub fn id(value: i64) -> Result<i32, String> {
     i32::try_from(value).map_err(|_| format!("Record id {value} is too large to show"))
+}
+
+/// §5 Settings theme, §6 "Appearance:": shows `mode` at once. Sets `Theme.mode` (the switch
+/// segment and every color token) and the std-widgets color scheme; System sets `unknown`, so
+/// the std widgets follow the operating system.
+pub fn apply_theme(window: &AppWindow, mode: ThemeMode) {
+    window.global::<Theme>().set_mode(vm::theme_index(mode));
+    window.global::<Palette>().set_color_scheme(match mode {
+        ThemeMode::System => slint::language::ColorScheme::Unknown,
+        ThemeMode::Light => slint::language::ColorScheme::Light,
+        ThemeMode::Dark => slint::language::ColorScheme::Dark,
+    });
 }
 
 /// R11: chip colors of a status.
