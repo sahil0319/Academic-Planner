@@ -19,7 +19,7 @@ mod tests;
 /// Shown for a missing value (R13: never `0%` or `NaN`).
 const DASH: &str = "\u{2014}";
 /// FR-007: the error states the expected date format.
-const DATE_FORMAT_ERR: &str = "Use YYYY-MM-DD, e.g. 2026-10-29";
+const DATE_FORMAT_ERR: &str = "Use DD-MM-YYYY, e.g. 29-10-2026";
 /// FR-007: the error states the expected time format.
 const TIME_FORMAT_ERR: &str = "Use HH:MM, e.g. 09:30";
 const WHOLE_NUMBER_ERR: &str = "Enter a whole number";
@@ -83,22 +83,28 @@ pub fn can_mark_attendance(view: &SessionView) -> bool {
 
 // ---- Dates and times ----
 
-/// `2026-10-29`.
+/// Long display form, `October 29, 2026` (day not zero-padded; §6 date format change).
 pub fn format_date(d: NaiveDate) -> String {
-    d.format("%Y-%m-%d").to_string()
+    d.format("%B %-d, %Y").to_string()
 }
 
 /// `26-10-2026` (zero-padded `DD-MM-YYYY`) for pre-filling date fields (§6 date format change).
-#[allow(dead_code)] // stub: builder wires it into the UI and removes this
-pub fn format_date_input(_d: NaiveDate) -> String {
-    todo!("M4 date format change: DD-MM-YYYY pre-fill text")
+pub fn format_date_input(d: NaiveDate) -> String {
+    d.format("%d-%m-%Y").to_string()
 }
 
 /// Rewrites a trailing ISO date in core's `display_status`
 /// (`Rescheduled → 2026-01-13` becomes `Rescheduled → January 13, 2026`); other labels unchanged.
-#[allow(dead_code)] // stub: builder wires it into the UI and removes this
-pub fn display_status_text(_raw: &str) -> String {
-    todo!("M4 date format change: long date in the status label")
+/// T09: core keeps the ISO text; only the app shows the long form.
+pub fn display_status_text(raw: &str) -> String {
+    const ISO_LEN: usize = 10;
+    if raw.len() >= ISO_LEN && raw.is_char_boundary(raw.len() - ISO_LEN) {
+        let (head, tail) = raw.split_at(raw.len() - ISO_LEN);
+        if let Ok(date) = NaiveDate::parse_from_str(tail, "%Y-%m-%d") {
+            return format!("{head}{}", format_date(date));
+        }
+    }
+    raw.to_string()
 }
 
 /// `09:05` (seconds dropped).
@@ -111,9 +117,9 @@ pub fn format_time_range(start: NaiveTime, end: NaiveTime) -> String {
     format!("{}\u{2013}{}", format_time(start), format_time(end))
 }
 
-/// `2026-10-30 23:59`.
+/// `October 30, 2026, 23:59` (long date, comma, 24-hour time).
 pub fn format_datetime(dt: NaiveDateTime) -> String {
-    dt.format("%Y-%m-%d %H:%M").to_string()
+    format!("{}, {}", format_date(dt.date()), format_time(dt.time()))
 }
 
 /// `Monday` … `Sunday`.
@@ -149,19 +155,23 @@ pub fn weekday_index(w: Weekday) -> i32 {
     w.num_days_from_monday() as i32
 }
 
-/// Strict `YYYY-MM-DD` after trimming (FR-007).
+/// Strict `DD-MM-YYYY` after trimming (FR-007, §6 date format change): `-` separator, 1 or 2
+/// digit day and month, 4-digit year; the date must exist.
 pub fn parse_date(text: &str) -> Result<NaiveDate, String> {
-    let s = text.trim();
-    let b = s.as_bytes();
-    let shape_ok = b.len() == 10
-        && b.iter().enumerate().all(|(i, c)| match i {
-            4 | 7 => *c == b'-',
-            _ => c.is_ascii_digit(),
-        });
-    if !shape_ok {
-        return Err(DATE_FORMAT_ERR.to_string());
+    let err = || DATE_FORMAT_ERR.to_string();
+    let parts: Vec<&str> = text.trim().split('-').collect();
+    let [day, month, year] = parts.as_slice() else {
+        return Err(err());
+    };
+    let digits =
+        |p: &str, lens: &[usize]| lens.contains(&p.len()) && p.bytes().all(|c| c.is_ascii_digit());
+    if !(digits(day, &[1, 2]) && digits(month, &[1, 2]) && digits(year, &[4])) {
+        return Err(err());
     }
-    NaiveDate::parse_from_str(s, "%Y-%m-%d").map_err(|_| DATE_FORMAT_ERR.to_string())
+    let day: u32 = day.parse().map_err(|_| err())?;
+    let month: u32 = month.parse().map_err(|_| err())?;
+    let year: i32 = year.parse().map_err(|_| err())?;
+    NaiveDate::from_ymd_opt(year, month, day).ok_or_else(err)
 }
 
 /// Blank is `Ok(None)`; otherwise as [`parse_date`].
@@ -528,7 +538,8 @@ pub struct SessionRow {
     pub note: String,
 }
 
-/// R11, R12: builds a session row; the status label keeps core's `display_status`.
+/// R11, R12: builds a session row; the status label is core's `display_status` with its date
+/// part in the long form ([`display_status_text`]).
 pub fn session_row(view: &SessionView) -> SessionRow {
     let s = &view.session;
     SessionRow {
@@ -538,7 +549,7 @@ pub fn session_row(view: &SessionView) -> SessionRow {
         time: format_time_range(s.start_time, s.end_time),
         course: format!("{} \u{b7} {}", view.course_code, view.course_name),
         room: or_dash(s.room.as_deref()),
-        status_label: view.display_status.clone(),
+        status_label: display_status_text(&view.display_status),
         chip: chip_kind(s.status),
         can_mark: can_mark_attendance(view),
         note: s.note.clone().unwrap_or_default(),
@@ -776,13 +787,22 @@ pub fn shift_week(week_start: NaiveDate, weeks: i64) -> NaiveDate {
     week_start + Duration::weeks(weeks)
 }
 
-/// `2026-10-26 – 2026-11-01` (en dash with spaces).
+/// Week range with an en dash and spaces (human decision 2026-10-29): `October 5 – 11, 2026`
+/// within one month, `October 26 – November 1, 2026` when the month changes, and
+/// `December 28, 2026 – January 3, 2027` when the year changes.
 pub fn week_title(week_start: NaiveDate) -> String {
-    format!(
-        "{} \u{2013} {}",
-        format_date(week_start),
-        format_date(week_end(week_start))
-    )
+    let end = week_end(week_start);
+    let start_text = if week_start.year() != end.year() {
+        format_date(week_start)
+    } else {
+        week_start.format("%B %-d").to_string()
+    };
+    let end_text = if week_start.year() == end.year() && week_start.month() == end.month() {
+        end.format("%-d, %Y").to_string()
+    } else {
+        format_date(end)
+    };
+    format!("{start_text} \u{2013} {end_text}")
 }
 
 /// Sessions of one day.
@@ -792,7 +812,8 @@ pub struct DayGroup {
     pub rows: Vec<SessionRow>,
 }
 
-/// One group per distinct date in date order, keeping input order inside a day.
+/// One group per distinct date in date order, keeping input order inside a day; titles read
+/// `Monday, October 26, 2026`.
 pub fn group_week(views: &[SessionView]) -> Vec<DayGroup> {
     let mut by_date: BTreeMap<NaiveDate, Vec<SessionRow>> = BTreeMap::new();
     for view in views {
@@ -804,7 +825,7 @@ pub fn group_week(views: &[SessionView]) -> Vec<DayGroup> {
     by_date
         .into_iter()
         .map(|(date, rows)| DayGroup {
-            title: format!("{} {}", weekday_name(date.weekday()), format_date(date)),
+            title: format!("{}, {}", weekday_name(date.weekday()), format_date(date)),
             rows,
         })
         .collect()
