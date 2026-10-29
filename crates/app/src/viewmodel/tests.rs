@@ -1610,6 +1610,19 @@ fn month_grid_has_class_and_has_due_flags() {
     assert!(!cell(&grid, "2026-10-27").has_due);
 }
 
+/// §6 mini calendar change (class badge): a class day shows its class count; no classes shows
+/// nothing; more than nine shows "9+" so the badge stays small.
+#[test]
+fn month_grid_class_badge_counts_classes() {
+    let mut classes = vec![d(2026, 10, 26), d(2026, 10, 26), d(2026, 10, 28)];
+    classes.extend(std::iter::repeat_n(d(2026, 10, 30), 10));
+    let grid = month_grid(d(2026, 10, 1), d(2026, 10, 29), d(2026, 10, 29), &classes, &[]);
+    assert_eq!(cell(&grid, "2026-10-26").class_badge, "2");
+    assert_eq!(cell(&grid, "2026-10-28").class_badge, "1");
+    assert_eq!(cell(&grid, "2026-10-30").class_badge, "9+");
+    assert_eq!(cell(&grid, "2026-10-27").class_badge, "");
+}
+
 /// §6 mini calendar change: the accessible label is the long date, then ", today", then counts.
 #[test]
 fn month_grid_label_plain_day() {

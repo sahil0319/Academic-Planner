@@ -270,9 +270,10 @@ rounded pills for status chips.
 - **Mini calendar:** a section card with the month name in the headline serif and prev/next
   secondary buttons; a 7-column grid of 32px day cells starting Monday, weekday initials in label-sm
   muted. Day numbers in body text; days outside the month muted. Today: a filled terracotta circle
-  with white number. Selected day: surface-selected fill. Under the number, up to two 4px markers
-  with distinct shapes, never color alone: a round dot for classes and a small square for an
-  assessment due, explained by a one-line legend under the grid.
+  with white number. Selected day: surface-selected fill. A day with classes gets a
+  light terracotta highlight (primary at about 15% opacity) and a small terracotta count badge with a
+  white number in its top-right corner; a day with an assessment due shows a 4px error-red dot under
+  the number. A one-line legend under the grid names both, so meaning never rests on color alone.
 
 ## Do's and Don'ts
 
