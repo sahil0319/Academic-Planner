@@ -12,5 +12,6 @@
   - M4: no file-DB test for pre-restore copy (Q1 = B); same-minute suffix -2/-3; tick skips Settings refresh; only P1 critique items fixed (critique 22/40; P2 in design-review.md).
   - M5: due window fire_at <= now < max(T, fire_at + 1 min); missed reminders skipped; notifications off = no check; titles in core; clippy.toml allow-invalid on chrono bans.
   - M6: draft release on tag v*; tag/version check; placeholder solid-terracotta icon; DMG Apple Silicon only; notices generated (git-ignored) and bundled.
-- Follow-ups (not required by spec): P2 critique items (timetable single card, nav hover token, custom toggle/checkbox instead of Fluent blue); real app icon.
+- Follow-ups (not required by spec): P2 critique items (timetable single card, nav hover token, custom toggle/checkbox instead of Fluent blue).
+- App icon: real icon from the human (Gemini), corners made transparent and fitted to the macOS 824/1024 grid; icon.png is 512 px (cargo-packager icns needs it), master in crates/app/icons/icon-1024.png.
 - Notes: rustc 1.90; Slint 1.16 (fluent-light); rusqlite 0.41; rfd 0.17.2; notify-rust 4.18.2; cargo-packager 0.11.8; cargo-about 0.9.3 (target/tools).
