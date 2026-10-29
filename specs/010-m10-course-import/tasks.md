@@ -156,7 +156,7 @@ are warnings, nothing is written on error.
   `r50_template_previews_cleanly`: `include_str!("../../../docs/import/template.json")`, preview on
   `fresh()` with effective 2026-01-05: no errors, no warnings, term planned, one course `CSE 4711`
   with two slots. Needs T003
-- [ ] T012 [US1] (builder) [core] Create docs/import/template.json with exactly the
+- [x] T012 [US1] (builder) [core] Create docs/import/template.json with exactly the
   `docs/spec.md` §13.4 example (contracts/import-docs.md), pretty-printed with two-space indent.
   Needs T011
 - [ ] T013 [US1] (builder) [core] Implement the add path and apply: in

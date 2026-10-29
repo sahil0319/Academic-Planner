@@ -1,0 +1,16 @@
+{
+  "format": "academic-planner-courses",
+  "version": 1,
+  "term": { "name": "Semester 7", "start": "2026-01-05", "end": "2026-05-01" },
+  "courses": [
+    {
+      "code": "CSE 4711", "name": "Artificial Intelligence",
+      "credits": 3, "rule_set": "Theory",
+      "instructor": null, "room": null, "min_attendance_pct": 75,
+      "slots": [
+        { "day": "Mon", "start": "10:30", "end": "11:45", "room": null },
+        { "day": "Fri", "start": "14:30", "end": "15:45" }
+      ]
+    }
+  ]
+}
