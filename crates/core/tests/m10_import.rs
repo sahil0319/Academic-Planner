@@ -1178,6 +1178,8 @@ fn r44_archived_match_warns_and_stays_archived() {
     let stored = course_by_code(&p, "CSE 4711");
     assert_eq!(stored.name, "Renamed");
     assert!(stored.archived);
+    // R3 and R44: `list_slots` hides slots of archived courses, so unarchive before reading them.
+    p.set_archived(course.id, false).unwrap();
     let slots = slots_of(&p, course.id, EFFECTIVE);
     assert_eq!(slots.len(), 1);
     assert_eq!(slots[0].weekday, Weekday::Tue);
