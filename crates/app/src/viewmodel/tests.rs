@@ -1833,3 +1833,242 @@ fn theme_from_index_maps_segments() {
     assert_eq!(theme_from_index(-1), None);
     assert_eq!(theme_from_index(3), None);
 }
+
+// ---- M7: updater view model (contracts/ui-about.md; R27, R28, R29) ----
+
+fn view(phase: UpdatePhase) -> UpdateView {
+    update_view(&phase)
+}
+
+/// R25, R26: the startup error screen names the pre-migration copy through `error_text`.
+#[test]
+fn error_text_names_pre_migrate_backup_path() {
+    let path = "/x/backups/pre-migrate-v1-to-v2.sqlite";
+    let e = Error::MigrationFailed {
+        version: 2,
+        at: 1,
+        backup: Some(PathBuf::from(path)),
+        source: rusqlite::Error::QueryReturnedNoRows,
+    };
+    let text = error_text(&e);
+    assert!(text.contains(path), "text does not name the copy: {text}");
+}
+
+/// R27: Idle shows no status and offers "Check for updates".
+#[test]
+fn update_view_idle() {
+    let u = view(UpdatePhase::Idle);
+    assert_eq!(u.status, "");
+    assert_eq!(u.action, "Check for updates");
+    assert!(u.action_enabled);
+    assert!(!u.is_error);
+}
+
+/// R27: Checking shows its status and disables the button.
+#[test]
+fn update_view_checking() {
+    let u = view(UpdatePhase::Checking);
+    assert_eq!(u.status, "Checking for updates…");
+    assert_eq!(u.action, "Check for updates");
+    assert!(!u.action_enabled);
+    assert!(!u.is_error);
+}
+
+/// R27: UpToDate says so and offers another check.
+#[test]
+fn update_view_up_to_date() {
+    let u = view(UpdatePhase::UpToDate);
+    assert_eq!(u.status, "You're up to date.");
+    assert_eq!(u.action, "Check for updates");
+    assert!(u.action_enabled);
+    assert!(!u.is_error);
+}
+
+/// R27, R28: Available names the version and offers "Install".
+#[test]
+fn update_view_available() {
+    let u = view(UpdatePhase::Available {
+        version: "0.2.0".into(),
+    });
+    assert_eq!(u.status, "Version 0.2.0 is available.");
+    assert_eq!(u.action, "Install");
+    assert!(u.action_enabled);
+    assert!(!u.is_error);
+}
+
+/// R28: Downloading starts its status with "Downloading…", keeps "Install" disabled, and
+/// carries the progress fraction and text.
+#[test]
+fn update_view_downloading() {
+    let u = view(UpdatePhase::Downloading {
+        received: 42,
+        total: Some(100),
+    });
+    assert!(
+        u.status.starts_with("Downloading…"),
+        "status was {:?}",
+        u.status
+    );
+    assert_eq!(u.action, "Install");
+    assert!(!u.action_enabled);
+    assert!(!u.is_error);
+    assert!((u.progress - 0.42).abs() < 1e-6, "progress {}", u.progress);
+    assert_eq!(u.progress_text, "Downloading… 42%");
+}
+
+/// R28: with an unknown total the progress is -1.0 and the text has no percentage.
+#[test]
+fn update_view_downloading_unknown_total() {
+    let u = view(UpdatePhase::Downloading {
+        received: 42,
+        total: None,
+    });
+    assert_eq!(u.progress, -1.0);
+    assert_eq!(u.progress_text, "Downloading…");
+    assert!(!u.action_enabled);
+}
+
+/// R28: Installing shows its status and disables "Install".
+#[test]
+fn update_view_installing() {
+    let u = view(UpdatePhase::Installing);
+    assert_eq!(u.status, "Installing…");
+    assert_eq!(u.action, "Install");
+    assert!(!u.action_enabled);
+    assert!(!u.is_error);
+}
+
+/// R27: a failed check says "Couldn't check for updates", offers "Retry", and is an error.
+#[test]
+fn update_view_check_failed() {
+    let u = view(UpdatePhase::CheckFailed);
+    assert_eq!(u.status, "Couldn't check for updates");
+    assert_eq!(u.action, "Retry");
+    assert!(u.action_enabled);
+    assert!(u.is_error);
+}
+
+/// R28: a failed install says nothing was changed, offers "Retry", and is an error.
+#[test]
+fn update_view_install_failed() {
+    let u = view(UpdatePhase::InstallFailed);
+    assert_eq!(
+        u.status,
+        "The update couldn't be installed. Nothing was changed."
+    );
+    assert_eq!(u.action, "Retry");
+    assert!(u.action_enabled);
+    assert!(u.is_error);
+}
+
+/// R28: `is_error` is true only for CheckFailed and InstallFailed.
+#[test]
+fn update_view_is_error_only_for_failures() {
+    let phases = [
+        (UpdatePhase::Idle, false),
+        (UpdatePhase::Checking, false),
+        (UpdatePhase::UpToDate, false),
+        (
+            UpdatePhase::Available {
+                version: "0.2.0".into(),
+            },
+            false,
+        ),
+        (
+            UpdatePhase::Downloading {
+                received: 1,
+                total: Some(2),
+            },
+            false,
+        ),
+        (UpdatePhase::Installing, false),
+        (UpdatePhase::CheckFailed, true),
+        (UpdatePhase::InstallFailed, true),
+    ];
+    for (phase, expected) in phases {
+        assert_eq!(update_view(&phase).is_error, expected, "{phase:?}");
+    }
+}
+
+/// R28: the action is disabled while Checking, Downloading, and Installing, and only then.
+#[test]
+fn update_view_action_disabled_only_while_busy() {
+    let phases = [
+        (UpdatePhase::Idle, true),
+        (UpdatePhase::Checking, false),
+        (UpdatePhase::UpToDate, true),
+        (
+            UpdatePhase::Available {
+                version: "0.2.0".into(),
+            },
+            true,
+        ),
+        (
+            UpdatePhase::Downloading {
+                received: 1,
+                total: None,
+            },
+            false,
+        ),
+        (UpdatePhase::Installing, false),
+        (UpdatePhase::CheckFailed, true),
+        (UpdatePhase::InstallFailed, true),
+    ];
+    for (phase, expected) in phases {
+        assert_eq!(update_view(&phase).action_enabled, expected, "{phase:?}");
+    }
+}
+
+/// R28: progress is the received share of the total, clamped to 0.0..=1.0.
+#[test]
+fn progress_fraction_known_total() {
+    assert_eq!(progress_fraction(0, Some(100)), 0.0);
+    assert!((progress_fraction(42, Some(100)) - 0.42).abs() < 1e-6);
+    assert_eq!(progress_fraction(150, Some(100)), 1.0);
+}
+
+/// R28: progress is -1.0 when the total size is unknown.
+#[test]
+fn progress_fraction_unknown_total() {
+    assert_eq!(progress_fraction(42, None), -1.0);
+}
+
+/// §13.1 UI: the version line reads "Version 0.1.1".
+#[test]
+fn version_text_prefixes_version() {
+    assert_eq!(version_text("0.1.1"), "Version 0.1.1");
+}
+
+/// §13.1 UI: the license line.
+#[test]
+fn license_text_states_gpl() {
+    assert_eq!(
+        license_text(),
+        "Free software under the GNU GPL v3 or later."
+    );
+}
+
+/// R29: the update banner text.
+#[test]
+fn banner_text_names_version() {
+    assert_eq!(banner_text("0.2.0"), "Version 0.2.0 is available.");
+}
+
+/// R28: the confirm panel title.
+#[test]
+fn confirm_title_names_version() {
+    assert_eq!(confirm_title("0.2.0"), "Install version 0.2.0?");
+}
+
+/// R28: the confirm button says what happens for each kind of install.
+#[test]
+fn confirm_label_by_install_kind() {
+    assert_eq!(
+        confirm_label(InstallKind::SelfInstall),
+        "Install and restart"
+    );
+    assert_eq!(
+        confirm_label(InstallKind::OpenReleasePage),
+        "Open release page"
+    );
+}
