@@ -159,7 +159,7 @@ are warnings, nothing is written on error.
 - [x] T012 [US1] (builder) [core] Create docs/import/template.json with exactly the
   `docs/spec.md` §13.4 example (contracts/import-docs.md), pretty-printed with two-space indent.
   Needs T011
-- [ ] T013 [US1] (builder) [core] Implement the add path and apply: in
+- [x] T013 [US1] (builder) [core] Implement the add path and apply: in
   crates/core/src/import/plan.rs, new-course planning (code as written, trimmed; absent/`null` →
   `None`; slots from E), term planning (R47: create when no active term), `ImportPlan::is_empty`;
   in crates/core/src/import/apply.rs, `apply_import` per contracts/core-import.md "Apply write

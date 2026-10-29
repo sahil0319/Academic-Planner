@@ -26,10 +26,10 @@ impl Planner {
     /// `Error::Validation` listing every "path: message"; nothing is written.
     pub fn apply_import(
         &mut self,
-        _json: &str,
-        _effective_from: NaiveDate,
-        _today: NaiveDate,
+        json: &str,
+        effective_from: NaiveDate,
+        today: NaiveDate,
     ) -> Result<ImportReport> {
-        todo!("M10: R42-R48")
+        apply::apply(&mut self.conn, json, effective_from, today)
     }
 }

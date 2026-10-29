@@ -26,7 +26,7 @@ impl ImportPlan {
     /// R48: true when the plan has no term, no course to add, and no course to update, so
     /// importing the same file twice yields an empty second plan.
     pub fn is_empty(&self) -> bool {
-        todo!("M10: R48")
+        self.term.is_none() && self.add.is_empty() && self.update.is_empty()
     }
 }
 

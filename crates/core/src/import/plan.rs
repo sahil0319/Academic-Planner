@@ -3,8 +3,8 @@
 use chrono::NaiveDate;
 use rusqlite::Connection;
 
-use super::parse::{self, Context};
-use super::types::{ImportPlan, RuleSetRef};
+use super::parse::{self, Context, Field, ParsedCourse};
+use super::types::{CourseAdd, ImportPlan, RuleSetRef};
 use crate::db::{active_term_id, course_from_row, load_term, COURSE_COLS};
 use crate::error::Result;
 use crate::model::Course;
@@ -31,12 +31,49 @@ pub(super) fn build_plan(
         courses: &courses,
     };
     let parsed = parse::parse(text, &ctx);
-    Ok(ImportPlan {
+    let mut plan = ImportPlan {
         term: None,
         add: Vec::new(),
         update: Vec::new(),
         warnings: parsed.warnings,
         errors: parsed.errors,
+    };
+    if !plan.errors.is_empty() {
+        return Ok(plan);
+    }
+
+    // R47: the file's term is created only when no term is active.
+    if active_term.is_none() {
+        plan.term = parsed.term;
+    }
+    for course in parsed.courses {
+        if course.matched.is_none() {
+            plan.add.extend(course_add(course));
+        }
+    }
+    Ok(plan)
+}
+
+/// The value of a field, `None` for absent and `null`.
+fn value<T>(field: Field<T>) -> Option<T> {
+    match field {
+        Field::Value(v) => Some(v),
+        Field::Absent | Field::Null => None,
+    }
+}
+
+/// R43: a course whose code matches no stored course. Absent and `null` both mean "none".
+/// The parser guarantees a name for a new course.
+fn course_add(course: ParsedCourse) -> Option<CourseAdd> {
+    Some(CourseAdd {
+        code: course.code,
+        name: value(course.name)?,
+        instructor: value(course.instructor),
+        room: value(course.room),
+        min_attendance_pct: value(course.min_attendance_pct),
+        credits: value(course.credits),
+        rule_set: value(course.rule_set),
+        slots: value(course.slots).unwrap_or_default(),
     })
 }
 
