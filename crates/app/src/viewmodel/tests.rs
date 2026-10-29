@@ -779,6 +779,7 @@ fn holiday_row_label_and_dash() {
     assert_eq!(
         holiday_row(&holiday(d(2026, 12, 25), Some("Christmas"))),
         HolidayRow {
+            key: "2026-12-25".to_string(),
             date: "December 25, 2026".to_string(),
             label: "Christmas".to_string()
         }

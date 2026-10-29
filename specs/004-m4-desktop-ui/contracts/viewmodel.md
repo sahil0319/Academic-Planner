@@ -83,7 +83,7 @@ holidays have no core range call.
 | `pub fn expand_holiday_range(start: NaiveDate, end: Option<NaiveDate>, label: Option<String>) -> Result<Vec<Holiday>, String>` | `end = None` or `end == start` → one holiday. `2026-12-21..=2026-12-25` → 5 holidays, each with the same label, ascending. `end < start` → `Err("End date must be on or after the start date")` |
 | `pub fn merge_holidays(existing: &[Holiday], added: &[Holiday]) -> Vec<Holiday>` | Exactly one holiday per date, sorted by date; for a date in both, the added one (range label) wins. Result is passed to `set_holidays` |
 | `pub fn remove_holiday(existing: &[Holiday], date: NaiveDate) -> Vec<Holiday>` | Removes only that date; others unchanged and sorted |
-| `pub struct HolidayRow { pub date: String, pub label: String }` + `pub fn holiday_row(h: &Holiday) -> HolidayRow` | `date` via `format_date` (`"December 25, 2026"`). Label `None` → `"—"` |
+| `pub struct HolidayRow { pub key: String, pub date: String, pub label: String }` + `pub fn holiday_row(h: &Holiday) -> HolidayRow` | `key` = stored ISO date (`"2026-12-25"`, identity for Remove, never shown); `date` via `format_date` (`"December 25, 2026"`). Label `None` → `"—"` |
 
 ## Rows
 

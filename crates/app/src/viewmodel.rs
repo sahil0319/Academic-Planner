@@ -509,6 +509,8 @@ pub fn remove_holiday(existing: &[Holiday], date: NaiveDate) -> Vec<Holiday> {
 /// A holiday as display text.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HolidayRow {
+    /// Stored ISO date (`YYYY-MM-DD`), the row's identity for Remove; never shown.
+    pub key: String,
     pub date: String,
     pub label: String,
 }
@@ -516,6 +518,7 @@ pub struct HolidayRow {
 /// Label `None` shows an em dash.
 pub fn holiday_row(h: &Holiday) -> HolidayRow {
     HolidayRow {
+        key: h.date.format("%Y-%m-%d").to_string(),
         date: format_date(h.date),
         label: or_dash(h.label.as_deref()),
     }

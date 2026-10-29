@@ -124,7 +124,7 @@ Each page file exports `<Name>Page` and `global <Name>State`. Every page global 
 - In: `has-term: bool`, `holidays: [HolidayRow]`, `db-path: string`, `confirm-restore: bool`,
   errors (`term-start-error`, `term-end-error`, `term-form-error`, `hol-start-error`,
   `hol-end-error`, `hol-form-error`, `reminder-error`, `window-error`, `settings-form-error`).
-- Callbacks: `save-term()`, `add-holiday()`, `remove-holiday(string)`, `save-settings()`,
+- Callbacks: `save-term()`, `add-holiday()`, `remove-holiday(string)` (the row's ISO `key`), `save-settings()`,
   `backup()`, `restore-pick()`, `restore-confirm()`, `restore-cancel()`, `export-csv()`.
 - Rust: term → `save_term` (id = active term id when editing) → sync. Holidays:
   `parse_holiday_form` → `merge_holidays` with the active term's holidays →

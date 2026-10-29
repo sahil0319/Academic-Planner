@@ -217,18 +217,18 @@ fn add_holiday(app: &App) {
 }
 
 /// Human decision §6: removes one holiday date from the active term; R6: then syncs.
-fn remove_holiday(app: &App, date: &str) {
+fn remove_holiday(app: &App, key: &str) {
     let term = match app.planner().active_term() {
         Ok(Some(term)) => term,
         Ok(None) => return message(app, &vm::error_text(&Error::NoActiveTerm)),
         Err(e) => return message(app, &vm::error_text(&e)),
     };
-    // The row passes its display text (`format_date`, one text per date), so match on it.
+    // The row passes its stored ISO date (`HolidayRow::key`), independent of the display format.
     let Some(date) = term
         .holidays
         .iter()
         .map(|h| h.date)
-        .find(|d| vm::format_date(*d) == date)
+        .find(|d| d.format("%Y-%m-%d").to_string() == key)
     else {
         return message(app, "This holiday no longer exists");
     };

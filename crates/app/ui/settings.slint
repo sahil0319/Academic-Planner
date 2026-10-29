@@ -158,7 +158,7 @@ export component SettingsPage inherits VerticalLayout {
                 SecondaryButton {
                     text: "Remove";
                     clicked => {
-                        SettingsState.remove-holiday(row.date);
+                        SettingsState.remove-holiday(row.key);
                     }
                 }
             }

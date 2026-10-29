@@ -125,6 +125,7 @@ pub fn slot_row(r: &vm::SlotRow) -> Result<SlotRow, String> {
 /// Holiday row.
 pub fn holiday_row(r: &vm::HolidayRow) -> HolidayRow {
     HolidayRow {
+        key: r.key.as_str().into(),
         date: r.date.as_str().into(),
         label: r.label.as_str().into(),
     }
