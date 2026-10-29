@@ -225,6 +225,7 @@ fn t43_score_above_item_max_rejected() {
     for (component_id, title, over, max) in
         [(quizzes, "Quiz 1", 16.0, 15.0), (mid, "Mid", 76.0, 75.0)]
     {
+        let before = p.list_assessments(AssessmentFilter::All).unwrap().len();
         let err = p
             .create_assessment(linked(component_id, title, over))
             .unwrap_err();
@@ -232,10 +233,11 @@ fn t43_score_above_item_max_rejected() {
             matches!(err, Error::Validation(_)),
             "create {title}: {err:?}"
         );
-        assert!(p
-            .list_assessments(AssessmentFilter::All)
-            .unwrap()
-            .is_empty());
+        assert_eq!(
+            p.list_assessments(AssessmentFilter::All).unwrap().len(),
+            before,
+            "rejected create {title} must write nothing"
+        );
 
         let ok = p
             .create_assessment(linked(component_id, title, max))
