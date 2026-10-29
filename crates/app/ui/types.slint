@@ -36,6 +36,27 @@ export struct AssessmentRow {
     notes: string,
 }
 
+// One mini calendar cell (§6 mini calendar change, DESIGN.md "Mini calendar").
+export struct CalendarDay {
+    // ISO date; identity passed back to Rust, never shown.
+    key: string,
+    day: string,
+    in-month: bool,
+    is-today: bool,
+    is-selected: bool,
+    // R3: at least one non-cancelled class of a non-archived course.
+    has-class: bool,
+    // At least one incomplete assessment due.
+    has-due: bool,
+    // Accessible label, e.g. "Monday, October 26, 2026, 2 classes, 1 assessment due".
+    label: string,
+}
+
+// Seven calendar cells, Monday to Sunday.
+export struct CalendarWeek {
+    days: [CalendarDay],
+}
+
 export struct CourseRow {
     id: int,
     code: string,

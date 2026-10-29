@@ -61,15 +61,31 @@ Each page file exports `<Name>Page` and `global <Name>State`. Every page global 
 ### DashboardState (`ui/dashboard.slint`, `src/pages/dashboard.rs`)
 
 - In: `has-term: bool` (T028: false shows only a "No term yet. Create one in Settings → Term."
-  card), `banner: [string]`, `today: [SessionRow]`, `has-next: bool`, `next-class: SessionRow`,
-  `show-next: bool` (T028: false when the next class is already in `today`,
-  `viewmodel::show_next_card`), `upcoming: [AssessmentRow]`, `overdue: [AssessmentRow]`,
-  `awaiting: [SessionRow]`. Section order (T028): banner, awaiting, today, next class, overdue,
-  upcoming.
+  card), `banner: [string]`, `has-next: bool`, `next-class: SessionRow`,
+  `show-next: bool` (T028: false when the next class is already in today's rows,
+  `viewmodel::show_next_card` with `dashboard(now).today`), `upcoming: [AssessmentRow]`,
+  `overdue: [AssessmentRow]`, `awaiting: [SessionRow]`. Section order (T028, change 2026-10-29):
+  banner, awaiting, calendar, next class, overdue, upcoming. The separate `today` list is gone:
+  the day panel replaces "Today's classes".
+- In (mini calendar, change 2026-10-29): `month-title: string`, `weekday-initials: [string]`,
+  `calendar: [CalendarWeek]` (six `CalendarWeek { days: [CalendarDay] }` from
+  `viewmodel::month_grid`, `types.slint`), `panel-title: string` (`day_panel_title`),
+  `panel-empty-text: string` (`day_panel_empty_text`, shown when the day has no sessions and no
+  assessments), `panel-sessions: [SessionRow]`, `panel-assessments: [AssessmentRow]` (`due`
+  holds only the time, `format_time`).
 - Callbacks: `set-status(int, StatusAction)` (awaiting rows: Attended / Absent disabled unless
-  `can-mark`; Cancelled always enabled).
-- Rust: `refresh` calls `dashboard(now)` → `dashboard_view`; `set-status` calls
-  `set_status(id, status, now)` then `refresh_all` (no sync).
+  `can-mark`, Cancelled always enabled; day panel rows: the same plus Pending, always enabled),
+  `prev-month()`, `next-month()` (move the shown month, keep the selected day), `this-month()`
+  (shows today's month and selects today), `select-day(string)` (ISO key → `parse_date_key`;
+  selecting a day of another month moves the calendar to that month).
+- Rust: `refresh` calls `dashboard(now)` → `dashboard_view`, then fills the calendar from
+  `UiState.calendar_month` / `calendar_selected` (default today): `sessions_between(grid first
+  day, grid last day, now)` → `class_days`, plus `sessions_between(selected, selected, now)` when
+  the selected day is outside the grid; `list_assessments(All)` filtered to the grid → `due_days`,
+  and to the selected day for the panel. Panel sessions are sorted by start time, course code,
+  id. `set-status` calls `set_status(id, status, now)` then `refresh_all` (no sync). Month and
+  day callbacks refresh only the dashboard. On an R6 rollover in `tick`, a selection equal to
+  the old `last_sync` date moves (with the month) to the new today (`UiState::roll_calendar`).
 
 ### TimetableState (`ui/timetable.slint`, `src/pages/timetable.rs`)
 

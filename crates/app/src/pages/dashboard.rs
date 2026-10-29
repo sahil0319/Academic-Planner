@@ -2,6 +2,8 @@
 
 use std::rc::Rc;
 
+use chrono::NaiveDateTime;
+use planner_core::{Assessment, AssessmentFilter, SessionView};
 use slint::{ComponentHandle, SharedString};
 
 use crate::bridge;
@@ -9,8 +11,9 @@ use crate::controller::App;
 use crate::viewmodel::{self, DashboardView};
 use crate::{DashboardState, SessionRow};
 
-/// R1, R14, R16–R20: reloads the dashboard relative to a fresh `now`. A core error or an id that
-/// does not fit a Slint `int` is shown in the page's `message`.
+/// R1, R14, R16–R20: reloads the dashboard relative to a fresh `now`, then the mini calendar and
+/// day panel. A core error or an id that does not fit a Slint `int` is shown in the page's
+/// `message`.
 pub fn refresh(app: &App) {
     let Some(window) = app.window() else {
         return;
@@ -35,14 +38,18 @@ pub fn refresh(app: &App) {
     };
     if let Err(text) = fill(&state, &view) {
         state.set_message(text.into());
+        return;
+    }
+    if let Err(text) = fill_calendar(app, &state, now) {
+        state.set_message(text.into());
     }
 }
 
 /// Copies the view into the Slint global; stops at the first id that does not fit.
 fn fill(state: &DashboardState<'_>, view: &DashboardView) -> Result<(), String> {
     state.set_banner(bridge::strings(&view.banner));
-    state.set_today(bridge::rows(&view.today, bridge::session_row)?);
-    // R16, R17: hide Next class when that session is already in Today's classes.
+    // R16, R17: hide Next class when that session is already in today's day panel. The panel
+    // shows today on start and after a rollover; `view.today` holds exactly today's rows.
     state.set_show_next(viewmodel::show_next_card(
         view.next_class.as_ref(),
         &view.today,
@@ -64,19 +71,156 @@ fn fill(state: &DashboardState<'_>, view: &DashboardView) -> Result<(), String> 
     Ok(())
 }
 
-/// Connects the awaiting-attendance row buttons.
+/// §6 mini calendar change, R3, R12, R16: fills the month grid from `UiState.calendar_month` and
+/// the day panel from `UiState.calendar_selected`. Sessions come from `sessions_between` over
+/// the 42-day grid (plus the selected day when it lies outside the grid) and assessments from
+/// `list_assessments(All)`; both exclude archived courses in core.
+fn fill_calendar(app: &App, state: &DashboardState<'_>, now: NaiveDateTime) -> Result<(), String> {
+    let today = now.date();
+    let (month, selected) = {
+        let s = app.state();
+        (s.calendar_month, s.calendar_selected)
+    };
+    let first = viewmodel::grid_start(month);
+    let last = viewmodel::grid_end(month);
+    let (grid_views, selected_views, assessments) = {
+        let planner = app.planner();
+        let grid_views = planner
+            .sessions_between(first, last, now)
+            .map_err(|e| viewmodel::error_text(&e))?;
+        let selected_views = if selected < first || selected > last {
+            planner
+                .sessions_between(selected, selected, now)
+                .map_err(|e| viewmodel::error_text(&e))?
+        } else {
+            Vec::new()
+        };
+        let assessments = planner
+            .list_assessments(AssessmentFilter::All)
+            .map_err(|e| viewmodel::error_text(&e))?;
+        (grid_views, selected_views, assessments)
+    };
+
+    let in_grid: Vec<Assessment> = assessments
+        .iter()
+        .filter(|a| (first..=last).contains(&a.due_at.date()))
+        .cloned()
+        .collect();
+    let cells = viewmodel::month_grid(
+        month,
+        today,
+        selected,
+        &viewmodel::class_days(&grid_views),
+        &viewmodel::due_days(&in_grid),
+    );
+    state.set_month_title(viewmodel::month_title(month).into());
+    let initials: Vec<String> = viewmodel::weekday_initials()
+        .iter()
+        .map(|s| (*s).to_string())
+        .collect();
+    state.set_weekday_initials(bridge::strings(&initials));
+    state.set_calendar(bridge::calendar_weeks(&cells));
+
+    // R16: the selected day's sessions by start time, as core orders today's classes.
+    let mut day_views: Vec<&SessionView> = grid_views
+        .iter()
+        .chain(selected_views.iter())
+        .filter(|v| v.session.date == selected)
+        .collect();
+    day_views.sort_by(|a, b| {
+        (a.session.start_time, &a.course_code, a.session.id).cmp(&(
+            b.session.start_time,
+            &b.course_code,
+            b.session.id,
+        ))
+    });
+    let day_rows: Vec<viewmodel::SessionRow> =
+        day_views.into_iter().map(viewmodel::session_row).collect();
+    // Assessments due that day, completed or not, in core's due order; the panel shows the time.
+    let due_rows = assessments
+        .iter()
+        .filter(|a| a.due_at.date() == selected)
+        .map(|a| {
+            bridge::assessment_row(&viewmodel::AssessmentRow {
+                due: viewmodel::format_time(a.due_at.time()),
+                ..viewmodel::assessment_row(a)
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    state.set_panel_title(viewmodel::day_panel_title(selected, today).into());
+    state.set_panel_empty_text(viewmodel::day_panel_empty_text(selected, today).into());
+    state.set_panel_sessions(bridge::rows(&day_rows, bridge::session_row)?);
+    state.set_panel_assessments(bridge::model(due_rows));
+    Ok(())
+}
+
+/// Connects the row status buttons and the mini calendar controls.
 pub fn wire(app: &Rc<App>) {
     let Some(window) = app.window() else {
         return;
     };
+    let state = window.global::<DashboardState>();
     let weak = Rc::downgrade(app);
-    window
-        .global::<DashboardState>()
-        .on_set_status(move |id, action| {
-            if let Some(app) = weak.upgrade() {
-                set_status(&app, id, bridge::status(action));
+    state.on_set_status(move |id, action| {
+        if let Some(app) = weak.upgrade() {
+            set_status(&app, id, bridge::status(action));
+        }
+    });
+    let weak = Rc::downgrade(app);
+    state.on_prev_month(move || {
+        if let Some(app) = weak.upgrade() {
+            move_month(&app, Some(-1));
+        }
+    });
+    let weak = Rc::downgrade(app);
+    state.on_next_month(move || {
+        if let Some(app) = weak.upgrade() {
+            move_month(&app, Some(1));
+        }
+    });
+    let weak = Rc::downgrade(app);
+    state.on_this_month(move || {
+        if let Some(app) = weak.upgrade() {
+            move_month(&app, None);
+        }
+    });
+    let weak = Rc::downgrade(app);
+    state.on_select_day(move |key| {
+        if let Some(app) = weak.upgrade() {
+            select_day(&app, key.as_str());
+        }
+    });
+}
+
+/// §6 mini calendar change: Previous / Next move the shown month and keep the selected day;
+/// Today (`None`) shows the current month and selects today. Only the dashboard is refreshed.
+fn move_month(app: &App, months: Option<i32>) {
+    let today = app.today();
+    {
+        let mut s = app.state();
+        match months {
+            Some(n) => s.calendar_month = viewmodel::shift_month(s.calendar_month, n),
+            None => {
+                s.calendar_month = viewmodel::month_start(today);
+                s.calendar_selected = today;
             }
-        });
+        }
+    }
+    refresh(app);
+}
+
+/// §6 mini calendar change: selects the clicked day by its ISO key; a day of another month also
+/// moves the calendar to that month. An unknown key is ignored.
+fn select_day(app: &App, key: &str) {
+    let Some(date) = viewmodel::parse_date_key(key) else {
+        return;
+    };
+    {
+        let mut s = app.state();
+        s.calendar_selected = date;
+        s.calendar_month = viewmodel::month_start(date);
+    }
+    refresh(app);
 }
 
 /// R11, R12: marks a session with a fresh `now`; the core refuses attended/absent before the

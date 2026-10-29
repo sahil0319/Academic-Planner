@@ -37,6 +37,10 @@ pub struct UiState {
     pub assessment_course_ids: Vec<i64>,
     /// R22: backup file picked for restore, waiting for confirmation.
     pub pending_restore: Option<PathBuf>,
+    /// First day of the month shown in the dashboard mini calendar (§6 mini calendar change).
+    pub calendar_month: NaiveDate,
+    /// Day shown in the dashboard day panel; today on start (§6 mini calendar change).
+    pub calendar_selected: NaiveDate,
 }
 
 impl UiState {
@@ -52,6 +56,18 @@ impl UiState {
             course_ids: Vec::new(),
             assessment_course_ids: Vec::new(),
             pending_restore: None,
+            calendar_month: viewmodel::month_start(today),
+            calendar_selected: today,
+        }
+    }
+
+    /// R6, §6 mini calendar change: on a date rollover from `old_today` to `new_today`, a day
+    /// panel that was showing the old today follows to the new today, and so does the month.
+    /// Any other selection is kept.
+    pub fn roll_calendar(&mut self, old_today: NaiveDate, new_today: NaiveDate) {
+        if self.calendar_selected == old_today {
+            self.calendar_selected = new_today;
+            self.calendar_month = viewmodel::month_start(new_today);
         }
     }
 }
@@ -151,6 +167,7 @@ impl App {
         let now = self.now();
         let last_sync = self.state().last_sync;
         if viewmodel::date_rolled_over(last_sync, now) {
+            self.state().roll_calendar(last_sync, now.date());
             let sync_error = self.sync(now.date()).err();
             self.refresh_all();
             if let Some(e) = sync_error {

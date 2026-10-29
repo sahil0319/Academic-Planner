@@ -1,7 +1,7 @@
 // Dashboard page (docs/spec.md §6, contracts/ui-bridge.md "DashboardState").
 // R14 banner, R16-R20 sections. Every string is formatted in src/viewmodel.rs; bindings only.
 import { Theme } from "theme.slint";
-import { SessionRow, AssessmentRow, StatusAction } from "types.slint";
+import { SessionRow, AssessmentRow, StatusAction, CalendarDay, CalendarWeek } from "types.slint";
 import {
     PageTitle,
     EmptyState,
@@ -19,12 +19,10 @@ export global DashboardState {
     in property <bool> has-term: true;
     // R14: one line per course below its target; empty hides the banner.
     in property <[string]> banner;
-    // R16: today's sessions, by start time.
-    in property <[SessionRow]> today;
     // R17: false when there is no next class.
     in property <bool> has-next;
     in property <SessionRow> next-class;
-    // R17: false when the next class is already listed in Today's classes; hides the card.
+    // R17: false when the next class is already listed in today's day panel; hides the card.
     in property <bool> show-next: true;
     // R18: incomplete assessments due within the upcoming window.
     in property <[AssessmentRow]> upcoming;
@@ -34,6 +32,27 @@ export global DashboardState {
     in property <[SessionRow]> awaiting;
     // R11, R12: Rust calls set_status(id, status, now), then refreshes every page.
     callback set-status(int, StatusAction);
+
+    // Mini calendar (§6 mini calendar change): "October 2026".
+    in property <string> month-title;
+    // "M T W T F S S", Monday first.
+    in property <[string]> weekday-initials;
+    // Six weeks of seven cells starting on the Monday on or before the 1st.
+    in property <[CalendarWeek]> calendar;
+    // Day panel: "Today's classes" for today, else "Monday, October 26, 2026".
+    in property <string> panel-title;
+    // Shown when the selected day has no sessions and no assessments due.
+    in property <string> panel-empty-text;
+    // R3, R16: the selected day's sessions of non-archived courses, by start time.
+    in property <[SessionRow]> panel-sessions;
+    // Assessments due on the selected day (incomplete and completed); `due` holds the time.
+    in property <[AssessmentRow]> panel-assessments;
+    // Previous / Next keep the selected day; Today shows this month and selects today.
+    callback prev-month();
+    callback next-month();
+    callback this-month();
+    // Selects the day with this ISO key; a day of another month also moves the calendar.
+    callback select-day(string);
 }
 
 // Primary row text.
@@ -106,8 +125,316 @@ component AssessmentLine inherits ListRow {
     }
 }
 
-// Section order (T028 critique): banner, the action list (awaiting attendance), today, next class,
-// overdue, then upcoming.
+// One mini calendar day (DESIGN.md "Mini calendar"): the number, a filled terracotta circle for
+// today, the selected fill, and up to two markers with distinct shapes (round dot = classes,
+// square = assessment due). The accessible label spells out the date and both counts.
+component DayCell inherits Rectangle {
+    in property <CalendarDay> item;
+    callback clicked();
+
+    // Vertical gap that centers the today circle and the marker row inside the cell.
+    property <length> gap: (Theme.calendar-cell - Theme.calendar-today - Theme.calendar-marker) / 3;
+
+    width: Theme.calendar-cell;
+    height: Theme.calendar-cell;
+    border-radius: Theme.radius-sm;
+    border-width: Theme.border-width;
+    border-color: focus-scope.has-focus ? Theme.primary : transparent;
+    background: root.item.is-selected ? Theme.surface-selected
+        : touch.has-hover ? Theme.surface-alt
+        : transparent;
+    accessible-role: button;
+    accessible-label: root.item.label;
+    accessible-item-selectable: true;
+    accessible-item-selected: root.item.is-selected;
+    accessible-action-default => {
+        root.clicked();
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    // Keyboard access (T028 critique): Tab reaches the day, Enter or Space selects it.
+    focus-scope := FocusScope {
+        x: 0;
+        width: 0; // clicks go to the TouchArea
+        key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Space {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    if root.item.is-today: Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: root.gap;
+        width: Theme.calendar-today;
+        height: Theme.calendar-today;
+        border-radius: Theme.radius-full;
+        background: Theme.primary;
+    }
+
+    Text {
+        x: 0;
+        y: root.gap;
+        width: parent.width;
+        height: Theme.calendar-today;
+        text: root.item.day;
+        // The cell carries the accessible label.
+        accessible-role: none;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        color: root.item.is-today ? Theme.on-primary
+            : root.item.in-month ? Theme.on-surface
+            : Theme.on-surface-muted;
+        font-family: Theme.font-body;
+        font-size: Theme.body-md-size;
+        font-weight: Theme.body-md-weight;
+    }
+
+    HorizontalLayout {
+        x: 0;
+        y: 2 * root.gap + Theme.calendar-today;
+        width: parent.width;
+        height: Theme.calendar-marker;
+        alignment: center;
+        spacing: Theme.calendar-marker / 2;
+        if root.item.has-class: Rectangle {
+            width: Theme.calendar-marker;
+            height: Theme.calendar-marker;
+            border-radius: Theme.radius-full;
+            background: Theme.on-surface-muted;
+        }
+        if root.item.has-due: Rectangle {
+            width: Theme.calendar-marker;
+            height: Theme.calendar-marker;
+            border-radius: Theme.radius-none;
+            background: Theme.on-surface-muted;
+        }
+    }
+}
+
+// Legend entry under the mini calendar.
+component LegendText inherits Text {
+    color: Theme.on-surface-muted;
+    font-family: Theme.font-body;
+    font-size: Theme.body-sm-size;
+    font-weight: Theme.body-sm-weight;
+}
+
+// Day panel session row: time, course, room, and status chip; the status buttons sit below so
+// the row fits beside the calendar.
+component PanelSessionLine inherits ListRow {
+    in property <SessionRow> item;
+
+    VerticalLayout {
+        horizontal-stretch: 1;
+        spacing: Theme.space-xs;
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            RowMeta {
+                text: root.item.time;
+            }
+            RowText {
+                text: root.item.course;
+                horizontal-stretch: 1;
+            }
+            RowMeta {
+                text: root.item.room;
+            }
+            VerticalLayout {
+                alignment: center;
+                StatusChip {
+                    chip: root.item.chip;
+                    text: root.item.status-label;
+                }
+            }
+        }
+        HorizontalLayout {
+            alignment: end;
+            spacing: Theme.space-sm;
+            SecondaryButton {
+                text: "Attended";
+                // R12: attendance only once the session has started.
+                enabled: root.item.can-mark;
+                clicked => {
+                    DashboardState.set-status(root.item.id, StatusAction.attended);
+                }
+            }
+            SecondaryButton {
+                text: "Absent";
+                enabled: root.item.can-mark;
+                clicked => {
+                    DashboardState.set-status(root.item.id, StatusAction.absent);
+                }
+            }
+            SecondaryButton {
+                // R12: cancelling and resetting are allowed at any time.
+                text: "Cancelled";
+                clicked => {
+                    DashboardState.set-status(root.item.id, StatusAction.cancelled);
+                }
+            }
+            SecondaryButton {
+                text: "Pending";
+                clicked => {
+                    DashboardState.set-status(root.item.id, StatusAction.pending);
+                }
+            }
+        }
+    }
+}
+
+// Day panel assessment row: due time, course, kind, title, and "Completed" when done.
+component PanelAssessmentLine inherits ListRow {
+    in property <AssessmentRow> item;
+
+    RowMeta {
+        text: root.item.due;
+    }
+    RowText {
+        text: root.item.course-code;
+    }
+    RowMeta {
+        text: root.item.kind;
+    }
+    RowText {
+        text: root.item.title;
+        horizontal-stretch: 1;
+    }
+    if root.item.completed: RowMeta {
+        text: "Completed";
+    }
+}
+
+// Mini month calendar with its legend (left) and the selected day's panel (right).
+component CalendarSection inherits HorizontalLayout {
+    spacing: Theme.space-xl;
+    alignment: stretch;
+
+    VerticalLayout {
+        horizontal-stretch: 0;
+        spacing: Theme.space-sm;
+        alignment: start;
+
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            Text {
+                text: DashboardState.month-title;
+                horizontal-stretch: 1;
+                vertical-alignment: center;
+                color: Theme.on-surface;
+                font-family: Theme.font-heading;
+                font-size: Theme.headline-md-size;
+                font-weight: Theme.headline-md-weight;
+            }
+            SecondaryButton {
+                text: "Previous";
+                clicked => {
+                    DashboardState.prev-month();
+                }
+            }
+            SecondaryButton {
+                text: "Today";
+                clicked => {
+                    DashboardState.this-month();
+                }
+            }
+            SecondaryButton {
+                text: "Next";
+                clicked => {
+                    DashboardState.next-month();
+                }
+            }
+        }
+
+        VerticalLayout {
+            alignment: start;
+            HorizontalLayout {
+                alignment: start;
+                for initial in DashboardState.weekday-initials: Text {
+                    text: initial;
+                    width: Theme.calendar-cell;
+                    horizontal-alignment: center;
+                    color: Theme.on-surface-muted;
+                    font-family: Theme.font-body;
+                    font-size: Theme.label-sm-size;
+                    font-weight: Theme.label-sm-weight;
+                }
+            }
+            for week in DashboardState.calendar: HorizontalLayout {
+                alignment: start;
+                for day in week.days: DayCell {
+                    item: day;
+                    clicked => {
+                        DashboardState.select-day(day.key);
+                    }
+                }
+            }
+        }
+
+        // Markers are explained in words, never by shape or color alone (DESIGN.md).
+        HorizontalLayout {
+            alignment: start;
+            spacing: Theme.space-md;
+            LegendText {
+                text: "● Classes";
+            }
+            LegendText {
+                text: "■ Assessment due";
+            }
+        }
+    }
+
+    VerticalLayout {
+        horizontal-stretch: 1;
+        spacing: Theme.space-sm;
+        alignment: start;
+
+        Text {
+            text: DashboardState.panel-title;
+            min-height: Theme.input-height;
+            vertical-alignment: center;
+            overflow: elide;
+            color: Theme.on-surface;
+            font-family: Theme.font-heading;
+            font-size: Theme.headline-md-size;
+            font-weight: Theme.headline-md-weight;
+        }
+
+        if DashboardState.panel-sessions.length > 0: VerticalLayout {
+            for row in DashboardState.panel-sessions: PanelSessionLine {
+                item: row;
+            }
+        }
+
+        if DashboardState.panel-assessments.length > 0: VerticalLayout {
+            Text {
+                text: "Assessments due";
+                color: Theme.on-surface-muted;
+                font-family: Theme.font-body;
+                font-size: Theme.label-md-size;
+                font-weight: Theme.label-md-weight;
+            }
+            for row in DashboardState.panel-assessments: PanelAssessmentLine {
+                item: row;
+            }
+        }
+
+        if DashboardState.panel-sessions.length == 0 && DashboardState.panel-assessments.length == 0: EmptyState {
+            text: DashboardState.panel-empty-text;
+        }
+    }
+}
+
+// Section order (T028 critique, §6 mini calendar change): banner, the action list (awaiting
+// attendance), the calendar with today's day panel, next class, overdue, then upcoming.
 export component DashboardPage inherits VerticalLayout {
     spacing: Theme.space-xl;
     alignment: start;
@@ -196,20 +523,13 @@ export component DashboardPage inherits VerticalLayout {
             }
         }
 
+        // §6 mini calendar change: the day panel replaces the separate Today's classes card.
         SectionCard {
-            title: "Today's classes";
-            // Rows sit flush, separated only by their own divider (DESIGN.md list row).
-            if DashboardState.today.length > 0: VerticalLayout {
-                for row in DashboardState.today: SessionLine {
-                    item: row;
-                }
-            }
-            if DashboardState.today.length == 0: EmptyState {
-                text: "No classes today. Add courses in Courses and weekly slots in Timetable → Rules.";
-            }
+            title: "Calendar";
+            CalendarSection { }
         }
 
-        // R17: hidden when the next class is already in Today's classes (viewmodel::show_next_card).
+        // R17: hidden when the next class is already in today's day panel (viewmodel::show_next_card).
         if DashboardState.show-next: SectionCard {
             title: "Next class";
             if DashboardState.has-next: SessionLine {

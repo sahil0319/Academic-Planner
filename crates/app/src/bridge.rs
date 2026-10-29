@@ -6,8 +6,8 @@ use slint::{ModelRc, SharedString, VecModel};
 
 use crate::viewmodel::{self as vm, ChipKind};
 use crate::{
-    AssessmentRow, Chip, CourseRow, DayGroup, HolidayRow, SessionRow, SlotRow, StatusAction,
-    SummaryView,
+    AssessmentRow, CalendarDay, CalendarWeek, Chip, CourseRow, DayGroup, HolidayRow, SessionRow,
+    SlotRow, StatusAction, SummaryView,
 };
 
 /// R-D18: Slint `int` is `i32`; an id that does not fit is reported, never truncated.
@@ -95,6 +95,32 @@ pub fn assessment_row(r: &vm::AssessmentRow) -> Result<AssessmentRow, String> {
         completed: r.completed,
         notes: r.notes.as_str().into(),
     })
+}
+
+/// One mini calendar cell (§6 mini calendar change).
+pub fn calendar_day(c: &vm::CalendarDay) -> CalendarDay {
+    CalendarDay {
+        key: c.key.as_str().into(),
+        day: c.day.as_str().into(),
+        in_month: c.in_month,
+        is_today: c.is_today,
+        is_selected: c.is_selected,
+        has_class: c.has_class,
+        has_due: c.has_due,
+        label: c.label.as_str().into(),
+    }
+}
+
+/// The 42-cell grid as six Monday-to-Sunday weeks.
+pub fn calendar_weeks(cells: &[vm::CalendarDay]) -> ModelRc<CalendarWeek> {
+    model(
+        cells
+            .chunks(7)
+            .map(|week| CalendarWeek {
+                days: model(week.iter().map(calendar_day).collect()),
+            })
+            .collect(),
+    )
 }
 
 /// R3: course row.
