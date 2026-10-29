@@ -1014,8 +1014,10 @@ pub struct CalendarDay {
     pub is_selected: bool,
     pub has_class: bool,
     pub has_due: bool,
-    /// Class count as badge text: `""` for none, `"9+"` above nine (§6 mini calendar change).
-    pub class_badge: String,
+    /// Saturday or Sunday (§6 mini calendar change).
+    pub is_weekend: bool,
+    /// Holiday label for the date: `"Holiday"` when unlabeled, `""` when not a holiday.
+    pub holiday: String,
     pub label: String,
 }
 
@@ -1027,15 +1029,6 @@ pub fn grid_start(month_start: NaiveDate) -> NaiveDate {
 /// Last day of the grid for `month_start` (41 days after [`grid_start`]).
 pub fn grid_end(month_start: NaiveDate) -> NaiveDate {
     grid_start(month_start) + Days::new(GRID_CELLS - 1)
-}
-
-/// Badge text for a day's class count: empty for none, `9+` above nine so the badge stays small.
-fn class_badge_text(n: usize) -> String {
-    match n {
-        0 => String::new(),
-        1..=9 => n.to_string(),
-        _ => "9+".to_string(),
-    }
 }
 
 /// `1 class` / `2 classes`, and so on.
@@ -1055,7 +1048,9 @@ pub fn month_grid(
     selected: NaiveDate,
     class_days: &[NaiveDate],
     due_days: &[NaiveDate],
+    holidays: &[Holiday],
 ) -> Vec<CalendarDay> {
+    let _ = holidays;
     let first = grid_start(month_start);
     (0..GRID_CELLS)
         .map(|offset| {
@@ -1083,7 +1078,8 @@ pub fn month_grid(
                 is_selected: date == selected,
                 has_class: classes > 0,
                 has_due: dues > 0,
-                class_badge: class_badge_text(classes),
+                is_weekend: false,
+                holiday: String::new(),
                 label,
             }
         })
@@ -1106,6 +1102,14 @@ pub fn day_panel_title(selected: NaiveDate, today: NaiveDate) -> String {
             format_date(selected)
         )
     }
+}
+
+/// Holiday line of the day panel: empty for no holiday, else `Holiday: <text>` (§6 mini calendar
+/// change).
+#[allow(dead_code)]
+pub fn day_panel_holiday_text(holiday: &str) -> String {
+    let _ = holiday;
+    todo!("day_panel_holiday_text")
 }
 
 /// R16: empty text of the day panel; today keeps the Today's classes sentence.

@@ -235,15 +235,6 @@ component DayCell inherits Rectangle {
         border-radius: Theme.radius-full;
         background: Theme.error;
     }
-
-    // A thin surface ring keeps the badge apart from the today circle under it.
-    if root.item.class-badge != "": CalendarBadge {
-        x: parent.width - self.width;
-        y: 0;
-        text: root.item.class-badge;
-        border-width: Theme.border-width;
-        border-color: Theme.surface;
-    }
 }
 
 // Legend entry under the mini calendar.

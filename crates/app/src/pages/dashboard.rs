@@ -112,6 +112,7 @@ fn fill_calendar(app: &App, state: &DashboardState<'_>, now: NaiveDateTime) -> R
         selected,
         &viewmodel::class_days(&grid_views),
         &viewmodel::due_days(&in_grid),
+        &[],
     );
     state.set_month_title(viewmodel::month_title(month).into());
     let initials: Vec<String> = viewmodel::weekday_initials()

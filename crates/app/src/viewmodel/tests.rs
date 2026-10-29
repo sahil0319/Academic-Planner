@@ -1456,7 +1456,14 @@ fn assessment_on(id: i64, due: NaiveDateTime, completed: bool) -> Assessment {
 }
 
 fn grid_oct() -> Vec<CalendarDay> {
-    month_grid(d(2026, 10, 1), d(2026, 10, 29), d(2026, 10, 29), &[], &[])
+    month_grid(
+        d(2026, 10, 1),
+        d(2026, 10, 29),
+        d(2026, 10, 29),
+        &[],
+        &[],
+        &[],
+    )
 }
 
 fn cell<'a>(grid: &'a [CalendarDay], key: &str) -> &'a CalendarDay {
@@ -1546,7 +1553,14 @@ fn month_grid_has_42_cells_from_monday() {
     assert_eq!(grid[0].key, "2026-09-28");
     assert_eq!(grid[41].key, "2026-11-08");
     // A month starting on a Monday begins its grid on the 1st.
-    let jun = month_grid(d(2026, 6, 1), d(2026, 10, 29), d(2026, 10, 29), &[], &[]);
+    let jun = month_grid(
+        d(2026, 6, 1),
+        d(2026, 10, 29),
+        d(2026, 10, 29),
+        &[],
+        &[],
+        &[],
+    );
     assert_eq!(jun.len(), 42);
     assert_eq!(jun[0].key, "2026-06-01");
 }
@@ -1569,7 +1583,14 @@ fn month_grid_in_month_and_day_text() {
 /// §6 mini calendar change: exactly one cell is today and one is selected, and they can differ.
 #[test]
 fn month_grid_today_and_selected_flags() {
-    let grid = month_grid(d(2026, 10, 1), d(2026, 10, 29), d(2026, 10, 26), &[], &[]);
+    let grid = month_grid(
+        d(2026, 10, 1),
+        d(2026, 10, 29),
+        d(2026, 10, 26),
+        &[],
+        &[],
+        &[],
+    );
     assert_eq!(grid.iter().filter(|c| c.is_today).count(), 1);
     assert_eq!(grid.iter().filter(|c| c.is_selected).count(), 1);
     assert!(cell(&grid, "2026-10-29").is_today);
@@ -1581,7 +1602,7 @@ fn month_grid_today_and_selected_flags() {
 /// §6 mini calendar change: today outside the shown grid marks no cell as today.
 #[test]
 fn month_grid_today_outside_grid_marks_nothing() {
-    let grid = month_grid(d(2026, 3, 1), d(2026, 10, 29), d(2026, 3, 5), &[], &[]);
+    let grid = month_grid(d(2026, 3, 1), d(2026, 10, 29), d(2026, 3, 5), &[], &[], &[]);
     assert_eq!(grid.len(), 42);
     assert!(grid.iter().all(|c| !c.is_today));
     assert!(cell(&grid, "2026-03-05").is_selected);
@@ -1599,6 +1620,7 @@ fn month_grid_has_class_and_has_due_flags() {
         d(2026, 10, 29),
         &classes,
         &dues,
+        &[],
     );
     assert!(cell(&grid, "2026-10-26").has_class);
     assert!(!cell(&grid, "2026-10-26").has_due);
@@ -1608,25 +1630,6 @@ fn month_grid_has_class_and_has_due_flags() {
     assert!(cell(&grid, "2026-11-02").has_due);
     assert!(!cell(&grid, "2026-10-27").has_class);
     assert!(!cell(&grid, "2026-10-27").has_due);
-}
-
-/// §6 mini calendar change (class badge): a class day shows its class count; no classes shows
-/// nothing; more than nine shows "9+" so the badge stays small.
-#[test]
-fn month_grid_class_badge_counts_classes() {
-    let mut classes = vec![d(2026, 10, 26), d(2026, 10, 26), d(2026, 10, 28)];
-    classes.extend(std::iter::repeat_n(d(2026, 10, 30), 10));
-    let grid = month_grid(
-        d(2026, 10, 1),
-        d(2026, 10, 29),
-        d(2026, 10, 29),
-        &classes,
-        &[],
-    );
-    assert_eq!(cell(&grid, "2026-10-26").class_badge, "2");
-    assert_eq!(cell(&grid, "2026-10-28").class_badge, "1");
-    assert_eq!(cell(&grid, "2026-10-30").class_badge, "9+");
-    assert_eq!(cell(&grid, "2026-10-27").class_badge, "");
 }
 
 /// §6 mini calendar change: the accessible label is the long date, then ", today", then counts.
@@ -1653,6 +1656,7 @@ fn month_grid_label_counts_singular_plural_and_today() {
         d(2026, 10, 29),
         &classes,
         &dues,
+        &[],
     );
     assert_eq!(
         cell(&grid, "2026-10-26").label,
@@ -1717,4 +1721,95 @@ fn parse_date_key_accepts_iso_only() {
     assert_eq!(parse_date_key(""), None);
     assert_eq!(parse_date_key("2026-13-01"), None);
     assert_eq!(parse_date_key("nonsense"), None);
+}
+
+/// §6 mini calendar change: is_weekend is true for Saturday and Sunday, including days outside
+/// the shown month.
+#[test]
+fn month_grid_is_weekend_flags() {
+    let grid = grid_oct();
+    assert!(cell(&grid, "2026-10-03").is_weekend);
+    assert!(cell(&grid, "2026-10-04").is_weekend);
+    assert!(!cell(&grid, "2026-10-05").is_weekend);
+    assert!(!cell(&grid, "2026-10-02").is_weekend);
+    assert!(cell(&grid, "2026-11-07").is_weekend);
+    assert_eq!(grid.iter().filter(|c| c.is_weekend).count(), 12);
+}
+
+/// §6 mini calendar change, R14: a holiday cell shows its label; an unlabeled holiday shows
+/// "Holiday"; other days show "".
+#[test]
+fn month_grid_holiday_text_from_label() {
+    let holidays = [
+        holiday(d(2026, 10, 27), Some("Midterm week")),
+        holiday(d(2026, 10, 28), None),
+    ];
+    let grid = month_grid(
+        d(2026, 10, 1),
+        d(2026, 10, 29),
+        d(2026, 10, 29),
+        &[],
+        &[],
+        &holidays,
+    );
+    assert_eq!(cell(&grid, "2026-10-27").holiday, "Midterm week");
+    assert_eq!(cell(&grid, "2026-10-28").holiday, "Holiday");
+    assert_eq!(cell(&grid, "2026-10-26").holiday, "");
+    assert_eq!(cell(&grid, "2026-10-29").holiday, "");
+}
+
+/// §6 mini calendar change, R14: a holiday on a weekend keeps both flags.
+#[test]
+fn month_grid_weekend_holiday_has_both() {
+    let holidays = [holiday(d(2026, 10, 3), Some("Founders Day"))];
+    let grid = month_grid(
+        d(2026, 10, 1),
+        d(2026, 10, 29),
+        d(2026, 10, 29),
+        &[],
+        &[],
+        &holidays,
+    );
+    let c = cell(&grid, "2026-10-03");
+    assert!(c.is_weekend);
+    assert_eq!(c.holiday, "Founders Day");
+}
+
+/// §6 mini calendar change, R14: the label adds ", <holiday>" after ", today" and before the
+/// class and due counts.
+#[test]
+fn month_grid_label_includes_holiday_between_today_and_counts() {
+    let holidays = [
+        holiday(d(2026, 11, 2), Some("Midterm week")),
+        holiday(d(2026, 10, 29), None),
+    ];
+    let dues = [d(2026, 11, 2), d(2026, 10, 29)];
+    let classes = [d(2026, 10, 29)];
+    let grid = month_grid(
+        d(2026, 10, 1),
+        d(2026, 10, 29),
+        d(2026, 10, 29),
+        &classes,
+        &dues,
+        &holidays,
+    );
+    assert_eq!(
+        cell(&grid, "2026-11-02").label,
+        "Monday, November 2, 2026, Midterm week, 1 assessment due"
+    );
+    assert_eq!(
+        cell(&grid, "2026-10-29").label,
+        "Thursday, October 29, 2026, today, Holiday, 1 class, 1 assessment due"
+    );
+}
+
+/// §6 mini calendar change: the day panel holiday line is empty without a holiday, else
+/// "Holiday: <text>".
+#[test]
+fn day_panel_holiday_text_empty_and_labeled() {
+    assert_eq!(day_panel_holiday_text(""), "");
+    assert_eq!(
+        day_panel_holiday_text("Midterm week"),
+        "Holiday: Midterm week"
+    );
 }

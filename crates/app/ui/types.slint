@@ -48,8 +48,10 @@ export struct CalendarDay {
     has-class: bool,
     // At least one incomplete assessment due.
     has-due: bool,
-    // Class count badge text: "" for none, "9+" above nine.
-    class-badge: string,
+    // Saturday or Sunday.
+    is-weekend: bool,
+    // Holiday label for the date: "Holiday" when unlabeled, "" when not a holiday.
+    holiday: string,
     // Accessible label, e.g. "Monday, October 26, 2026, 2 classes, 1 assessment due".
     label: string,
 }
