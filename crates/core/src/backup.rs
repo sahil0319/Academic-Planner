@@ -7,8 +7,11 @@ use rusqlite::{params, Transaction};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
-use crate::db::{fmt_datetime, parse_date, parse_datetime, parse_time, Planner, SCHEMA_VERSION};
+use crate::db::{
+    fmt_datetime, parse_date, parse_datetime, parse_time, Planner, SCHEMA_VERSION, SETTING_THEME,
+};
 use crate::error::{Error, Result};
+use crate::model::ThemeMode;
 
 /// R21: value of the `format` key of every backup document.
 const BACKUP_FORMAT: &str = "academic-planner-backup";
@@ -152,6 +155,12 @@ impl Backup {
         }
         for a in &self.assessments {
             datetime("assessment due_at", &a.due_at)?;
+        }
+        // §5 Settings theme: only exact lowercase system|light|dark; a missing key is fine.
+        if let Some(v) = self.settings.get(SETTING_THEME) {
+            ThemeMode::from_db(v)
+                .map(|_| ())
+                .ok_or_else(|| bad("settings theme", v))?;
         }
         Ok(())
     }

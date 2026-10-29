@@ -297,6 +297,12 @@ impl Planner {
             }
             None => defaults.notifications_enabled,
         };
+        // §5 Settings theme: a missing row reads as System; an unknown value is corrupt.
+        let theme = match get(SETTING_THEME)? {
+            Some(v) => ThemeMode::from_db(&v)
+                .ok_or_else(|| Error::Corrupt(format!("setting {SETTING_THEME} = {v:?}")))?,
+            None => defaults.theme,
+        };
         Ok(Settings {
             class_reminder_minutes: number(
                 SETTING_CLASS_REMINDER,
@@ -304,11 +310,11 @@ impl Planner {
             )?,
             upcoming_window_days: number(SETTING_UPCOMING_WINDOW, defaults.upcoming_window_days)?,
             notifications_enabled,
-            theme: ThemeMode::System,
+            theme,
         })
     }
 
-    /// Stores all settings in one transaction.
+    /// Stores all settings in one transaction, `theme` included (§5 Settings theme).
     pub fn save_settings(&mut self, s: &Settings) -> Result<()> {
         let tx = self.conn.transaction()?;
         {
@@ -328,6 +334,7 @@ impl Planner {
                 SETTING_NOTIFICATIONS,
                 if s.notifications_enabled { "1" } else { "0" }
             ])?;
+            upsert.execute(params![SETTING_THEME, s.theme.as_db()])?;
         }
         tx.commit()?;
         Ok(())
@@ -680,6 +687,8 @@ pub(crate) fn to_minute(dt: NaiveDateTime) -> NaiveDateTime {
 const SETTING_CLASS_REMINDER: &str = "class_reminder_minutes";
 const SETTING_UPCOMING_WINDOW: &str = "upcoming_window_days";
 const SETTING_NOTIFICATIONS: &str = "notifications_enabled";
+/// §5 Settings theme: appearance choice, stored as `system`, `light`, or `dark`.
+pub(crate) const SETTING_THEME: &str = "theme";
 
 // ---- text codecs (docs/spec.md §1: YYYY-MM-DD, HH:MM, YYYY-MM-DDTHH:MM) ----
 
@@ -785,6 +794,26 @@ impl AssessmentKind {
             "exam" => Some(AssessmentKind::Exam),
             "assignment" => Some(AssessmentKind::Assignment),
             "other" => Some(AssessmentKind::Other),
+            _ => None,
+        }
+    }
+}
+
+/// §5 Settings theme: stored text of the appearance choice (exact lowercase).
+impl ThemeMode {
+    pub(crate) fn as_db(self) -> &'static str {
+        match self {
+            ThemeMode::System => "system",
+            ThemeMode::Light => "light",
+            ThemeMode::Dark => "dark",
+        }
+    }
+
+    pub(crate) fn from_db(s: &str) -> Option<Self> {
+        match s {
+            "system" => Some(ThemeMode::System),
+            "light" => Some(ThemeMode::Light),
+            "dark" => Some(ThemeMode::Dark),
             _ => None,
         }
     }

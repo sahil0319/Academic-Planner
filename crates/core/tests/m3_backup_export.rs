@@ -283,6 +283,7 @@ fn r21_export_rows_keep_ids_and_value_types() {
             "class_reminder_minutes": "30",
             "upcoming_window_days": "14",
             "notifications_enabled": "0",
+            "theme": "system",
         })
     );
 }
