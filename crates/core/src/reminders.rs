@@ -156,10 +156,11 @@ fn assessment_candidates(conn: &Connection, now: NaiveDateTime) -> Result<Vec<Ca
             ref_id: r.get(0)?,
             event_at: due_at,
             lead_minutes: r.get(4)?,
+            // FR-005: long due date, e.g. "due January 7, 2026, 23:59" (2026-10-29 change).
             title: format!(
                 "{code} {}: {title} due {}",
                 assessment_kind_word(kind),
-                due_at.format("%Y-%m-%d %H:%M")
+                due_at.format("%B %-d, %Y, %H:%M")
             ),
         })
     })?;
