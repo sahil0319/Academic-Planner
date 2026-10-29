@@ -2,6 +2,9 @@
 //! research R-D18). Field copies only; all formatting happens in `viewmodel.rs`.
 
 use planner_core::{Status, ThemeMode};
+use std::cell::Cell;
+
+use slint::winit_030::{winit::window::Theme as NativeTheme, WinitWindowAccessor};
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 
 use crate::viewmodel::{self as vm, ChipKind};
@@ -15,10 +18,35 @@ pub fn id(value: i64) -> Result<i32, String> {
     i32::try_from(value).map_err(|_| format!("Record id {value} is too large to show"))
 }
 
+thread_local! {
+    /// Native window appearance last chosen by `apply_theme` (see `remembered_native_theme`).
+    static NATIVE_THEME: Cell<Option<NativeTheme>> = const { Cell::new(None) };
+}
+
+/// §6 "Appearance:": the native window appearance for a mode; `None` follows the system.
+fn native_theme(mode: ThemeMode) -> Option<NativeTheme> {
+    match mode {
+        ThemeMode::System => None,
+        ThemeMode::Light => Some(NativeTheme::Light),
+        ThemeMode::Dark => Some(NativeTheme::Dark),
+    }
+}
+
+/// The appearance last chosen by `apply_theme`, for the native window once it exists (its title
+/// bar); `apply_theme` may run before the event loop has created that window.
+pub fn remembered_native_theme() -> Option<NativeTheme> {
+    NATIVE_THEME.with(Cell::get)
+}
+
 /// §5 Settings theme, §6 "Appearance:": shows `mode` at once. Sets `Theme.mode` (the switch
-/// segment and every color token) and the std-widgets color scheme; System sets `unknown`, so
-/// the std widgets follow the operating system.
+/// segment and every color token), the std-widgets color scheme (System sets `unknown`, so the
+/// std widgets follow the operating system), and the native window appearance (title bar).
 pub fn apply_theme(window: &AppWindow, mode: ThemeMode) {
+    // The native title bar follows the window's own appearance, not the Slint palette: set it
+    // now when the native window exists, and remember it for when the window is created.
+    let native = native_theme(mode);
+    NATIVE_THEME.with(|t| t.set(native));
+    window.window().with_winit_window(|w| w.set_theme(native));
     window.global::<Theme>().set_mode(vm::theme_index(mode));
     window.global::<Palette>().set_color_scheme(match mode {
         ThemeMode::System => slint::language::ColorScheme::Unknown,

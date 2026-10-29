@@ -16,6 +16,7 @@ use std::rc::Rc;
 
 use chrono::NaiveDateTime;
 use planner_core::Planner;
+use slint::winit_030::WinitWindowAccessor;
 use slint::ComponentHandle;
 
 use crate::controller::App;
@@ -106,6 +107,18 @@ fn main() -> anyhow::Result<()> {
             },
         );
     }
+
+    // §6 "Appearance:": the native window (and its title bar) only exists once the event loop has
+    // created it, so the saved appearance is applied as soon as it does.
+    let weak = window.as_weak();
+    slint::spawn_local(async move {
+        let Some(window) = weak.upgrade() else {
+            return;
+        };
+        if let Ok(native) = window.window().winit_window().await {
+            native.set_theme(bridge::remembered_native_theme());
+        }
+    })?;
 
     window.run()?;
     Ok(())
