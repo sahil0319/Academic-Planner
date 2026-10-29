@@ -24,6 +24,27 @@ colors:
   status-pending-bg: "#F6ECD2"
   below-target: "#8A3A1A"
   below-target-bg: "#F6E3D6"
+  dark-primary: "#D9774F"
+  dark-primary-hover: "#E48A63"
+  dark-on-primary: "#1C1B18"
+  dark-neutral: "#1C1B18"
+  dark-surface: "#24221E"
+  dark-surface-alt: "#2B2924"
+  dark-surface-selected: "#38352E"
+  dark-border: "#3A372F"
+  dark-on-surface: "#EDEAE0"
+  dark-on-surface-muted: "#A8A396"
+  dark-error: "#EF8A72"
+  dark-status-attended: "#93CBA2"
+  dark-status-attended-bg: "#22362A"
+  dark-status-absent: "#F29B87"
+  dark-status-absent-bg: "#43261F"
+  dark-status-cancelled: "#B9B4A8"
+  dark-status-cancelled-bg: "#302E29"
+  dark-status-pending: "#E6BD6A"
+  dark-status-pending-bg: "#3B3121"
+  dark-below-target: "#F2A985"
+  dark-below-target-bg: "#40291D"
 typography:
   title-lg:
     fontFamily: Georgia
@@ -165,6 +186,56 @@ components:
     textColor: "{colors.on-surface-muted}"
     typography: "{typography.body-md}"
     padding: "{spacing.xl}"
+  dark-nav-item:
+    backgroundColor: "{colors.dark-surface-alt}"
+    textColor: "{colors.dark-on-surface}"
+    typography: "{typography.body-md}"
+  dark-nav-item-active:
+    backgroundColor: "{colors.dark-surface-selected}"
+    textColor: "{colors.dark-on-surface}"
+    typography: "{typography.label-md}"
+  dark-button-primary:
+    backgroundColor: "{colors.dark-primary}"
+    textColor: "{colors.dark-on-primary}"
+    typography: "{typography.label-md}"
+  dark-button-primary-hover:
+    backgroundColor: "{colors.dark-primary-hover}"
+    textColor: "{colors.dark-on-primary}"
+  dark-input-error-text:
+    backgroundColor: "{colors.dark-surface}"
+    textColor: "{colors.dark-error}"
+    typography: "{typography.body-sm}"
+  dark-divider:
+    backgroundColor: "{colors.dark-border}"
+    height: 1px
+  dark-section-meta:
+    backgroundColor: "{colors.dark-surface}"
+    textColor: "{colors.dark-on-surface-muted}"
+    typography: "{typography.body-sm}"
+  dark-status-chip-attended:
+    backgroundColor: "{colors.dark-status-attended-bg}"
+    textColor: "{colors.dark-status-attended}"
+    typography: "{typography.label-sm}"
+  dark-status-chip-absent:
+    backgroundColor: "{colors.dark-status-absent-bg}"
+    textColor: "{colors.dark-status-absent}"
+    typography: "{typography.label-sm}"
+  dark-status-chip-cancelled:
+    backgroundColor: "{colors.dark-status-cancelled-bg}"
+    textColor: "{colors.dark-status-cancelled}"
+    typography: "{typography.label-sm}"
+  dark-status-chip-pending:
+    backgroundColor: "{colors.dark-status-pending-bg}"
+    textColor: "{colors.dark-status-pending}"
+    typography: "{typography.label-sm}"
+  dark-banner-below-target:
+    backgroundColor: "{colors.dark-below-target-bg}"
+    textColor: "{colors.dark-below-target}"
+    typography: "{typography.body-md}"
+  dark-empty-state:
+    backgroundColor: "{colors.dark-neutral}"
+    textColor: "{colors.dark-on-surface-muted}"
+    typography: "{typography.body-md}"
 ---
 
 # Academic Planner Design System
@@ -179,7 +250,10 @@ opens it between classes, marks attendance in two clicks, checks what is due, an
 - **Personality:** warm, calm, thoughtful, unobtrusive. No illustrations, gradients, or animation
   beyond basic hover feedback.
 - **Density:** compact rows (34px), small body text (13px), tight spacing on a 4px grid.
-- **Theme:** light only. A cream page with slightly lighter, near-white content cards.
+- **Theme:** light by default, with a matching warm dark theme (human decision 2026-10-29). Light is
+  a cream page with slightly lighter, near-white content cards; dark is a warm charcoal page with
+  slightly lighter cards, cream text, and a lighter terracotta accent. A three-way System / Light /
+  Dark switch sits in the window's top-right corner on every page.
 - **Meaning is never carried by color alone.** Every status color is always paired with its text
   label ("Attended", "Absent", "Cancelled", "Pending", "Below target").
 
@@ -275,6 +349,14 @@ rounded pills for status chips.
   (surface-alt) highlight; a day with an assessment due shows a 4px error-red dot under the number.
   Class days carry no marker. A one-line legend under the grid names all three, so meaning never
   rests on color alone.
+
+- **Appearance switch:** a segmented control fixed 16px from the top-right corner of the content
+  area on every page: three 28px icon segments (monitor = System, sun = Light, moon = Dark) on a
+  surface-alt pill with radius-full; the active segment is a surface-colored pill with a 1px border.
+  Icons are drawn in on-surface-muted, the active one in on-surface. Each segment has a tooltip-style
+  accessible label ("Use system appearance", "Light", "Dark").
+- **Dark theme tokens:** every `dark-*` color mirrors the light token of the same role; all text
+  pairs meet WCAG AA (4.5:1). The calendar holiday highlight uses dark-primary at about 22% opacity.
 
 ## Do's and Don'ts
 

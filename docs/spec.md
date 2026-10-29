@@ -128,7 +128,8 @@ CREATE TABLE assessment (
 );
 
 CREATE TABLE setting (key TEXT PRIMARY KEY, value TEXT NOT NULL);
--- defaults: class_reminder_minutes=15, upcoming_window_days=7, notifications_enabled=1
+-- defaults: class_reminder_minutes=15, upcoming_window_days=7, notifications_enabled=1,
+--           theme=system (system | light | dark; a missing row reads as system; human decision 2026-10-29)
 
 CREATE TABLE reminder_log (                 -- M5: prevents duplicate notifications
   kind     TEXT NOT NULL CHECK (kind IN ('session','assessment')),
@@ -231,7 +232,7 @@ impl Planner {
 
     // settings, backup, export
     pub fn settings(&self) -> Result<Settings>;
-    pub fn save_settings(&mut self, s: &Settings) -> Result<()>;
+    pub fn save_settings(&mut self, s: &Settings) -> Result<()>;      // Settings includes `theme: ThemeMode` (System | Light | Dark), human decision 2026-10-29
     pub fn export_json(&self, now: NaiveDateTime) -> Result<String>;
     pub fn restore_json(&mut self, json: &str) -> Result<()>;
     pub fn export_attendance_csv<W: Write>(&self, w: W) -> Result<()>;
@@ -255,6 +256,8 @@ One window. Left nav with 5 pages. Forms are inline panels or dialogs. Every lis
 3. **Courses:** a list (with a show-archived toggle) and create/edit/archive. Course detail shows the attendance summary, the full session list with status buttons, and an "Add makeup class" form (date, start, end, room, note) for R10.
 4. **Assessments:** a list with filters (upcoming / overdue / completed / all), create/edit/delete, and a complete checkbox.
 5. **Settings:** term (name, start, end), holidays (add a single date or an inclusive date range with one label, expanded into one holiday per day; remove per day), reminder minutes, upcoming window, notifications on/off, Backup (save JSON), Restore (open JSON, with a confirm dialog), Export CSV, and the DB file location shown as text.
+
+Appearance: a three-way System / Light / Dark switch (monitor, sun, and moon icons) stays fixed in the window's top-right corner on every page; System follows the operating system's appearance; the choice is saved in settings and applies at once (human decision 2026-10-29).
 
 Date/time inputs: text fields validated as `DD-MM-YYYY` / `HH:MM` with inline errors (human decision 2026-10-29). Dates shown to the user read like "October 26, 2026" wherever space allows; storage, JSON backup, and CSV exports keep `YYYY-MM-DD` (§1, R21, R23). Date pickers are out of scope.
 

@@ -438,3 +438,15 @@ No new stored entities; the schema is unchanged.
   and the selected day was the old today, the selection and month move to the new today.
 - Not a visual time grid or a date picker (§10); no new core API (uses `sessions_between` and
   `list_assessments`).
+
+## Change 2026-10-29: dark mode and appearance switch (human request)
+
+- A three-way appearance switch (System / Light / Dark, drawn as monitor, sun, and moon icons) is
+  fixed in the top-right corner of the content area on every page, above page content, including
+  the startup-error screen. Clicking a segment applies the theme at once and saves it.
+- System follows the operating system's light/dark appearance live; Light and Dark force the theme.
+- The dark palette is the `dark-*` token set in DESIGN.md; every `Theme.*` color has a light and a
+  dark value, and the std-widgets (CheckBox, ComboBox, Switch, ScrollView) follow the same scheme.
+- The choice is stored in core settings as `theme` (`system` | `light` | `dark`, default `system`;
+  a missing row reads as `system`), so JSON backups carry it and restore applies it. This adds one
+  field to the §5 `Settings` type (human decision 2026-10-29); no schema migration.
