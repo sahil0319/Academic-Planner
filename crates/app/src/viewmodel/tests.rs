@@ -2875,3 +2875,147 @@ fn t39_grade_row_bad_numbers_inline_errors() {
     assert!(!err.get("min").is_empty());
     assert!(!err.get("points").is_empty());
 }
+
+// ---- M9: rules page rows and choice lists ----
+
+/// R34: a seeded-style component becomes editable text; ids and flags carry over.
+#[test]
+fn r34_component_form_row_texts() {
+    let quizzes = RuleComponent {
+        id: 2,
+        rule_set_id: 1,
+        position: 1,
+        name: "Quizzes".to_string(),
+        kind: ComponentKind::Items,
+        weight_pct: 15.0,
+        item_count: Some(4),
+        best_count: Some(3),
+        item_max: Some(15.0),
+        is_final: false,
+        bands: Vec::new(),
+    };
+    assert_eq!(
+        component_form_row(&quizzes),
+        ComponentFormRow {
+            id: Some(2),
+            name: "Quizzes".to_string(),
+            is_items: true,
+            weight: "15".to_string(),
+            item_count: "4".to_string(),
+            best_count: "3".to_string(),
+            item_max: "15".to_string(),
+            is_final: false,
+        }
+    );
+    let attendance = RuleComponent {
+        kind: ComponentKind::Attendance,
+        item_count: None,
+        best_count: None,
+        item_max: None,
+        ..quizzes
+    };
+    let row = component_form_row(&attendance);
+    assert!(!row.is_items);
+    assert_eq!(row.item_count, "");
+    assert_eq!(row.item_max, "");
+}
+
+/// R34, R35, R39: band and grade rows as input text.
+#[test]
+fn r39_band_and_grade_form_rows() {
+    let band = AttendanceBand {
+        min_pct: 85.0,
+        credit_pct: 90.0,
+    };
+    assert_eq!(band_form_row(&band), ("85".to_string(), "90".to_string()));
+    let grade = GradeRow {
+        letter: "B+".to_string(),
+        min_pct: 65.0,
+        points: 3.25,
+    };
+    assert_eq!(
+        grade_form_row(&grade),
+        ("B+".to_string(), "65".to_string(), "3.25".to_string())
+    );
+}
+
+/// R34: the rule set list shows each component with its weight.
+#[test]
+fn r34_rule_set_row_summary() {
+    let component = |id: i64, name: &str, weight: f64| RuleComponent {
+        id,
+        rule_set_id: 7,
+        position: id,
+        name: name.to_string(),
+        kind: ComponentKind::Items,
+        weight_pct: weight,
+        item_count: Some(1),
+        best_count: Some(1),
+        item_max: None,
+        is_final: false,
+        bands: Vec::new(),
+    };
+    let set = RuleSet {
+        id: 7,
+        name: "Seminar".to_string(),
+        components: vec![component(1, "Paper", 37.5), component(2, "Talk", 62.5)],
+    };
+    assert_eq!(
+        rule_set_row(&set),
+        RuleSetRow {
+            id: 7,
+            name: "Seminar".to_string(),
+            summary: "Paper 37.5%, Talk 62.5%".to_string(),
+        }
+    );
+}
+
+/// R33, R36: choice lists put the "none" label first and map indexes to ids.
+#[test]
+fn r33_choice_labels_and_ids() {
+    let names = vec!["Theory".to_string(), "Lab".to_string()];
+    assert_eq!(
+        choice_labels(NOT_GRADED_LABEL, &names),
+        vec!["Not graded", "Theory", "Lab"]
+    );
+    let ids = [10, 20];
+    assert_eq!(choice_id(0, &ids), None);
+    assert_eq!(choice_id(1, &ids), Some(10));
+    assert_eq!(choice_id(2, &ids), Some(20));
+    assert_eq!(choice_id(3, &ids), None);
+    assert_eq!(choice_id(-1, &ids), None);
+    assert_eq!(choice_index(None, &ids), 0);
+    assert_eq!(choice_index(Some(20), &ids), 2);
+    assert_eq!(choice_index(Some(99), &ids), 0);
+}
+
+/// R33, R36: stored credits and scores come back as input text.
+#[test]
+fn r33_number_input_text() {
+    assert_eq!(number_input(None), "");
+    assert_eq!(number_input(Some(3.0)), "3");
+    assert_eq!(number_input(Some(1.5)), "1.5");
+    assert_eq!(number_input(Some(12.0)), "12");
+}
+
+/// R34: row errors read as one line with field labels.
+#[test]
+fn r34_field_errors_text_one_line() {
+    let err = parse_component_row(
+        None,
+        "Quizzes",
+        ComponentKind::Items,
+        "x",
+        "4",
+        "3",
+        "y",
+        false,
+        Vec::new(),
+    )
+    .unwrap_err();
+    assert_eq!(
+        field_errors_text(&err),
+        "Weight: Enter a number; Out of: Enter a number"
+    );
+    assert_eq!(field_errors_text(&FormErrors::default()), "");
+}

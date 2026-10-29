@@ -9,8 +9,9 @@ use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 
 use crate::viewmodel::{self as vm, ChipKind};
 use crate::{
-    AppWindow, AssessmentRow, CalendarDay, CalendarWeek, Chip, CourseRow, DayGroup, HolidayRow,
-    Palette, SessionRow, SlotRow, StatusAction, SummaryView, Theme,
+    AppWindow, AssessmentRow, BandRow, CalendarDay, CalendarWeek, Chip, ComponentRow, CourseRow,
+    DayGroup, GradeRowView, HolidayRow, Palette, RuleSetRow, SessionRow, SlotRow, StatusAction,
+    SummaryView, Theme,
 };
 
 /// R-D18: Slint `int` is `i32`; an id that does not fit is reported, never truncated.
@@ -209,5 +210,48 @@ pub fn summary_view(s: &vm::SummaryView) -> SummaryView {
         pct: s.pct.as_str().into(),
         target: s.target.as_str().into(),
         below_target: s.below_target,
+    }
+}
+
+/// R34: rule set list row.
+pub fn rule_set_row(r: &vm::RuleSetRow) -> Result<RuleSetRow, String> {
+    Ok(RuleSetRow {
+        id: id(r.id)?,
+        name: r.name.as_str().into(),
+        summary: r.summary.as_str().into(),
+    })
+}
+
+/// R34: component form row; `-1` is a row not saved yet.
+pub fn component_row(r: &vm::ComponentFormRow) -> Result<ComponentRow, String> {
+    Ok(ComponentRow {
+        id: r.id.map(id).transpose()?.unwrap_or(-1),
+        name: r.name.as_str().into(),
+        is_items: r.is_items,
+        weight: r.weight.as_str().into(),
+        item_count: r.item_count.as_str().into(),
+        best_count: r.best_count.as_str().into(),
+        item_max: r.item_max.as_str().into(),
+        is_final: r.is_final,
+        error: SharedString::new(),
+    })
+}
+
+/// R35: attendance band form row from `(min, credit)` text.
+pub fn band_row((min, credit): &(String, String)) -> BandRow {
+    BandRow {
+        min: min.as_str().into(),
+        credit: credit.as_str().into(),
+        error: SharedString::new(),
+    }
+}
+
+/// R39: grade scale form row from `(letter, min, points)` text.
+pub fn grade_row((letter, min, points): &(String, String, String)) -> GradeRowView {
+    GradeRowView {
+        letter: letter.as_str().into(),
+        min: min.as_str().into(),
+        points: points.as_str().into(),
+        error: SharedString::new(),
     }
 }

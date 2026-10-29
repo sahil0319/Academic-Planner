@@ -10,6 +10,7 @@ import { CoursesPage, CoursesState } from "courses.slint";
 import { AssessmentsPage, AssessmentsState } from "assessments.slint";
 import { SettingsPage, SettingsState } from "settings.slint";
 import { AboutPage, AboutState, UpdateBanner } from "about.slint";
+import { RulesPage, RulesState } from "rules.slint";
 
 export {
     Chip,
@@ -22,8 +23,20 @@ export {
     HolidayRow,
     SummaryView,
     AppState,
+    RuleSetRow,
+    ComponentRow,
+    BandRow,
+    GradeRowView,
 } from "types.slint";
-export { DashboardState, TimetableState, CoursesState, AssessmentsState, SettingsState, AboutState }
+export {
+    DashboardState,
+    TimetableState,
+    CoursesState,
+    AssessmentsState,
+    SettingsState,
+    AboutState,
+    RulesState,
+}
 // Rust sets Theme.mode and the std-widgets color scheme (§6 "Appearance:").
 export { Theme, Palette }
 
@@ -93,6 +106,14 @@ export component AppWindow inherits Window {
                     }
                 }
                 NavItem {
+                    text: "Rules";
+                    active: AppState.current-page == 6;
+                    clicked => {
+                        AppState.current-page = 6;
+                        AppState.page-selected(6);
+                    }
+                }
+                NavItem {
                     text: "Settings";
                     active: AppState.current-page == 4;
                     clicked => {
@@ -143,6 +164,7 @@ export component AppWindow inherits Window {
                         if AppState.current-page == 3: AssessmentsPage { }
                         if AppState.current-page == 4: SettingsPage { }
                         if AppState.current-page == 5: AboutPage { }
+                        if AppState.current-page == 6: RulesPage { }
                     }
                 }
             }

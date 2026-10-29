@@ -1,5 +1,6 @@
 // Shared components built from base elements (DESIGN.md "Components", research R-D7).
 // Every color, size, spacing, radius, and font comes from Theme.*; no logic beyond bindings.
+import { ComboBox } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { Chip } from "types.slint";
 
@@ -220,6 +221,44 @@ export component Field inherits VerticalLayout {
                     root.edited(self.text);
                 }
             }
+        }
+    }
+
+    if root.error != "": Text {
+        text: root.error;
+        color: Theme.error;
+        wrap: word-wrap;
+        font-family: Theme.font-body;
+        font-size: Theme.body-sm-size;
+        font-weight: Theme.body-sm-weight;
+    }
+}
+
+// Labelled combo box with an error line, matching `Field`. `selected` fires when the user picks
+// an entry, not when Rust changes the index.
+export component ComboField inherits VerticalLayout {
+    in property <string> label;
+    in property <[string]> model;
+    in-out property <int> current-index;
+    in property <string> error;
+    callback selected();
+
+    spacing: Theme.space-xs;
+
+    Text {
+        text: root.label;
+        color: Theme.on-surface-muted;
+        font-family: Theme.font-body;
+        font-size: Theme.label-md-size;
+        font-weight: Theme.label-md-weight;
+    }
+
+    ComboBox {
+        height: Theme.input-height;
+        model: root.model;
+        current-index <=> root.current-index;
+        selected(value) => {
+            root.selected();
         }
     }
 

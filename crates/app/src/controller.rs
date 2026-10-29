@@ -13,7 +13,7 @@ use slint::{ComponentHandle, SharedString};
 use crate::viewmodel::{self, FilterChoice};
 use crate::{
     bridge, notify, pages, AboutState, AppState, AppWindow, AssessmentsState, CoursesState,
-    DashboardState, SettingsState, TimetableState,
+    DashboardState, RulesState, SettingsState, TimetableState,
 };
 
 /// Page-level UI state that is not stored in the database (data-model.md "UI state").
@@ -245,6 +245,7 @@ impl App {
         pages::assessments::refresh(self);
         pages::settings::refresh(self);
         pages::about::refresh(self);
+        pages::rules::refresh(self);
     }
 
     /// Shows `text` in the `message` property of the page that is currently visible.
@@ -259,6 +260,7 @@ impl App {
             3 => window.global::<AssessmentsState>().set_message(text),
             4 => window.global::<SettingsState>().set_message(text),
             5 => window.global::<AboutState>().set_message(text),
+            6 => window.global::<RulesState>().set_message(text),
             _ => window.global::<DashboardState>().set_message(text),
         }
     }

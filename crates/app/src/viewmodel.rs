@@ -10,7 +10,7 @@ use chrono::{Datelike, Days, Duration, NaiveDate, NaiveDateTime, NaiveTime, Time
 use planner_core::{
     Assessment, AssessmentFilter, AssessmentInput, AssessmentKind, Assumption, AttendanceBand,
     AttendanceSummary, ComponentKind, Course, CourseInput, Dashboard, FinalOutlook, GpaStatus,
-    GpaSummary, GradeRow, Holiday, MakeupInput, Needed, RuleComponent, RuleComponentInput,
+    GpaSummary, GradeRow, Holiday, MakeupInput, Needed, RuleComponent, RuleComponentInput, RuleSet,
     SessionView, Settings, Slot, SlotInput, Status, TermInput, ThemeMode,
 };
 
@@ -1648,4 +1648,126 @@ pub fn parse_grade_row(letter: &str, min: &str, points: &str) -> Result<GradeRow
         }),
         _ => Err(errors),
     }
+}
+
+// ---- M9: rules page rows and choice lists (contracts/ui-grading.md) ----
+
+/// R33: first label of the course form's rule set choice.
+pub const NOT_GRADED_LABEL: &str = "Not graded";
+/// R36: first label of the assessment form's "Counts toward" choice.
+pub const NOT_COUNTED_LABEL: &str = "Not counted";
+
+/// R33, R36: a stored optional number as input text: empty for `None`, else `format_mark`.
+pub fn number_input(value: Option<f64>) -> String {
+    value.map(format_mark).unwrap_or_default()
+}
+
+/// R33, R36: choice labels with `none_label` at index 0, then `names` in order.
+pub fn choice_labels(none_label: &str, names: &[String]) -> Vec<String> {
+    std::iter::once(none_label.to_string())
+        .chain(names.iter().cloned())
+        .collect()
+}
+
+/// R33, R36: the id behind choice `index` of a list built by `choice_labels` (index 0 = none, so
+/// `ids[index - 1]`). Out of range is `None`.
+pub fn choice_id(index: i32, ids: &[i64]) -> Option<i64> {
+    let i = usize::try_from(index).ok()?.checked_sub(1)?;
+    ids.get(i).copied()
+}
+
+/// R33, R36: the choice index of `id` in a list built by `choice_labels`; 0 (none) when `id` is
+/// `None` or not listed.
+pub fn choice_index(id: Option<i64>, ids: &[i64]) -> i32 {
+    id.and_then(|id| ids.iter().position(|&x| x == id))
+        .and_then(|i| i32::try_from(i + 1).ok())
+        .unwrap_or(0)
+}
+
+/// R34: a rule set in the Rules page list.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RuleSetRow {
+    pub id: i64,
+    pub name: String,
+    pub summary: String,
+}
+
+/// R34: `"Attendance 10%, Quizzes 15%, Mid 25%"`, in component order.
+pub fn rule_set_row(set: &RuleSet) -> RuleSetRow {
+    let summary = set
+        .components
+        .iter()
+        .map(|c| format!("{} {}%", c.name, format_mark(c.weight_pct)))
+        .collect::<Vec<_>>()
+        .join(", ");
+    RuleSetRow {
+        id: set.id,
+        name: set.name.clone(),
+        summary,
+    }
+}
+
+/// R34: one editable component row as input text. `id` is `None` for a row not yet saved.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ComponentFormRow {
+    pub id: Option<i64>,
+    pub name: String,
+    pub is_items: bool,
+    pub weight: String,
+    pub item_count: String,
+    pub best_count: String,
+    pub item_max: String,
+    pub is_final: bool,
+}
+
+/// R34: a stored component as editable input text; attendance has empty item fields.
+pub fn component_form_row(c: &RuleComponent) -> ComponentFormRow {
+    ComponentFormRow {
+        id: Some(c.id),
+        name: c.name.clone(),
+        is_items: c.kind == ComponentKind::Items,
+        weight: format_mark(c.weight_pct),
+        item_count: c.item_count.map(|n| n.to_string()).unwrap_or_default(),
+        best_count: c.best_count.map(|n| n.to_string()).unwrap_or_default(),
+        item_max: number_input(c.item_max),
+        is_final: c.is_final,
+    }
+}
+
+/// R35: a stored band as `(min %, credit %)` input text.
+pub fn band_form_row(b: &AttendanceBand) -> (String, String) {
+    (format_mark(b.min_pct), format_mark(b.credit_pct))
+}
+
+/// R39: a stored grade row as `(letter, min %, points)` input text.
+pub fn grade_form_row(g: &GradeRow) -> (String, String, String) {
+    (
+        g.letter.clone(),
+        format_mark(g.min_pct),
+        format_mark(g.points),
+    )
+}
+
+/// R34, R35, R39: the field errors of one Rules page row as one line, e.g.
+/// `"Weight: Enter a number; Out of: Enter a number"`.
+pub fn field_errors_text(errors: &FormErrors) -> String {
+    errors
+        .errors
+        .iter()
+        .map(|(field, message)| {
+            let label = match field.as_str() {
+                "weight" => "Weight",
+                "item_count" => "Items held",
+                "best_count" => "Best counted",
+                "item_max" => "Out of",
+                "min" => "Min %",
+                "credit" => "Credit %",
+                "letter" => "Letter",
+                "points" => "Points",
+                other => other,
+            };
+            format!("{label}: {message}")
+        })
+        .collect::<Vec<_>>()
+        .join("; ")
 }

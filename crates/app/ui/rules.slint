@@ -1,0 +1,410 @@
+// Rules page (docs/spec.md §13.3 "UI", contracts/ui-grading.md "Rules page"): rule sets with their
+// components and attendance bands (R34, R35), and the grade scale (R39). Bindings and callbacks
+// only; Rust (src/pages/rules.rs) fills every data-derived string and owns the row logic.
+import { CheckBox } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { BandRow, ComponentRow, GradeRowView, RuleSetRow } from "types.slint";
+import {
+    PageTitle,
+    EmptyState,
+    SectionCard,
+    ListRow,
+    Field,
+    PrimaryButton,
+    SecondaryButton,
+} from "components.slint";
+
+export global RulesState {
+    // Read and delete errors.
+    in property <string> message;
+
+    in property <[RuleSetRow]> rule-sets;
+
+    // Rule set form; `selected-id` is -1 for a new rule set.
+    in-out property <bool> form-open;
+    in-out property <int> selected-id: -1;
+    in-out property <string> set-name;
+    in-out property <[ComponentRow]> components;
+    // R35: bands of the attendance component; shown when a row is attendance.
+    in property <bool> has-attendance;
+    in-out property <[BandRow]> bands;
+    // R34 errors from core.
+    in property <string> form-error;
+
+    // R39: grade scale rows; `scale-dirty` keeps unsaved edits across page refreshes.
+    in-out property <[GradeRowView]> scale;
+    in-out property <bool> scale-dirty;
+    in property <string> scale-error;
+
+    callback begin-new();
+    callback edit-set(int);
+    callback delete-set(int);
+    callback save-set();
+    callback cancel-form();
+    callback add-component(bool);
+    callback remove-component(int);
+    callback move-component(int, int);
+    callback toggle-kind(int, bool);
+    callback set-final(int, bool);
+    callback add-band();
+    callback remove-band(int);
+    callback add-scale-row();
+    callback remove-scale-row(int);
+    callback save-scale();
+}
+
+component Caption inherits Text {
+    color: Theme.on-surface-muted;
+    font-family: Theme.font-body;
+    font-size: Theme.label-md-size;
+    font-weight: Theme.label-md-weight;
+}
+
+component Body inherits Text {
+    color: Theme.on-surface;
+    vertical-alignment: center;
+    overflow: elide;
+    font-family: Theme.font-body;
+    font-size: Theme.body-md-size;
+    font-weight: Theme.body-md-weight;
+}
+
+component FormError inherits Text {
+    color: Theme.error;
+    wrap: word-wrap;
+    font-family: Theme.font-body;
+    font-size: Theme.body-sm-size;
+    font-weight: Theme.body-sm-weight;
+}
+
+component Divider inherits Rectangle {
+    height: Theme.divider-width;
+    background: Theme.border;
+}
+
+export component RulesPage inherits VerticalLayout {
+    spacing: Theme.space-xl;
+    alignment: start;
+
+    PageTitle {
+        text: "Grading rules";
+    }
+
+    if RulesState.message != "": FormError {
+        text: RulesState.message;
+    }
+
+    SectionCard {
+        title: "Rule sets";
+
+        if RulesState.rule-sets.length == 0: EmptyState {
+            text: "No rule sets yet. Add one with New rule set.";
+        }
+
+        for set in RulesState.rule-sets: ListRow {
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                Body {
+                    text: set.name;
+                    font-weight: Theme.label-md-weight;
+                }
+                Body {
+                    text: set.summary;
+                    color: Theme.on-surface-muted;
+                    font-size: Theme.body-sm-size;
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                SecondaryButton {
+                    text: "Edit";
+                    clicked => {
+                        RulesState.edit-set(set.id);
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                SecondaryButton {
+                    text: "Delete";
+                    clicked => {
+                        RulesState.delete-set(set.id);
+                    }
+                }
+            }
+        }
+
+        HorizontalLayout {
+            alignment: start;
+            SecondaryButton {
+                text: "New rule set";
+                clicked => {
+                    RulesState.begin-new();
+                }
+            }
+        }
+    }
+
+    // R34: create / edit form; core validation errors show inline.
+    if RulesState.form-open: SectionCard {
+        title: RulesState.selected-id >= 0 ? "Edit rule set" : "New rule set";
+
+        Field {
+            label: "Name";
+            text <=> RulesState.set-name;
+        }
+
+        Caption {
+            text: "Components, in order";
+        }
+
+        for c[i] in RulesState.components: VerticalLayout {
+            spacing: Theme.space-sm;
+            padding-top: Theme.space-sm;
+
+            HorizontalLayout {
+                spacing: Theme.space-md;
+                Field {
+                    label: "Name";
+                    text: c.name;
+                    horizontal-stretch: 3;
+                    edited(t) => {
+                        RulesState.components[i].name = t;
+                    }
+                }
+                Field {
+                    label: "Weight %";
+                    text: c.weight;
+                    horizontal-stretch: 1;
+                    edited(t) => {
+                        RulesState.components[i].weight = t;
+                    }
+                }
+                if c.is-items: Field {
+                    label: "Items held";
+                    text: c.item-count;
+                    horizontal-stretch: 1;
+                    edited(t) => {
+                        RulesState.components[i].item-count = t;
+                    }
+                }
+                if c.is-items: Field {
+                    label: "Best counted";
+                    text: c.best-count;
+                    horizontal-stretch: 1;
+                    edited(t) => {
+                        RulesState.components[i].best-count = t;
+                    }
+                }
+                if c.is-items: Field {
+                    label: "Each out of (empty = the component's marks)";
+                    text: c.item-max;
+                    horizontal-stretch: 2;
+                    edited(t) => {
+                        RulesState.components[i].item-max = t;
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                spacing: Theme.space-sm;
+                alignment: start;
+                CheckBox {
+                    text: "Items";
+                    checked: c.is-items;
+                    toggled => {
+                        RulesState.toggle-kind(i, self.checked);
+                    }
+                }
+                CheckBox {
+                    text: "Final";
+                    checked: c.is-final;
+                    enabled: c.is-items;
+                    toggled => {
+                        RulesState.set-final(i, self.checked);
+                    }
+                }
+                SecondaryButton {
+                    text: "Move up";
+                    enabled: i > 0;
+                    clicked => {
+                        RulesState.move-component(i, -1);
+                    }
+                }
+                SecondaryButton {
+                    text: "Move down";
+                    enabled: i < RulesState.components.length - 1;
+                    clicked => {
+                        RulesState.move-component(i, 1);
+                    }
+                }
+                SecondaryButton {
+                    text: "Remove";
+                    clicked => {
+                        RulesState.remove-component(i);
+                    }
+                }
+            }
+
+            if c.error != "": FormError {
+                text: c.error;
+            }
+
+            Divider { }
+        }
+
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            alignment: start;
+            SecondaryButton {
+                text: "Add items component";
+                clicked => {
+                    RulesState.add-component(true);
+                }
+            }
+            SecondaryButton {
+                text: "Add attendance component";
+                clicked => {
+                    RulesState.add-component(false);
+                }
+            }
+        }
+
+        if RulesState.has-attendance: Caption {
+            text: "Attendance bands: from this attendance % up, this % of the marks is earned";
+        }
+
+        if RulesState.has-attendance: VerticalLayout {
+            for b[i] in RulesState.bands: HorizontalLayout {
+                spacing: Theme.space-md;
+                Field {
+                    label: "From attendance %";
+                    text: b.min;
+                    error: b.error;
+                    edited(t) => {
+                        RulesState.bands[i].min = t;
+                    }
+                }
+                Field {
+                    label: "Marks earned %";
+                    text: b.credit;
+                    edited(t) => {
+                        RulesState.bands[i].credit = t;
+                    }
+                }
+                VerticalLayout {
+                    alignment: start;
+                    padding-top: Theme.label-md-size + Theme.space-xs;
+                    SecondaryButton {
+                        text: "Remove";
+                        clicked => {
+                            RulesState.remove-band(i);
+                        }
+                    }
+                }
+            }
+        }
+
+        if RulesState.has-attendance: HorizontalLayout {
+            alignment: start;
+            SecondaryButton {
+                text: "Add band";
+                clicked => {
+                    RulesState.add-band();
+                }
+            }
+        }
+
+        if RulesState.form-error != "": FormError {
+            text: RulesState.form-error;
+        }
+
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            alignment: start;
+            PrimaryButton {
+                text: "Save";
+                clicked => {
+                    RulesState.save-set();
+                }
+            }
+            SecondaryButton {
+                text: "Cancel";
+                clicked => {
+                    RulesState.cancel-form();
+                }
+            }
+        }
+    }
+
+    // R39: grade scale.
+    SectionCard {
+        title: "Grade scale";
+
+        for g[i] in RulesState.scale: VerticalLayout {
+            spacing: Theme.space-xs;
+            HorizontalLayout {
+                spacing: Theme.space-md;
+                Field {
+                    label: "Letter";
+                    text: g.letter;
+                    edited(t) => {
+                        RulesState.scale[i].letter = t;
+                        RulesState.scale-dirty = true;
+                    }
+                }
+                Field {
+                    label: "From %";
+                    text: g.min;
+                    edited(t) => {
+                        RulesState.scale[i].min = t;
+                        RulesState.scale-dirty = true;
+                    }
+                }
+                Field {
+                    label: "Points";
+                    text: g.points;
+                    edited(t) => {
+                        RulesState.scale[i].points = t;
+                        RulesState.scale-dirty = true;
+                    }
+                }
+                VerticalLayout {
+                    alignment: start;
+                    padding-top: Theme.label-md-size + Theme.space-xs;
+                    SecondaryButton {
+                        text: "Remove";
+                        clicked => {
+                            RulesState.remove-scale-row(i);
+                        }
+                    }
+                }
+            }
+            if g.error != "": FormError {
+                text: g.error;
+            }
+        }
+
+        if RulesState.scale-error != "": FormError {
+            text: RulesState.scale-error;
+        }
+
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            alignment: start;
+            SecondaryButton {
+                text: "Add row";
+                clicked => {
+                    RulesState.add-scale-row();
+                }
+            }
+            PrimaryButton {
+                text: "Save grade scale";
+                clicked => {
+                    RulesState.save-scale();
+                }
+            }
+        }
+    }
+}
