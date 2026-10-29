@@ -1,10 +1,15 @@
 # Checkpoint
 
-- Milestone: M7 (About page, signed updater, pre-migration backup; docs/spec.md §13.1). Next: M8 12-hour times (§13.2), then M9 grading/GPA, M10 JSON import.
-- Last green gate: 1420e8f (fmt ok, clippy 0 warnings, 347 tests pass, theme grep clean). Nothing pushed since 19c2153's parent (origin/main = a7abf1c).
-- M7 tasks: T001–T033 done. Open: T034 manual dev-build checks (specs/007-m7-updater/quickstart.md §4, human), T035 human release run (quickstart §5: v0.2.0 then v0.2.1, publish, update in-app).
-- Signing: human made the minisign key (ID 4B63356BFCA1B763, private key in ~/.academic-planner-signing) and GitHub secrets CARGO_PACKAGER_SIGN_PRIVATE_KEY(+_PASSWORD). The private-key secret had a stray trailing `%`; human told to re-paste it via `pbcopy < ~/.academic-planner-signing/updater.key`.
-- Models: builder now Sonnet (.claude/agents/builder.md); router = main session /model (user switches).
-- Manual checks must use ACADEMIC_PLANNER_DB pointing at a scratch DB, never the real one.
-- Demo data: ACADEMIC_PLANNER_DB="$PWD/target/scratch/demo.sqlite" cargo run -p app
-- Notes: rustc 1.90; Slint 1.16; rusqlite 0.41; cargo-packager 0.11.8; cargo-packager-updater 0.2.3; cargo-about 0.9.3 (target/tools). M4–M6 history in git log.
+- Milestones M7–M10 (docs/spec.md §13) are all built; version bumped to 0.2.0 for release. Each waits only on human steps.
+- Last green gate: 1183eb5 (fmt ok, clippy 0 warnings, 538 tests pass, theme grep clean, no todo!/dead_code allows). The v1→v2 upgrade was also checked on a copy of the real DB (9 courses, 90 sessions kept, backup written).
+- Human tasks:
+  - M7 T035: install 0.2.0 by hand, then release 0.2.1 and update in-app (specs/007-m7-updater/quickstart.md §5).
+  - M8 T025: visual pass on 12-hour times (specs/008-m8-12-hour-times/quickstart.md).
+  - M9 T028: look at Rules page, marks card, needed-in-final, GPA header (specs/009-m9-grading-gpa/quickstart.md).
+  - M10 T029: Import panel, including pasting after Copy template / Copy AI prompt (clipboard untested; fallback arboard, research D17).
+  - Publish the draft v0.2.0 release on GitHub (it has latest.json only once published, so in-app updates see it after that).
+- Signing: minisign key ID 4B63356BFCA1B763, private key in ~/.academic-planner-signing, GitHub secrets CARGO_PACKAGER_SIGN_PRIVATE_KEY(+_PASSWORD). Back both up outside the repo.
+- Router decisions (2026-10-29): M8 notifications and error texts are 12-hour too; M9 pending quiz counts as missing and GPA is final only when none is missing; core rejects scores for components outside the course's rule set; M10 same-code duplicates in the DB are an error, R45 ends future-dated slots too. Worked example in docs/import/ai-prompt.md publishes the human's course list.
+- Models: builder Sonnet (.claude/agents/builder.md); router = main session /model.
+- Manual checks use ACADEMIC_PLANNER_DB="$PWD/target/scratch/demo.sqlite", never the real DB.
+- Notes: rustc 1.90; Slint 1.16; rusqlite 0.41; cargo-packager 0.11.8; cargo-packager-updater 0.2.3; cargo-about 0.9.3 (target/tools).

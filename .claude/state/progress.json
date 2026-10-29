@@ -1,6 +1,6 @@
 {
-  "milestone": "M8",
-  "phase": "implement",
+  "milestone": "M10",
+  "phase": "done-pending-human",
   "tasks": {
     "specify": "done",
     "plan": "done",
@@ -30,6 +30,10 @@
     "T022": "done",
     "T023": "done",
     "T024": "done",
-    "T025": "pending"
+    "T025": "done",
+    "T026": "done",
+    "T027": "done",
+    "T028": "done",
+    "T029": "pending"
   }
 }

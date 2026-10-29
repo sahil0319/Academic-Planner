@@ -9,7 +9,12 @@ percentage per course and which courses are below your target. The dashboard has
 that highlights holidays, exam periods, and weekends and marks days with an assessment due. Dates
 are typed as DD-MM-YYYY and shown as "October 26, 2026". The app has light and dark appearances
 (or follows your system) from a switch in the top-right corner. While the app is open, it can show
-a desktop notification before each class and before assessments that have a reminder set.
+a desktop notification before each class and before assessments that have a reminder set. Times
+are shown and typed in 12-hour form (type `930` and choose PM). Courses can have credits, and a
+Rules page holds your grading rules, so the app can track your marks, show the score you need in
+the final for each grade, and compute your term GPA. A courses-and-timetable JSON import (with a
+template and an AI prompt in [docs/import](docs/import/)) sets up a whole semester from a pasted
+document, and the About page checks for and installs updates.
 
 What's new in each version is in the [release notes](docs/releases/).
 
