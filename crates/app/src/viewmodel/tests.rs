@@ -7,7 +7,7 @@ use super::*;
 use planner_core::Error;
 
 const DATE_ERR: &str = "Use DD-MM-YYYY, e.g. 29-10-2026";
-const TIME_ERR: &str = "Use HH:MM, e.g. 09:30";
+const TIME_ERR: &str = "Enter the time as digits, e.g. 930 (hour 1–12, minutes 00–59)";
 const HOLIDAY_RANGE_ERR: &str = "End date must be on or after the start date";
 
 fn d(y: i32, m: u32, day: u32) -> NaiveDate {
@@ -203,26 +203,35 @@ fn format_date_input_round_trips_through_parse_date() {
     }
 }
 
-/// Times print as HH:MM, seconds dropped.
+/// R31: times print in 12-hour form (`9:05 AM`), seconds dropped.
 #[test]
 fn format_time_drops_seconds() {
-    assert_eq!(format_time(t(9, 5)), "09:05");
+    assert_eq!(format_time(t(9, 5)), "9:05 AM");
     let with_seconds = NaiveTime::from_hms_opt(9, 5, 42).unwrap();
-    assert_eq!(format_time(with_seconds), "09:05");
+    assert_eq!(format_time(with_seconds), "9:05 AM");
 }
 
-/// Time ranges use an en dash and no spaces.
+/// T35, R31: midnight is 12:00 AM, noon is 12:00 PM, afternoon hours wrap to 1-11 PM.
+#[test]
+fn t35_times_display_12_hour() {
+    assert_eq!(format_time(t(0, 0)), "12:00 AM");
+    assert_eq!(format_time(t(9, 5)), "9:05 AM");
+    assert_eq!(format_time(t(12, 0)), "12:00 PM");
+    assert_eq!(format_time(t(13, 30)), "1:30 PM");
+}
+
+/// R31: time ranges use an en dash and no spaces around it.
 #[test]
 fn format_time_range_uses_en_dash() {
-    assert_eq!(format_time_range(t(9, 0), t(10, 30)), "09:00–10:30");
+    assert_eq!(format_time_range(t(9, 0), t(10, 30)), "9:00 AM–10:30 AM");
 }
 
-/// §6 date format change: date and time print as `Month D, YYYY, HH:MM` (24-hour).
+/// R31: date and time print as `Month D, YYYY, H:MM AM/PM`.
 #[test]
 fn format_datetime_date_and_time() {
     assert_eq!(
         format_datetime(dt(2026, 10, 30, 23, 59)),
-        "October 30, 2026, 23:59"
+        "October 30, 2026, 11:59 PM"
     );
 }
 
@@ -307,25 +316,131 @@ fn parse_optional_date_parses_or_errors() {
     assert_eq!(parse_optional_date("20/12/2026"), Err(DATE_ERR.to_string()));
 }
 
-/// FR-007: valid times parse.
+/// T34, R32: AM inputs parse; 12 AM is hour 0; a colon is optional.
 #[test]
-fn parse_time_accepts_hh_mm() {
-    assert_eq!(parse_time("09:30", false), Ok(t(9, 30)));
-    assert_eq!(parse_time("00:00", false), Ok(t(0, 0)));
-    assert_eq!(parse_time("23:59", false), Ok(t(23, 59)));
-    assert_eq!(parse_time(" 09:30 ", false), Ok(t(9, 30)));
+fn t34_am_inputs_parse() {
+    assert_eq!(parse_time("9", false), Ok(t(9, 0)));
+    assert_eq!(parse_time("930", false), Ok(t(9, 30)));
+    assert_eq!(parse_time("0930", false), Ok(t(9, 30)));
+    assert_eq!(parse_time("1215", false), Ok(t(0, 15)));
+    assert_eq!(parse_time("12:15", false), Ok(t(0, 15)));
 }
 
-/// FR-007: bad times give one error text that states the format.
+/// T34, R32: PM inputs parse; 12 PM stays hour 12, other hours add 12.
 #[test]
-fn parse_time_rejects_bad_input_with_format_hint() {
-    for bad in ["", "9:30", "24:00", "12:60", "0930"] {
-        assert_eq!(
-            parse_time(bad, false),
-            Err(TIME_ERR.to_string()),
-            "input {bad:?}"
-        );
+fn t34_pm_inputs_parse() {
+    assert_eq!(parse_time("1215", true), Ok(t(12, 15)));
+    assert_eq!(parse_time("130", true), Ok(t(13, 30)));
+}
+
+/// T34, R32, FR-007: bad inputs give the one format-hint error, with AM and with PM.
+#[test]
+fn t34_bad_inputs_are_errors() {
+    for pm in [false, true] {
+        for bad in ["1260", "1300", "0", ""] {
+            assert_eq!(
+                parse_time(bad, pm),
+                Err(TIME_ERR.to_string()),
+                "input {bad:?}, pm {pm}"
+            );
+        }
     }
+}
+
+/// R32: surrounding spaces are trimmed and a colon is allowed.
+#[test]
+fn parse_time_trims_and_accepts_colon() {
+    assert_eq!(parse_time(" 930 ", false), Ok(t(9, 30)));
+    assert_eq!(parse_time("9:30", false), Ok(t(9, 30)));
+    assert_eq!(parse_time("9:30", true), Ok(t(21, 30)));
+}
+
+/// R32: hour 12 alone is midnight with AM and noon with PM.
+#[test]
+fn parse_time_twelve_alone_follows_toggle() {
+    assert_eq!(parse_time("12", false), Ok(t(0, 0)));
+    assert_eq!(parse_time("12", true), Ok(t(12, 0)));
+}
+
+/// R32, FR-007: out-of-range hours, a leading-zero 3-digit hour, 5+ digits, letters,
+/// and a dot all give the format-hint error.
+#[test]
+fn parse_time_rejects_edge_inputs() {
+    for pm in [false, true] {
+        for bad in ["13", "030", "12345", "9a", "9.30"] {
+            assert_eq!(
+                parse_time(bad, pm),
+                Err(TIME_ERR.to_string()),
+                "input {bad:?}, pm {pm}"
+            );
+        }
+    }
+}
+
+/// R32: pre-fill gives `hmm` digits and the PM flag (no leading zero on the hour).
+#[test]
+fn format_time_input_examples() {
+    assert_eq!(format_time_input(t(9, 30)), ("930".to_string(), false));
+    assert_eq!(format_time_input(t(13, 30)), ("130".to_string(), true));
+    assert_eq!(format_time_input(t(0, 15)), ("1215".to_string(), false));
+    assert_eq!(format_time_input(t(12, 5)), ("1205".to_string(), true));
+    assert_eq!(format_time_input(t(0, 0)), ("1200".to_string(), false));
+    assert_eq!(format_time_input(t(12, 0)), ("1200".to_string(), true));
+}
+
+/// R32, SC-005: pre-fill then parse returns the same time for every minute of the day.
+#[test]
+fn format_time_input_round_trips_all_minutes() {
+    for minute_of_day in 0..1440_u32 {
+        let time = t(minute_of_day / 60, minute_of_day % 60);
+        let (digits, pm) = format_time_input(time);
+        assert_eq!(parse_time(&digits, pm), Ok(time), "minute {minute_of_day}");
+    }
+}
+
+/// R31: core's slot message shows its times in 12-hour form.
+#[test]
+fn times_to_12h_rewrites_slot_message() {
+    assert_eq!(
+        times_to_12h("slot end time 09:00 is not after its start time 10:30"),
+        "slot end time 9:00 AM is not after its start time 10:30 AM"
+    );
+}
+
+/// R31: a time inside a date-and-time text is rewritten, the date stays.
+#[test]
+fn times_to_12h_rewrites_time_after_date() {
+    assert_eq!(
+        times_to_12h("due October 30, 2026, 23:59"),
+        "due October 30, 2026, 11:59 PM"
+    );
+}
+
+/// R31: text with no time, and an ISO date, stay unchanged.
+#[test]
+fn times_to_12h_leaves_text_without_time_unchanged() {
+    assert_eq!(
+        times_to_12h("course code must not be empty"),
+        "course code must not be empty"
+    );
+    assert_eq!(times_to_12h("starts on 2026-10-30"), "starts on 2026-10-30");
+}
+
+/// R31: tokens that are not a valid standalone `HH:MM` stay unchanged.
+#[test]
+fn times_to_12h_leaves_non_time_tokens_unchanged() {
+    assert_eq!(times_to_12h("at 24:00"), "at 24:00");
+    assert_eq!(times_to_12h("ratio 123:45"), "ratio 123:45");
+}
+
+/// R31: `error_text` shows core validation times in 12-hour form after capitalising.
+#[test]
+fn error_text_validation_shows_12_hour_times() {
+    let e = Error::Validation("slot end time 09:00 is not after its start time 10:30".to_string());
+    assert_eq!(
+        error_text(&e),
+        "Slot end time 9:00 AM is not after its start time 10:30 AM"
+    );
 }
 
 // ---- Text and numbers ----
@@ -476,11 +591,11 @@ fn parse_slot_form_valid() {
         Some(1),
         1,
         TimeText {
-            digits: "09:00",
+            digits: "900",
             pm: false,
         },
         TimeText {
-            digits: "10:30",
+            digits: "1030",
             pm: false,
         },
         " B12 ",
@@ -509,11 +624,11 @@ fn parse_slot_form_empty_valid_to_is_none() {
         Some(1),
         0,
         TimeText {
-            digits: "09:00",
+            digits: "900",
             pm: false,
         },
         TimeText {
-            digits: "10:30",
+            digits: "1030",
             pm: false,
         },
         "",
@@ -532,11 +647,11 @@ fn parse_slot_form_reports_all_errors_at_once() {
         None,
         9,
         TimeText {
-            digits: "9:00",
+            digits: "9a",
             pm: false,
         },
         TimeText {
-            digits: "25:00",
+            digits: "1300",
             pm: false,
         },
         "",
@@ -559,11 +674,11 @@ fn parse_slot_form_requires_valid_from() {
         Some(1),
         0,
         TimeText {
-            digits: "09:00",
+            digits: "900",
             pm: false,
         },
         TimeText {
-            digits: "10:30",
+            digits: "1030",
             pm: false,
         },
         "",
@@ -582,11 +697,11 @@ fn parse_slot_form_passes_end_before_start_to_core() {
         Some(1),
         0,
         TimeText {
-            digits: "10:30",
+            digits: "1030",
             pm: false,
         },
         TimeText {
-            digits: "09:00",
+            digits: "900",
             pm: false,
         },
         "",
@@ -605,12 +720,12 @@ fn parse_makeup_form_valid() {
         4,
         "15-01-2026",
         TimeText {
-            digits: "14:00",
-            pm: false,
+            digits: "200",
+            pm: true,
         },
         TimeText {
-            digits: "15:30",
-            pm: false,
+            digits: "330",
+            pm: true,
         },
         "C3",
         " moved ",
@@ -636,12 +751,12 @@ fn parse_makeup_form_empty_optional_fields_are_none() {
         4,
         "15-01-2026",
         TimeText {
-            digits: "14:00",
-            pm: false,
+            digits: "200",
+            pm: true,
         },
         TimeText {
-            digits: "15:30",
-            pm: false,
+            digits: "330",
+            pm: true,
         },
         "",
         "",
@@ -683,8 +798,8 @@ fn parse_assessment_form_valid() {
         " Midterm ",
         "30-10-2026",
         TimeText {
-            digits: "23:59",
-            pm: false,
+            digits: "1159",
+            pm: true,
         },
         "",
         "60",
@@ -712,7 +827,7 @@ fn parse_assessment_form_empty_remind_is_none() {
         "Quiz 1",
         "30-10-2026",
         TimeText {
-            digits: "09:00",
+            digits: "900",
             pm: false,
         },
         "",
@@ -755,7 +870,7 @@ fn parse_assessment_form_passes_empty_title_to_core() {
         "",
         "30-10-2026",
         TimeText {
-            digits: "09:00",
+            digits: "900",
             pm: false,
         },
         "",
@@ -979,7 +1094,7 @@ fn session_row_for_past_pending_session() {
             id: 5,
             date: "October 26, 2026".to_string(),
             weekday: "Monday".to_string(),
-            time: "09:00–10:30".to_string(),
+            time: "9:00 AM–10:30 AM".to_string(),
             course: "CSE101 · Intro to Programming".to_string(),
             room: "B12".to_string(),
             status_label: "Pending".to_string(),
@@ -1102,7 +1217,7 @@ fn slot_row_with_valid_to() {
         SlotRow {
             id: 7,
             weekday: "Tuesday".to_string(),
-            time: "09:00–10:30".to_string(),
+            time: "9:00 AM–10:30 AM".to_string(),
             course: "CSE101".to_string(),
             room: "C3".to_string(),
             valid: "From September 1, 2026 to December 20, 2026".to_string(),
@@ -1130,7 +1245,7 @@ fn assessment_row_formats_fields() {
             course_code: "CSE101".to_string(),
             kind: "Exam".to_string(),
             title: "Midterm".to_string(),
-            due: "October 30, 2026, 23:59".to_string(),
+            due: "October 30, 2026, 11:59 PM".to_string(),
             completed: false,
             notes: "Chapters 1-3".to_string(),
         }
