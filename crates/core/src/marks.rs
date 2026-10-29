@@ -7,14 +7,16 @@ use crate::db::{load_course, Planner};
 use crate::error::{Error, Result};
 use crate::grading::load_rule_set;
 use crate::model::{
-    AttendanceBand, ComponentKind, ComponentMarks, CourseMarks, GpaSummary, GradeRow,
+    Assumption, AttendanceBand, ComponentKind, ComponentMarks, CourseMarks, FinalOutlook,
+    GpaStatus, GpaSummary, GradeRow, Needed, NeededRow,
 };
 
 impl Planner {
     /// R35-R38: marks, projected grade, and needed-in-final of one course.
     ///
     /// R33: a course without credits or without a rule set is not graded and has no marks.
-    /// R37: the projection is `secured / assessed`; R38: `outlook` is filled by a later task.
+    /// R37: the projection is `secured / assessed`; R38: `outlook` is the needed-in-final table, or
+    /// the actual grade once the final has a score.
     pub fn course_marks(&self, course_id: i64) -> Result<CourseMarks> {
         let course = load_course(&self.conn, course_id)?;
         let (Some(credits), Some(rule_set_id)) = (course.credits, course.rule_set_id) else {
@@ -94,15 +96,15 @@ impl Planner {
             .sum();
         // R37: nothing assessed means no projection and no letter.
         let projected_pct = (assessed > 0.0).then(|| round1(secured / assessed * 100.0));
-        let letter = match projected_pct {
-            Some(pct) => letter_for(&self.grade_scale()?, pct),
-            None => None,
-        };
+        let scale = self.grade_scale()?;
+        let letter = projected_pct.and_then(|pct| letter_for(&scale, pct));
         // R40: fully assessed = attendance percentage known and no item missing.
         let fully_assessed = components.iter().all(|c| match c.kind {
             ComponentKind::Attendance => c.assessed_fraction >= 1.0,
             ComponentKind::Items => c.missing_items == 0,
         });
+
+        let outlook = final_outlook(&components, &scale, total, letter.clone());
 
         Ok(CourseMarks {
             course_id,
@@ -114,14 +116,122 @@ impl Planner {
             projected_pct,
             letter,
             fully_assessed,
-            outlook: None,
+            outlook,
         })
     }
 
     /// R40: GPA over the non-archived graded courses of the active term.
+    ///
+    /// A graded course with a projected percentage is included (its letter's points weighted
+    /// by credits); a graded course without one is left out. Ungraded (R33) and archived (R3)
+    /// courses count in neither. `gpa = round2(sum(points x credits) / sum(credits))`, `None`
+    /// when nothing is included. The status is `Final` only when at least one course is
+    /// included and every included course is fully assessed; no active term gives an empty,
+    /// projected summary.
     pub fn term_gpa(&self) -> Result<GpaSummary> {
-        todo!("M9: R40")
+        let mut summary = GpaSummary {
+            gpa: None,
+            status: GpaStatus::Projected,
+            included: 0,
+            left_out: 0,
+        };
+        if self.active_term()?.is_none() {
+            return Ok(summary);
+        }
+        let scale = self.grade_scale()?;
+        let mut weighted_points = 0.0;
+        let mut credits_sum = 0.0;
+        let mut all_final = true;
+        for course in self.list_courses(false)? {
+            let Some(credits) = course.credits else {
+                continue;
+            };
+            let marks = self.course_marks(course.id)?;
+            if !marks.graded {
+                continue;
+            }
+            let points = marks
+                .letter
+                .as_deref()
+                .and_then(|l| scale.iter().find(|row| row.letter == l))
+                .map(|row| row.points);
+            let Some(points) = points else {
+                summary.left_out += 1;
+                continue;
+            };
+            summary.included += 1;
+            weighted_points += points * credits;
+            credits_sum += credits;
+            all_final &= marks.fully_assessed;
+        }
+        if summary.included > 0 && credits_sum > 0.0 {
+            summary.gpa = Some(round2(weighted_points / credits_sum));
+            if all_final {
+                summary.status = GpaStatus::Final;
+            }
+        }
+        Ok(summary)
     }
+}
+
+/// R38: the outlook of a graded course. When the final has a score it is the actual grade
+/// (`letter`, the R37 letter); otherwise one row per grade-scale row (highest `min_pct`
+/// first) with `need = min_pct / 100 x total - sum(earned of non-final components)` and
+/// `ceil1(need / final_marks x final_item_max)`: `Secured` at or below 0, `NotReachable`
+/// above the final item max. Assumptions list the non-final items components with missing
+/// items (counted as 0), in position order. `None` when no final component exists.
+fn final_outlook(
+    components: &[ComponentMarks],
+    scale: &[GradeRow],
+    total: f64,
+    letter: Option<String>,
+) -> Option<FinalOutlook> {
+    let final_part = components.iter().find(|c| c.is_final)?;
+    if final_part.scores_entered > 0 {
+        return Some(FinalOutlook::Actual { letter });
+    }
+    let final_item_max = final_part.item_max.unwrap_or(final_part.marks);
+    let others_earned: f64 = components
+        .iter()
+        .filter(|c| !c.is_final)
+        .map(|c| c.earned)
+        .sum();
+    let mut grades: Vec<&GradeRow> = scale.iter().collect();
+    grades.sort_by(|a, b| b.min_pct.total_cmp(&a.min_pct));
+    let rows = grades
+        .into_iter()
+        .map(|g| {
+            let need = g.min_pct / 100.0 * total - others_earned;
+            let needed = if need <= 0.0 {
+                Needed::Secured
+            } else {
+                let value = ceil1(need / final_part.marks * final_item_max);
+                if value > final_item_max {
+                    Needed::NotReachable
+                } else {
+                    Needed::Score(value)
+                }
+            };
+            NeededRow {
+                letter: g.letter.clone(),
+                min_pct: g.min_pct,
+                needed,
+            }
+        })
+        .collect();
+    let assumptions = components
+        .iter()
+        .filter(|c| !c.is_final && c.kind == ComponentKind::Items && c.missing_items > 0)
+        .map(|c| Assumption {
+            component_name: c.name.clone(),
+            missing_items: c.missing_items,
+        })
+        .collect();
+    Some(FinalOutlook::Needed {
+        rows,
+        final_item_max,
+        assumptions,
+    })
 }
 
 /// R33: the marks of a component, `weight_pct` / 100 x the course total (100 x credits).
@@ -165,13 +275,11 @@ pub(crate) fn round1(x: f64) -> f64 {
 }
 
 /// R40: round to 2 decimals, half away from zero.
-#[allow(dead_code)] // used by term_gpa in M9 T014
 pub(crate) fn round2(x: f64) -> f64 {
     (x * 100.0).round() / 100.0
 }
 
 /// R38: round up to 1 decimal; float noise below 1e-9 does not push the result up.
-#[allow(dead_code)] // used by the needed-in-final table in M9 T012
 pub(crate) fn ceil1(x: f64) -> f64 {
     (x * 10.0 - 1e-9).ceil() / 10.0
 }
