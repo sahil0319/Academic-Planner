@@ -1465,7 +1465,7 @@ fn cell<'a>(grid: &'a [CalendarDay], key: &str) -> &'a CalendarDay {
 
 /// §6 mini calendar change: month_start returns the 1st of the month.
 #[test]
-fn t50_month_start_is_first_of_month() {
+fn month_start_is_first_of_month() {
     assert_eq!(month_start(d(2026, 10, 29)), d(2026, 10, 1));
     assert_eq!(month_start(d(2026, 10, 1)), d(2026, 10, 1));
     assert_eq!(month_start(d(2026, 2, 28)), d(2026, 2, 1));
@@ -1473,7 +1473,7 @@ fn t50_month_start_is_first_of_month() {
 
 /// §6 mini calendar change: shift_month crosses year ends in both directions.
 #[test]
-fn t51_shift_month_across_year_ends() {
+fn shift_month_across_year_ends() {
     assert_eq!(shift_month(d(2026, 12, 1), 1), d(2027, 1, 1));
     assert_eq!(shift_month(d(2026, 1, 1), -1), d(2025, 12, 1));
     assert_eq!(shift_month(d(2026, 10, 1), 0), d(2026, 10, 1));
@@ -1483,7 +1483,7 @@ fn t51_shift_month_across_year_ends() {
 
 /// §6 mini calendar change: month title is the full month name and year.
 #[test]
-fn t52_month_title_text() {
+fn month_title_text() {
     assert_eq!(month_title(d(2026, 10, 1)), "October 2026");
     assert_eq!(month_title(d(2027, 1, 1)), "January 2027");
 }
@@ -1491,7 +1491,7 @@ fn t52_month_title_text() {
 /// §6 mini calendar change, R3: class_days counts pending, attended, and absent sessions and
 /// keeps duplicates.
 #[test]
-fn t53_class_days_keeps_non_cancelled_with_duplicates() {
+fn class_days_keeps_non_cancelled_with_duplicates() {
     let views = vec![
         session_view(1, d(2026, 10, 26), Status::Pending, "Pending", false),
         session_view(2, d(2026, 10, 26), Status::Attended, "Attended", true),
@@ -1506,7 +1506,7 @@ fn t53_class_days_keeps_non_cancelled_with_duplicates() {
 
 /// §6 mini calendar change, R12: cancelled sessions and rescheduled originals do not count.
 #[test]
-fn t54_class_days_excludes_cancelled_and_rescheduled_original() {
+fn class_days_excludes_cancelled_and_rescheduled_original() {
     let views = vec![
         session_view(1, d(2026, 10, 26), Status::Cancelled, "Cancelled", true),
         session_view(
@@ -1524,7 +1524,7 @@ fn t54_class_days_excludes_cancelled_and_rescheduled_original() {
 /// §6 mini calendar change, R16: due_days lists incomplete assessments by due date, with
 /// duplicates; completed ones are excluded.
 #[test]
-fn t55_due_days_excludes_completed_keeps_duplicates() {
+fn due_days_excludes_completed_keeps_duplicates() {
     let list = vec![
         assessment_on(1, dt(2026, 10, 30, 23, 59), false),
         assessment_on(2, dt(2026, 10, 30, 8, 0), false),
@@ -1540,7 +1540,7 @@ fn t55_due_days_excludes_completed_keeps_duplicates() {
 
 /// §6 mini calendar change: the grid has 42 cells; October 2026 runs 2026-09-28 to 2026-11-08.
 #[test]
-fn t56_month_grid_has_42_cells_from_monday() {
+fn month_grid_has_42_cells_from_monday() {
     let grid = grid_oct();
     assert_eq!(grid.len(), 42);
     assert_eq!(grid[0].key, "2026-09-28");
@@ -1553,7 +1553,7 @@ fn t56_month_grid_has_42_cells_from_monday() {
 
 /// §6 mini calendar change: in_month marks only days of the shown month; day text has no padding.
 #[test]
-fn t57_month_grid_in_month_and_day_text() {
+fn month_grid_in_month_and_day_text() {
     let grid = grid_oct();
     assert!(!cell(&grid, "2026-09-30").in_month);
     assert!(cell(&grid, "2026-10-01").in_month);
@@ -1568,7 +1568,7 @@ fn t57_month_grid_in_month_and_day_text() {
 
 /// §6 mini calendar change: exactly one cell is today and one is selected, and they can differ.
 #[test]
-fn t58_month_grid_today_and_selected_flags() {
+fn month_grid_today_and_selected_flags() {
     let grid = month_grid(d(2026, 10, 1), d(2026, 10, 29), d(2026, 10, 26), &[], &[]);
     assert_eq!(grid.iter().filter(|c| c.is_today).count(), 1);
     assert_eq!(grid.iter().filter(|c| c.is_selected).count(), 1);
@@ -1580,7 +1580,7 @@ fn t58_month_grid_today_and_selected_flags() {
 
 /// §6 mini calendar change: today outside the shown grid marks no cell as today.
 #[test]
-fn t59_month_grid_today_outside_grid_marks_nothing() {
+fn month_grid_today_outside_grid_marks_nothing() {
     let grid = month_grid(d(2026, 3, 1), d(2026, 10, 29), d(2026, 3, 5), &[], &[]);
     assert_eq!(grid.len(), 42);
     assert!(grid.iter().all(|c| !c.is_today));
@@ -1590,7 +1590,7 @@ fn t59_month_grid_today_outside_grid_marks_nothing() {
 /// §6 mini calendar change, R3, R16: has_class and has_due follow the given day lists, even for
 /// days outside the month.
 #[test]
-fn t60_month_grid_has_class_and_has_due_flags() {
+fn month_grid_has_class_and_has_due_flags() {
     let classes = [d(2026, 10, 26), d(2026, 10, 26), d(2026, 9, 30)];
     let dues = [d(2026, 10, 30), d(2026, 11, 2)];
     let grid = month_grid(
@@ -1612,7 +1612,7 @@ fn t60_month_grid_has_class_and_has_due_flags() {
 
 /// §6 mini calendar change: the accessible label is the long date, then ", today", then counts.
 #[test]
-fn t61_month_grid_label_plain_day() {
+fn month_grid_label_plain_day() {
     let grid = grid_oct();
     assert_eq!(cell(&grid, "2026-10-26").label, "Monday, October 26, 2026");
     assert_eq!(cell(&grid, "2026-10-01").label, "Thursday, October 1, 2026");
@@ -1620,7 +1620,7 @@ fn t61_month_grid_label_plain_day() {
 
 /// §6 mini calendar change: label uses singular and plural counts and the ", today" suffix.
 #[test]
-fn t62_month_grid_label_counts_singular_plural_and_today() {
+fn month_grid_label_counts_singular_plural_and_today() {
     let classes = [d(2026, 10, 26), d(2026, 10, 26), d(2026, 10, 29)];
     let dues = [
         d(2026, 10, 26),
@@ -1651,7 +1651,7 @@ fn t62_month_grid_label_counts_singular_plural_and_today() {
 
 /// §6 mini calendar change: the key is the ISO date and round-trips through parse_date_key.
 #[test]
-fn t63_month_grid_keys_are_iso_and_parse_back() {
+fn month_grid_keys_are_iso_and_parse_back() {
     let grid = grid_oct();
     assert_eq!(cell(&grid, "2026-10-09").key, "2026-10-09");
     for c in &grid {
@@ -1662,14 +1662,14 @@ fn t63_month_grid_keys_are_iso_and_parse_back() {
 
 /// §6 mini calendar change: weekday initials start on Monday.
 #[test]
-fn t64_weekday_initials_monday_first() {
+fn weekday_initials_monday_first() {
     assert_eq!(weekday_initials(), ["M", "T", "W", "T", "F", "S", "S"]);
 }
 
 /// §6 mini calendar change, R16: the panel title is "Today's classes" for today and the long
 /// weekday date for any other day.
 #[test]
-fn t65_day_panel_title_today_vs_other() {
+fn day_panel_title_today_vs_other() {
     let today = d(2026, 10, 29);
     assert_eq!(day_panel_title(today, today), "Today's classes");
     assert_eq!(
@@ -1681,7 +1681,7 @@ fn t65_day_panel_title_today_vs_other() {
 /// §6 mini calendar change, R16: today keeps the existing empty sentence; other days say
 /// "Nothing on this day."
 #[test]
-fn t66_day_panel_empty_text_today_vs_other() {
+fn day_panel_empty_text_today_vs_other() {
     let today = d(2026, 10, 29);
     assert_eq!(day_panel_empty_text(today, today), TODAY_EMPTY);
     assert_eq!(
@@ -1692,7 +1692,7 @@ fn t66_day_panel_empty_text_today_vs_other() {
 
 /// §6 mini calendar change: parse_date_key accepts only an ISO date key.
 #[test]
-fn t67_parse_date_key_accepts_iso_only() {
+fn parse_date_key_accepts_iso_only() {
     assert_eq!(parse_date_key("2026-10-26"), Some(d(2026, 10, 26)));
     assert_eq!(parse_date_key("26-10-2026"), None);
     assert_eq!(parse_date_key(""), None);
