@@ -28,6 +28,13 @@ fn local_now() -> NaiveDateTime {
 }
 
 fn main() -> anyhow::Result<()> {
+    // Slint creates winit windows with `transparent(true)`; on macOS that leaves the native title
+    // bar see-through because the app paints only the content area. The app never uses window
+    // transparency, so ask for an opaque window on every platform.
+    slint::BackendSelector::new()
+        .with_winit_window_attributes_hook(|attributes| attributes.with_transparent(false))
+        .select()?;
+
     let window = AppWindow::new()?;
 
     // R24: database path; R25: a newer schema is refused by `open`.

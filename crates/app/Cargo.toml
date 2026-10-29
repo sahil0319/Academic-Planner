@@ -16,7 +16,8 @@ notify-rust = "4.18.2"
 planner-core = { path = "../core" }
 rfd = "0.17.2"
 rusqlite.workspace = true
-slint.workspace = true
+# `unstable-winit-030`: window-attributes hook used to make the window opaque (see main.rs).
+slint = { workspace = true, features = ["unstable-winit-030"] }
 
 [build-dependencies]
 slint-build.workspace = true
