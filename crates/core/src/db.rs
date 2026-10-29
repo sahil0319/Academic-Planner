@@ -366,6 +366,7 @@ impl Planner {
     pub fn create_assessment(&mut self, input: AssessmentInput) -> Result<Assessment> {
         input.validate()?;
         let tx = self.conn.transaction()?;
+        ensure_component_link(&tx, &input)?;
         tx.execute(
             "INSERT INTO assessment (course_id, kind, title, due_at, notes, remind_minutes_before,
                  component_id, score)
@@ -390,6 +391,7 @@ impl Planner {
     pub fn update_assessment(&mut self, id: i64, input: AssessmentInput) -> Result<Assessment> {
         input.validate()?;
         let tx = self.conn.transaction()?;
+        ensure_component_link(&tx, &input)?;
         let changed = tx.execute(
             "UPDATE assessment SET course_id = ?1, kind = ?2, title = ?3, due_at = ?4, notes = ?5,
                  remind_minutes_before = ?6, component_id = ?7, score = ?8
@@ -502,6 +504,49 @@ fn ensure_rule_set_exists(conn: &Connection, rule_set_id: Option<i64>) -> Result
     } else {
         Err(Error::Validation(format!("rule set {id} does not exist")))
     }
+}
+
+/// R36: an assessment linked to a component needs a component of its course's rule set (also
+/// for an ungraded course, so none can link), and a present score must not exceed the
+/// component's effective item max (`item_max`, or the component's marks when NULL).
+fn ensure_component_link(conn: &Connection, input: &AssessmentInput) -> Result<()> {
+    let Some(component_id) = input.component_id else {
+        return Ok(());
+    };
+    let course = load_course(conn, input.course_id)?;
+    let component: Option<(i64, f64, Option<f64>)> = conn
+        .query_row(
+            "SELECT rule_set_id, weight_pct, item_max FROM rule_component WHERE id = ?1",
+            [component_id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .optional()?;
+    let Some((rule_set_id, weight_pct, item_max)) = component else {
+        return Err(Error::Validation(format!(
+            "component {component_id} does not exist"
+        )));
+    };
+    if course.rule_set_id != Some(rule_set_id) {
+        return Err(Error::Validation(format!(
+            "component {component_id} is not in the rule set of course {}",
+            course.code
+        )));
+    }
+    if let Some(score) = input.score {
+        let max = item_max.or_else(|| {
+            course
+                .credits
+                .map(|credits| crate::marks::component_total(weight_pct, 100.0 * credits))
+        });
+        if let Some(max) = max {
+            if score > max + 1e-9 {
+                return Err(Error::Validation(format!(
+                    "score {score} is above the item maximum {max}"
+                )));
+            }
+        }
+    }
+    Ok(())
 }
 
 /// R2: course codes are unique within a term. `except` is the course being updated.
