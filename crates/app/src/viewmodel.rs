@@ -956,3 +956,86 @@ pub fn file_error_message(path: &Path, cause: &str) -> String {
 pub fn pre_restore_failed_message(cause: &str) -> String {
     format!("Restore not started: could not copy the current data ({cause})")
 }
+
+// ---- Mini calendar (§6 mini calendar change) ----
+
+/// First day of `d`'s month.
+#[allow(dead_code, unused_variables)]
+pub fn month_start(d: NaiveDate) -> NaiveDate {
+    todo!()
+}
+
+/// First day of the month `months` away, across year ends.
+#[allow(dead_code, unused_variables)]
+pub fn shift_month(month_start: NaiveDate, months: i32) -> NaiveDate {
+    todo!()
+}
+
+/// `October 2026`.
+#[allow(dead_code, unused_variables)]
+pub fn month_title(month_start: NaiveDate) -> String {
+    todo!()
+}
+
+/// R3, R12: one entry per non-cancelled session (pending, attended, absent), duplicates kept;
+/// cancelled sessions and rescheduled originals are excluded.
+#[allow(dead_code, unused_variables)]
+pub fn class_days(views: &[SessionView]) -> Vec<NaiveDate> {
+    todo!()
+}
+
+/// R16: one entry per incomplete assessment (`due_at.date()`), duplicates kept.
+#[allow(dead_code, unused_variables)]
+pub fn due_days(assessments: &[Assessment]) -> Vec<NaiveDate> {
+    todo!()
+}
+
+/// One cell of the mini calendar grid.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
+pub struct CalendarDay {
+    pub key: String,
+    pub day: String,
+    pub in_month: bool,
+    pub is_today: bool,
+    pub is_selected: bool,
+    pub has_class: bool,
+    pub has_due: bool,
+    pub label: String,
+}
+
+/// Always 42 cells starting at the Monday on or before `month_start`.
+#[allow(dead_code, unused_variables)]
+pub fn month_grid(
+    month_start: NaiveDate,
+    today: NaiveDate,
+    selected: NaiveDate,
+    class_days: &[NaiveDate],
+    due_days: &[NaiveDate],
+) -> Vec<CalendarDay> {
+    todo!()
+}
+
+/// `M T W T F S S`.
+#[allow(dead_code)]
+pub fn weekday_initials() -> [&'static str; 7] {
+    todo!()
+}
+
+/// `Today's classes` for today, else the long weekday date.
+#[allow(dead_code, unused_variables)]
+pub fn day_panel_title(selected: NaiveDate, today: NaiveDate) -> String {
+    todo!()
+}
+
+/// Empty text of the day panel.
+#[allow(dead_code, unused_variables)]
+pub fn day_panel_empty_text(selected: NaiveDate, today: NaiveDate) -> String {
+    todo!()
+}
+
+/// Parses a `CalendarDay.key` (`2026-10-26`); anything else is `None`.
+#[allow(dead_code, unused_variables)]
+pub fn parse_date_key(key: &str) -> Option<NaiveDate> {
+    todo!()
+}
