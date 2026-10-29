@@ -11,8 +11,11 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
+# M7 updater (R27-R30): default features include `rustls-tls`.
+cargo-packager-updater = "0.2.3"
 chrono = { workspace = true, features = ["clock"] }
 notify-rust = "4.18.2"
+open = "5"
 planner-core = { path = "../core" }
 rfd = "0.17.2"
 rusqlite.workspace = true
