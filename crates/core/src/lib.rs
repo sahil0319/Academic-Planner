@@ -7,6 +7,7 @@ mod dashboard;
 mod db;
 mod error;
 mod export;
+mod migrate;
 mod model;
 mod reminders;
 mod schedule;

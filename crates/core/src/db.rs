@@ -10,6 +10,7 @@ use rusqlite::types::Type;
 use rusqlite::{params, params_from_iter, Connection, OptionalExtension, Row};
 
 use crate::error::{Error, Result};
+use crate::migrate;
 use crate::model::*;
 
 /// Environment variable that overrides the database path (R24).
@@ -59,38 +60,23 @@ fn ensure_parent_dir(path: &Path) -> Result<()> {
 }
 
 impl Planner {
-    /// R24, R25: opens (creating if needed) the database at `path` and runs pending migrations.
+    /// R24, R25, R26: opens (creating if needed) the database at `path` and runs pending
+    /// migrations.
     pub fn open(path: &Path) -> Result<Self> {
         ensure_parent_dir(path)?;
-        Self::init(Connection::open(path)?)
+        Self::init(Connection::open(path)?, Some(path))
     }
 
-    /// R25: opens a fresh in-memory database with the current schema.
+    /// R25: opens a fresh in-memory database with the current schema; never writes a copy.
     pub fn open_in_memory() -> Result<Self> {
-        Self::init(Connection::open_in_memory()?)
+        Self::init(Connection::open_in_memory()?, None)
     }
 
-    /// R25: sets pragmas and applies pending migrations. A database newer than
-    /// `SCHEMA_VERSION` is refused before anything is written; WAL is enabled only after
-    /// that check because switching to WAL rewrites the file header.
-    fn init(mut conn: Connection) -> Result<Self> {
+    /// R25: enables foreign keys, then applies pending migrations through `migrate::run`
+    /// (which refuses a newer schema before anything is written).
+    fn init(mut conn: Connection, db_path: Option<&Path>) -> Result<Self> {
         conn.pragma_update(None, "foreign_keys", true)?;
-        let found: i64 = conn.pragma_query_value(None, "user_version", |r| r.get(0))?;
-        if found > SCHEMA_VERSION {
-            return Err(Error::SchemaTooNew {
-                found,
-                supported: SCHEMA_VERSION,
-            });
-        }
-        // In-memory databases report "memory"; either answer is fine.
-        let _mode: String =
-            conn.pragma_update_and_check(None, "journal_mode", "WAL", |r| r.get(0))?;
-        for (version, sql) in (1_i64..).zip(MIGRATIONS).skip(found as usize) {
-            let tx = conn.transaction()?;
-            tx.execute_batch(sql)?;
-            tx.pragma_update(None, "user_version", version)?;
-            tx.commit()?;
-        }
+        migrate::run(&mut conn, db_path, MIGRATIONS)?;
         Ok(Planner { conn })
     }
 
