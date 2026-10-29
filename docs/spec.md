@@ -2,7 +2,7 @@
 
 **Goal:** A local-first, open-source desktop app for university courses, weekly timetables, assessments, and manually logged attendance. Native desktop UI (no WebView), no account, no server.
 
-**How to use this spec with a coding agent:** Build milestones **M0 → M6 in order**, one milestone per agent session. A milestone is done only when its **Done-when** commands pass. Rule IDs (`R*`) and test IDs (`T*`) are referenced from code comments and test names so the agent and the reviewer can trace coverage. **The MVP is usable after M4** (`cargo run -p app`). M5 and M6 are polish and distribution.
+**How to use this spec with a coding agent:** Build milestones **M0 → M6 in order**, one milestone per agent session. A milestone is done only when its **Done-when** commands pass. Rule IDs (`R*`) and test IDs (`T*`) are referenced from code comments and test names so the agent and the reviewer can trace coverage. **The MVP is usable after M4** (`cargo run -p app`). M5 and M6 are polish and distribution. **M7–M10** (after v0.1.1) extend the app; their decisions, schema, rules, API, UI, and tests are all in §13.
 
 ---
 
@@ -23,6 +23,8 @@
 | Notifications (M5) | `notify-rust` |
 | Saving | Every mutation commits immediately. No save button |
 | Weekday | ISO numbering: 1 = Monday … 7 = Sunday |
+| Network | Only the updater (M7, §13.1) uses the network, and only to read GitHub Releases. Everything else stays local |
+| Updates (M7) | `cargo-packager-updater`; updates are minisign-signed and verified against a public key embedded at build time (human decision 2026-10-29) |
 | License | Decide in **M0**, not at release, because the Slint license option constrains the repo license. Verify Slint's current license terms and note any attribution requirement in `NOTICE`/README |
 
 ## 2. Workspace layout
@@ -129,6 +131,7 @@ CREATE TABLE assessment (
 
 CREATE TABLE setting (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 -- defaults: class_reminder_minutes=15, upcoming_window_days=7, notifications_enabled=1,
+--           check_updates_on_start=1 (M7, §13.1),
 --           theme=system (system | light | dark; a missing row reads as system; human decision 2026-10-29)
 
 CREATE TABLE reminder_log (                 -- M5: prevents duplicate notifications
@@ -138,6 +141,8 @@ CREATE TABLE reminder_log (                 -- M5: prevents duplicate notificati
   PRIMARY KEY (kind, ref_id, fire_at)
 );
 ```
+
+Migration 002 (M9: credits, rule sets, marks, grade scale) is defined in §13.3.
 
 There is **no "rescheduled" status**. A rescheduled occurrence is `status='cancelled'` and is referenced by a makeup session's `replaces_session_id`. The UI derives the label "Rescheduled → {date}".
 
@@ -243,6 +248,8 @@ impl Planner {
 }
 ```
 
+M7–M10 add the methods listed in §13.
+
 `SessionView` includes course code/name, `display_status` ("Pending" / "Attended" / "Absent" / "Cancelled" / "Rescheduled → 2026-01-15"), and `is_past` (`now >= session start`, i.e. attendance may be marked per R12; `now` is passed in because core never reads the clock).
 
 ## 6. UI (Slint), minimal
@@ -259,7 +266,7 @@ One window. Left nav with 5 pages. Forms are inline panels or dialogs. Every lis
 
 Appearance: a three-way System / Light / Dark switch (monitor, sun, and moon icons) stays fixed in the window's top-right corner on every page; System follows the operating system's appearance; the choice is saved in settings and applies at once (human decision 2026-10-29).
 
-Date/time inputs: text fields validated as `DD-MM-YYYY` / `HH:MM` with inline errors (human decision 2026-10-29). Dates shown to the user read like "October 26, 2026" wherever space allows; storage, JSON backup, and CSV exports keep `YYYY-MM-DD` (§1, R21, R23). Date pickers are out of scope.
+Date/time inputs: text fields validated as `DD-MM-YYYY` / `HH:MM` with inline errors (human decision 2026-10-29). From M8, times are shown and entered in 12-hour form (R31–R32). M7 adds an About page, M9 a Rules page, and M10 an Import panel (§13). Dates shown to the user read like "October 26, 2026" wherever space allows; storage, JSON backup, and CSV exports keep `YYYY-MM-DD` (§1, R21, R23). Date pickers are out of scope.
 
 ## 7. Milestones
 
@@ -275,6 +282,10 @@ Each milestone ends with the **gate**: `cargo fmt --check && cargo clippy --work
 | — | **MVP usable** | |
 | **M5** | Reminders: 60-second timer in the app, `due_reminders(now)`, `notify-rust` notifications. Fire only while the app is running | Gate passes; reminder dedupe tests pass; one manual notification observed |
 | **M6** | Release: `cargo-packager` config, CI matrix (macOS/Windows/Linux) building `.dmg`, NSIS `.exe`, `.deb`/AppImage on tag push; README with screenshots; THIRD-PARTY notices (e.g. `cargo-about`) | Tag build produces 3 OS artifacts; human installs on at least one OS |
+| **M7** | About page, updater, pre-migration backup (§13.1) | Gate passes; T31–T33 pass; a published test release updates an installed copy on macOS |
+| **M8** | 12-hour time display and `HHMM` + AM/PM input (§13.2) | Gate passes; T34–T35 pass; theme grep check passes |
+| **M9** | Credits, rule sets, marks, needed-in-final, grade scale, term GPA (§13.3) | Gate passes; T36–T43 pass |
+| **M10** | Courses + timetable JSON import with preview, template, AI prompt (§13.4) | Gate passes; T44–T50 pass |
 
 **Parallelism:** after M1 the API is frozen as stubs, so one agent can do M2–M3 (core) while another builds M4 (UI) against the stubs. Merge before the M4 smoke test.
 
@@ -315,13 +326,15 @@ Fixture unless stated: active term **2026-01-05 (Mon) → 2026-01-25 (Sun)**; co
 | T29 | two courses, dashboard on 01-05 | today's classes sorted by start time |
 | T30 | export → restore into empty DB → export | JSON equal except `exported_at`; bad format / newer version → error and DB unchanged |
 
+T31–T50 (M7–M10) are in §13.5.
+
 ## 9. M4 manual smoke checklist (human, ~5 minutes)
 
 Create term → add 2 courses → add 3 slots → the timetable shows this week → mark one past session attended and one absent → course shows 50.0% → cancel a session → reschedule one → add an assessment due tomorrow → dashboard shows it → back up → delete a course's data / restore → data is back → export CSVs and open them in a spreadsheet app.
 
 ## 10. Out of scope for v1
 
-Cloud sync/accounts, mobile, AI planning, OCR/PDF import, collaboration, analytics, visual time grid, date pickers, multiple simultaneous terms in the UI, notifications while the app is closed (autostart/background service), and macOS signing/notarization (document the Gatekeeper workaround in the README instead).
+Cloud sync/accounts, mobile, AI planning, OCR/PDF import, collaboration, analytics, visual time grid, date pickers, multiple simultaneous terms in the UI, notifications while the app is closed (autostart/background service), and macOS signing/notarization (document the Gatekeeper workaround in the README instead). The M10 JSON import is in scope, but the app never calls an AI service itself: the user runs the AI prompt elsewhere and pastes the result.
 
 ## 11. AGENTS.md (copy into repo root; also as CLAUDE.md)
 
@@ -411,3 +424,171 @@ Never run Spec Kit on the whole app at once. Per-milestone features keep `tasks.
 ### 12.5 Session handoff (your existing `.claude/state` pattern)
 - `progress.json`: `{"milestone": "M2", "phase": "implement", "tasks": {"T001": "done", ...}}`, using Spec Kit task IDs. The agent updates it after each task, not at the end.
 - `checkpoint.md`, at most 15 lines: current milestone, last green gate (commit hash), next task, open questions. A new session reads **only** `AGENTS.md` + `checkpoint.md` + the current `specs/<milestone>/tasks.md`. This replaces re-reading chat history and is the cheapest way to resume after `/clear` or an expired prompt cache.
+
+## 13. After v0.1.1: M7–M10 (human decisions 2026-10-29)
+
+Build in order: **M7 → M8 → M9 → M10**. The updater ships first so every later feature reaches installed copies with one click. Rules continue the R-numbering (R26–R50) and tests continue the T-numbering (§13.5). Everything in §1–§12 still applies.
+
+### 13.1 M7: About page, updater, pre-migration backup
+
+**Migrations**
+- **R26** When `open` finds an existing DB (`user_version` ≥ 1) older than `SCHEMA_VERSION`, it first writes a consistent copy (e.g. `VACUUM INTO`) to `{db_dir}/backups/pre-migrate-v{from}-to-v{to}.sqlite`, adding `-2`, `-3`, … if that name exists (core reads no clock). A fresh DB (`user_version` 0) gets no copy. Each migration runs in one transaction together with its `user_version` bump; if one fails, the DB stays at the last good version and the error names the backup path. R25 still applies: a DB newer than the app is refused, never downgraded.
+
+**Updates** (app crate; network code never goes in core)
+- **R27** The update source is the updater manifest attached to the latest **published** GitHub release of `sahil0319/Academic-Planner` (drafts and pre-releases are never offered). An update is offered only if its version is greater than the running version by semver (`0.1.10 > 0.1.9`). Any network or parse failure shows "Couldn't check for updates" with a Retry and never blocks the app.
+- **R28** Installing: the user confirms in a dialog showing the new version and its release notes. The download is verified against the minisign public key embedded at build time; a bad or missing signature aborts with nothing changed. Then the app installs and relaunches: macOS replaces the `.app` bundle; Windows runs the NSIS installer silently; the Linux AppImage replaces itself. A `.deb` install (not running from an AppImage) does not self-install: the dialog's button opens the release page instead.
+- **R29** If `check_updates_on_start` is on (default), the app checks once per launch in the background and shows a dismissible banner when an update exists. It never installs without the user's click.
+- **R30** Updates never touch user data directly. The new version's first `open` applies R25/R26 to the DB.
+
+**Release workflow:** the tag build also produces the updater artifacts (macOS `.app.tar.gz`, Windows setup `.exe`, `.AppImage`), their minisign signatures, and the manifest, using the private key and password from two GitHub secrets. The release stays a draft until the human publishes it; only then do installed apps see it.
+
+**UI:** a sixth nav page, **About**: app name, version, license line, links to the GitHub repo and `THIRD-PARTY-NOTICES.html`, the DB file location, a "Check for updates" button with its states (checking / up to date / update available → Install / downloading with progress / error + Retry), and the "Check for updates on startup" switch (setting `check_updates_on_start`, included in backups; a backup without it restores as on).
+
+### 13.2 M8: 12-hour times
+
+- **R31** Every time shown in the UI uses 12-hour form `h:mm AM` / `h:mm PM` ("9:30 AM", "12:05 PM", "12:00 AM" for midnight). Storage, JSON backup, CSV, and the M10 import keep 24-hour `HH:MM` (§1, R21, R23).
+- **R32** Every time input is a digits-only field plus an AM/PM toggle. 1–2 digits = the hour (`9` → 9:00); 3–4 digits = hour + minutes (`930`, `0930`, `1215`). A typed `:` is ignored. Hour must be 1–12 and minutes 00–59, otherwise an inline error. 12 AM = 00:mm and 12 PM = 12:mm. Editing an existing time pre-fills `hmm` and the toggle. Parsing and formatting are pure functions in `viewmodel.rs`.
+
+### 13.3 M9: credits, rule sets, marks, GPA
+
+**Migration 002**
+
+```sql
+ALTER TABLE course ADD COLUMN credits REAL CHECK (credits IS NULL OR credits > 0);   -- NULL = not graded
+ALTER TABLE course ADD COLUMN rule_set_id INTEGER REFERENCES rule_set(id);          -- NULL = not graded
+
+CREATE TABLE rule_set (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE);
+
+CREATE TABLE rule_component (
+  id           INTEGER PRIMARY KEY,
+  rule_set_id  INTEGER NOT NULL REFERENCES rule_set(id) ON DELETE CASCADE,
+  position     INTEGER NOT NULL,
+  name         TEXT NOT NULL,
+  kind         TEXT NOT NULL CHECK (kind IN ('attendance','items')),
+  weight_pct   REAL NOT NULL CHECK (weight_pct > 0 AND weight_pct <= 100),
+  item_count   INTEGER CHECK (item_count >= 1),          -- items: N items held
+  best_count   INTEGER CHECK (best_count >= 1),          -- items: best K counted
+  item_max     REAL CHECK (item_max IS NULL OR item_max > 0),  -- items: marks each item is out of; NULL = the component's marks for that course
+  is_final     INTEGER NOT NULL DEFAULT 0,
+  UNIQUE (rule_set_id, name)
+);
+
+CREATE TABLE attendance_band (
+  component_id  INTEGER NOT NULL REFERENCES rule_component(id) ON DELETE CASCADE,
+  min_pct       REAL NOT NULL CHECK (min_pct BETWEEN 0 AND 100),
+  credit_pct    REAL NOT NULL CHECK (credit_pct BETWEEN 0 AND 100),
+  PRIMARY KEY (component_id, min_pct)
+);
+
+CREATE TABLE grade_scale (
+  letter   TEXT PRIMARY KEY,
+  min_pct  REAL NOT NULL UNIQUE CHECK (min_pct BETWEEN 0 AND 100),
+  points   REAL NOT NULL CHECK (points >= 0)
+);
+
+ALTER TABLE assessment ADD COLUMN component_id INTEGER REFERENCES rule_component(id);  -- NULL = not counted in marks
+ALTER TABLE assessment ADD COLUMN score REAL CHECK (score IS NULL OR score >= 0);
+```
+
+Seeded defaults (all editable on the Rules page; the band and Lab values are placeholders until the user enters their university's rules):
+- **Theory:** Attendance 10% (attendance); Quizzes 15% (items, best 3 of 4, each out of 15); Mid 25% (items, 1 of 1, out of NULL); Final 50% (items, 1 of 1, out of NULL, `is_final`).
+- **Lab:** Attendance 30% (attendance); Lab work 40% (items, 1 of 1, out of NULL); Lab final 30% (items, 1 of 1, out of NULL, `is_final`).
+- **Attendance bands** (both sets): ≥90 → 100, ≥85 → 90, ≥80 → 80, ≥75 → 70, ≥70 → 60, ≥0 → 0.
+- **Grade scale** (UGC Bangladesh): A+ 80 4.00, A 75 3.75, A- 70 3.50, B+ 65 3.25, B 60 3.00, B- 55 2.75, C+ 50 2.50, C 45 2.25, D 40 2.00, F 0 0.00.
+
+**Rules**
+- **R33** A graded course has `credits` and a `rule_set_id`. Its total marks = 100 × credits; a component's marks = weight_pct / 100 × total. Credits may be fractional (1.5). A course missing either is "not graded" and is left out of R37–R40.
+- **R34** Saving a rule set is validated (`Error::Validation`): non-empty unique name; weights sum to 100 (±0.01); at most one `attendance` component; exactly one `is_final` component and it is `items`; for `items`, 1 ≤ best_count ≤ item_count; an attendance component has at least one band and a band with min_pct 0. Components are updated in place by id; removing a component that has linked scored assessments is an error. Deleting a rule set that a course uses is an error.
+- **R35** Attendance component: take the course's R13 pct; the earned fraction is the credit_pct of the band with the highest min_pct ≤ pct. If pct is None, the component is not yet assessed.
+- **R36** Items component: the scores of the course's assessments linked to it. Earned fraction = (sum of the best K scores) / (K × item_max), with item_max NULL meaning the component's marks. A score must be ≤ item_max (else `Error::Validation`). With fewer than K scores, missing items count as 0 for secured marks; the assessed fraction is (scores entered, capped at K) / K. Example: best 3 of 4 out of 15, scores 12, 11, 13, 14 → 39/45; with a 45-mark share that is 39 marks.
+- **R37** `course_marks`: per component earned marks and marks possible; secured = sum of earned marks; assessed marks = sum of (component marks × assessed fraction); projected pct = secured / assessed × 100 (None if nothing assessed); letter = the grade-scale row with the highest min_pct ≤ projected pct, rounded to 1 decimal.
+- **R38** Needed in final, for each grade row: need = min_pct / 100 × total − secured marks of all non-final components; needed score = need / final marks × final item_max, rounded **up** to 1 decimal. Result: "Secured" if ≤ 0, "Not reachable" if above item_max, else the score. Non-final components with missing items count those as 0, and the result lists what was assumed (e.g. "assumes 0 for 1 quiz not entered"). If the final already has a score, show the actual grade instead.
+- **R39** Grade scale validation: unique letters and min_pct, a row with min_pct 0, points non-increasing as min_pct decreases.
+- **R40** `term_gpa`: over non-archived graded courses in the active term with a projected pct, GPA = Σ(points × credits) / Σ credits, rounded to 2 decimals; None if no course qualifies. It is "final" when every component of every included course is fully assessed, otherwise "projected", and it reports how many graded courses were left out for lack of marks.
+- **R41** Backup (amends R21/R22): the JSON gains `rule_sets`, `rule_components`, `attendance_bands`, `grade_scale`; course and assessment rows carry the new columns; `schema_version` becomes 2. Restoring a version-1 backup leaves the courses ungraded and sets the four new tables to the seeded defaults. CSV formats (R23) are unchanged.
+
+**API additions**
+
+```rust
+// CourseInput gains: credits: Option<f64>, rule_set_id: Option<i64>
+// AssessmentInput gains: component_id: Option<i64>, score: Option<f64>
+pub fn list_rule_sets(&self) -> Result<Vec<RuleSet>>;                 // with components and bands
+pub fn save_rule_set(&mut self, input: RuleSetInput) -> Result<RuleSet>; // create or update
+pub fn delete_rule_set(&mut self, id: i64) -> Result<()>;
+pub fn grade_scale(&self) -> Result<Vec<GradeRow>>;
+pub fn save_grade_scale(&mut self, rows: &[GradeRow]) -> Result<()>;
+pub fn course_marks(&self, course_id: i64) -> Result<CourseMarks>;     // R35–R38
+pub fn term_gpa(&self) -> Result<GpaSummary>;                          // R40
+```
+
+**UI:** a **Rules** page (rule sets with their components and attendance bands; the grade scale). Course form: credits and rule set. Assessment form: "Counts toward" (a component of the course's rule set) and score "x / max". Course detail: a marks card (per component, secured, projected grade) and a "Needed in final" table per grade. The term GPA (projected or final) shows on the Courses page header.
+
+### 13.4 M10: courses and timetable import
+
+**Format** (`format` and `version` required; times are 24-hour `HH:MM`; `day` accepts `Mon`/`Monday`/`1`, any case):
+
+```json
+{
+  "format": "academic-planner-courses",
+  "version": 1,
+  "term": { "name": "Semester 7", "start": "2026-01-05", "end": "2026-05-01" },
+  "courses": [
+    {
+      "code": "CSE 4711", "name": "Artificial Intelligence",
+      "credits": 3, "rule_set": "Theory",
+      "instructor": null, "room": null, "min_attendance_pct": 75,
+      "slots": [
+        { "day": "Mon", "start": "10:30", "end": "11:45", "room": null },
+        { "day": "Fri", "start": "14:30", "end": "15:45" }
+      ]
+    }
+  ]
+}
+```
+
+**Rules**
+- **R42** The whole document is parsed and validated before anything is written. Errors are collected (not just the first) and each names its JSON path, e.g. `courses[2].slots[0].end: must be after start`. Checked: format/version, required fields, dates, times, day names, end > start, credits > 0, min_attendance_pct 0–100, `rule_set` names an existing rule set, duplicate course codes within the file. Unknown keys are ignored with a warning. Any error → nothing is written.
+- **R43** Course codes match ignoring case and whitespace (`CSE 4711` = `cse4711`). A new code creates the course with the code as written.
+- **R44** An existing code updates only the fields present in the file (absent = keep; explicit `null` = clear). An archived match stays archived and the preview warns.
+- **R45** Slots of a course in the file: if the file's slot set (day, start, end, room) equals the course's slots valid on the effective date, nothing changes. Otherwise every current slot is ended at effective − 1 day and the file's slots are added from the effective date (R7 semantics, so past sessions stay as they are). `"slots": []` ends all slots; a missing `slots` key leaves them untouched. New courses' slots start at the effective date.
+- **R46** Courses not in the file are never changed or deleted.
+- **R47** `term`: if there is no active term, it is required and is created. If an active term exists, it is ignored, and the preview warns when it differs.
+- **R48** `preview_import` writes nothing and returns the plan: courses to add, courses to update with field-by-field changes, slot changes per course, and warnings. `apply_import` applies exactly that plan in one transaction, then syncs (R6). Importing the same file twice → the second plan is empty.
+- **R49** The effective date defaults to today in the UI and can be changed in the preview (e.g. to the term start for a fresh term).
+- **R50** The template and an AI prompt ("convert my timetable to this format…", including the period → time rule for merged cells) ship as `docs/import/template.json` and `docs/import/ai-prompt.md` and are shown in the app with Copy buttons.
+
+**API additions**
+
+```rust
+pub fn preview_import(&self, json: &str, effective_from: NaiveDate) -> Result<ImportPlan>;
+pub fn apply_import(&mut self, json: &str, effective_from: NaiveDate, today: NaiveDate) -> Result<ImportReport>;
+```
+
+**UI:** Courses page → "Import…": a paste box, Copy template, Copy AI prompt, Preview (shows R48's plan and errors with paths), effective date, Apply.
+
+### 13.5 Tests for M7–M10
+
+Core integration tests unless marked (app) = `viewmodel.rs`/updater unit tests.
+
+| ID | Given | Then |
+|---|---|---|
+| T31 | DB at v1 opened with a migration list of 2 (test-only list) | `pre-migrate-v1-to-v2.sqlite` exists and equals the old DB; reopening makes no new copy; a fresh DB makes none |
+| T32 | second migration fails | DB still v1 and unchanged; error names the backup path |
+| T33 (app) | running 0.1.9 vs manifest 0.1.10 / 0.1.9 / 0.2.0-beta | offered / not offered / not offered |
+| T34 (app) | AM: `9`, `930`, `0930`, `1215`, `12:15`; PM: `1215`, `130`; any: `1260`, `1300`, `0`, empty | 09:00, 09:30, 09:30, 00:15, 00:15; 12:15, 13:30; each an inline error |
+| T35 (app) | 00:00, 09:05, 12:00, 13:30 | "12:00 AM", "9:05 AM", "12:00 PM", "1:30 PM" |
+| T36 | rule set weights 95; two finals; best 5 of 4; no 0 band | each `Error::Validation` |
+| T37 | 3-credit Theory, quiz scores 12, 11, 13, 14 | Quizzes 39.0 of 45 |
+| T38 | 3-credit Theory, attendance 87% (default bands) | Attendance 27.0 of 30 |
+| T39 | 3-credit Theory: attendance 92%, quizzes 12/11/13/14, mid 60/75, no final | needed final: A+ 111.0, A 96.0 (of 150); a quiz missing → listed as assumed 0 |
+| T40 | projected 79.9 / 80.0 | A / A+ |
+| T41 | 3-credit A+ (4.00) + 1.5-credit B (3.00) | GPA 3.67, projected |
+| T42 | v2 export → restore → export; restore a v1 backup | equal except `exported_at`; v1 → ungraded courses, default rule sets and grade scale |
+| T43 | delete a rule set used by a course; score above item_max | each `Error::Validation` |
+| T44 | import into a DB with no term | term, courses, slots created; sessions synced from effective date |
+| T45 | import the same file twice | second preview empty; apply changes nothing |
+| T46 | change a slot time, effective 01-14 | sessions before 01-14 keep old time; new time from 01-14 |
+| T47 | DB has `CSE 4711`, file has `cse4711` | matched, updated, no duplicate |
+| T48 | bad day, end ≤ start, duplicate code, unknown rule set | all errors returned with JSON paths; DB unchanged |
+| T49 | course in DB, absent from file | unchanged |
+| T50 | preview, then apply | preview writes nothing; apply result matches the preview |
