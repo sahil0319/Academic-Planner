@@ -46,6 +46,8 @@ fn populated() -> Populated {
     p.create_assessment(AssessmentInput {
         notes: Some("bring calculator".into()),
         remind_minutes_before: Some(30),
+        component_id: None,
+        score: None,
         ..assessment_input(
             course.id,
             AssessmentKind::Exam,

@@ -38,6 +38,8 @@ fn assessment_with_reminder(
 ) -> AssessmentInput {
     AssessmentInput {
         remind_minutes_before: minutes,
+        component_id: None,
+        score: None,
         ..assessment_input(course_id, AssessmentKind::Assignment, title, due)
     }
 }

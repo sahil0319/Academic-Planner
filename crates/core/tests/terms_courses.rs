@@ -135,6 +135,8 @@ fn courses_create_update_list_in_active_term() {
                 name: "Programming I".into(),
                 instructor: Some("Dr. Ada".into()),
                 min_attendance_pct: None,
+                credits: None,
+                rule_set_id: None,
                 ..fixture_course()
             },
         )

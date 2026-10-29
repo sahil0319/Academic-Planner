@@ -377,6 +377,8 @@ pub fn parse_course_form(
             room: optional_text(room),
             notes: optional_text(notes),
             min_attendance_pct,
+            credits: None,
+            rule_set_id: None,
         }),
         None => Err(errors),
     }
@@ -485,6 +487,8 @@ pub fn parse_assessment_form(
                 due_at: date.and_time(time),
                 notes: optional_text(notes),
                 remind_minutes_before,
+                component_id: None,
+                score: None,
             })
         }
         _ => Err(errors),

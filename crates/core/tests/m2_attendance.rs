@@ -77,6 +77,8 @@ fn t03_below_target_boundaries() {
     let open = p
         .create_course(CourseInput {
             min_attendance_pct: None,
+            credits: None,
+            rule_set_id: None,
             ..course_input("MTH110")
         })
         .unwrap();

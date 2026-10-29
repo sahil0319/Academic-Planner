@@ -7,6 +7,8 @@ mod dashboard;
 mod db;
 mod error;
 mod export;
+mod grading;
+mod marks;
 mod migrate;
 mod model;
 mod reminders;

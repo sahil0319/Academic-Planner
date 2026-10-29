@@ -91,6 +91,10 @@ pub struct CourseInput {
     pub notes: Option<String>,
     /// Attendance target in percent, 0–100; `None` = no target.
     pub min_attendance_pct: Option<i64>,
+    /// R33: credits (may be fractional); `None` = not graded. Must be > 0.
+    pub credits: Option<f64>,
+    /// R33: grading rule set; `None` = not graded.
+    pub rule_set_id: Option<i64>,
 }
 
 /// A course in a term (`course` table).
@@ -106,6 +110,10 @@ pub struct Course {
     pub min_attendance_pct: Option<i64>,
     /// R3: archived courses are hidden from the dashboard, timetable, and default lists.
     pub archived: bool,
+    /// R33: credits (may be fractional); `None` = not graded. Must be > 0.
+    pub credits: Option<f64>,
+    /// R33: grading rule set; `None` = not graded.
+    pub rule_set_id: Option<i64>,
 }
 
 /// Input for `add_slot` / `change_slot`.
@@ -229,6 +237,10 @@ pub struct AssessmentInput {
     pub notes: Option<String>,
     /// `None` = no reminder.
     pub remind_minutes_before: Option<u32>,
+    /// R36: the rule component this assessment counts toward; `None` = not counted in marks.
+    pub component_id: Option<i64>,
+    /// R36: score earned, must be >= 0 (and <= the component's item max); `None` = not scored.
+    pub score: Option<f64>,
 }
 
 /// A quiz, exam, assignment, or other deliverable (`assessment` table).
@@ -244,6 +256,10 @@ pub struct Assessment {
     pub notes: Option<String>,
     pub completed: bool,
     pub remind_minutes_before: Option<u32>,
+    /// R36: the rule component this assessment counts toward; `None` = not counted in marks.
+    pub component_id: Option<i64>,
+    /// R36: score earned, must be >= 0 (and <= the component's item max); `None` = not scored.
+    pub score: Option<f64>,
 }
 
 /// Appearance choice (§3 `theme`, §5 `Settings`; human decision 2026-10-29).
@@ -348,4 +364,185 @@ impl AssessmentInput {
     pub(crate) fn validate(&self) -> Result<()> {
         require_text(&self.title, "assessment title")
     }
+}
+
+// ---- M9: credits, rule sets, marks, GPA (§13.3) ----
+
+/// R34: kind of a rule component (`rule_component.kind`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ComponentKind {
+    /// R35: earned from the course's attendance percentage through bands.
+    Attendance,
+    /// R36: earned from the scores of linked assessments.
+    Items,
+}
+
+/// R35: one attendance band: at or above `min_pct` attendance earns `credit_pct` of the marks.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct AttendanceBand {
+    pub min_pct: f64,
+    pub credit_pct: f64,
+}
+
+/// R34: a component of a rule set (`rule_component` row with its bands).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RuleComponent {
+    pub id: i64,
+    pub rule_set_id: i64,
+    pub position: i64,
+    pub name: String,
+    pub kind: ComponentKind,
+    /// R33: component marks = `weight_pct` / 100 x the course total.
+    pub weight_pct: f64,
+    /// R36: items only, number of items held.
+    pub item_count: Option<u32>,
+    /// R36: items only, best K items counted.
+    pub best_count: Option<u32>,
+    /// R36: items only, marks each item is out of; `None` = the component's marks for the course.
+    pub item_max: Option<f64>,
+    /// R34: the final component (exactly one per rule set, and it is `Items`).
+    pub is_final: bool,
+    /// R35: attendance only, sorted by `min_pct` descending.
+    pub bands: Vec<AttendanceBand>,
+}
+
+/// R34: a rule set with its components ordered by position.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RuleSet {
+    pub id: i64,
+    pub name: String,
+    pub components: Vec<RuleComponent>,
+}
+
+/// R34: input for one component of `save_rule_set`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RuleComponentInput {
+    /// R34: `Some` = update in place; `None` = new component.
+    pub id: Option<i64>,
+    pub name: String,
+    pub kind: ComponentKind,
+    pub weight_pct: f64,
+    pub item_count: Option<u32>,
+    pub best_count: Option<u32>,
+    pub item_max: Option<f64>,
+    pub is_final: bool,
+    pub bands: Vec<AttendanceBand>,
+}
+
+/// R34: input for `save_rule_set` (`id: None` creates, `Some` updates).
+#[derive(Debug, Clone, PartialEq)]
+pub struct RuleSetInput {
+    pub id: Option<i64>,
+    pub name: String,
+    pub components: Vec<RuleComponentInput>,
+}
+
+/// R39: one row of the grade scale.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GradeRow {
+    pub letter: String,
+    pub min_pct: f64,
+    pub points: f64,
+}
+
+/// R35/R36: marks of one component of a graded course.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ComponentMarks {
+    pub component_id: i64,
+    pub name: String,
+    pub kind: ComponentKind,
+    pub is_final: bool,
+    /// R33: marks possible, `weight_pct` / 100 x total.
+    pub marks: f64,
+    /// R35/R36: marks earned.
+    pub earned: f64,
+    /// R35/R36: assessed fraction, 0 to 1.
+    pub assessed_fraction: f64,
+    /// R36: items, the effective item max; attendance: `None`.
+    pub item_max: Option<f64>,
+    /// R36: items, linked assessments with a score.
+    pub scores_entered: u32,
+    /// R38: items, `item_count` minus entered (at least 0); attendance: 0.
+    pub missing_items: u32,
+}
+
+/// R38: the score needed in the final for one grade row.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Needed {
+    /// Already secured without the final.
+    Secured,
+    /// Above the final item max.
+    NotReachable,
+    /// Score needed, rounded up to 1 decimal.
+    Score(f64),
+}
+
+/// R38: one row of the needed-in-final table.
+#[derive(Debug, Clone, PartialEq)]
+pub struct NeededRow {
+    pub letter: String,
+    pub min_pct: f64,
+    pub needed: Needed,
+}
+
+/// R38: missing items counted as 0 in the needed-in-final table.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Assumption {
+    pub component_name: String,
+    pub missing_items: u32,
+}
+
+/// R38: what the final still needs, or the actual grade once the final has a score.
+#[derive(Debug, Clone, PartialEq)]
+pub enum FinalOutlook {
+    Needed {
+        rows: Vec<NeededRow>,
+        final_item_max: f64,
+        assumptions: Vec<Assumption>,
+    },
+    Actual {
+        letter: Option<String>,
+    },
+}
+
+/// R37: marks summary of one course.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CourseMarks {
+    pub course_id: i64,
+    /// R33: has credits and a rule set.
+    pub graded: bool,
+    /// R33: 100 x credits; 0 when not graded.
+    pub total: f64,
+    pub components: Vec<ComponentMarks>,
+    /// R37: sum of earned marks.
+    pub secured: f64,
+    /// R37: sum of component marks x assessed fraction.
+    pub assessed: f64,
+    /// R37: secured / assessed x 100, 1 decimal; `None` if nothing assessed.
+    pub projected_pct: Option<f64>,
+    /// R37: grade-scale letter for the projected pct.
+    pub letter: Option<String>,
+    /// R40: every component fully assessed.
+    pub fully_assessed: bool,
+    /// R38: `None` when not graded.
+    pub outlook: Option<FinalOutlook>,
+}
+
+/// R40: whether the GPA is still projected or final.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GpaStatus {
+    Projected,
+    Final,
+}
+
+/// R40: term GPA summary.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GpaSummary {
+    /// R40: 2 decimals; `None` if no course qualifies.
+    pub gpa: Option<f64>,
+    pub status: GpaStatus,
+    /// R40: graded courses with a projected pct.
+    pub included: u32,
+    /// R40: graded courses left out for lack of marks.
+    pub left_out: u32,
 }

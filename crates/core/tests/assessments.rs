@@ -13,6 +13,8 @@ fn quiz(course_id: i64, title: &str, due: &str) -> AssessmentInput {
         due_at: dt(due),
         notes: None,
         remind_minutes_before: None,
+        component_id: None,
+        score: None,
     }
 }
 
@@ -31,6 +33,8 @@ fn assessment_create_update_round_trip() {
         .create_assessment(AssessmentInput {
             notes: Some("Chapters 1-3".into()),
             remind_minutes_before: Some(60),
+            component_id: None,
+            score: None,
             ..quiz(cse.id, "Quiz 1", "2026-01-09T10:00")
         })
         .unwrap();

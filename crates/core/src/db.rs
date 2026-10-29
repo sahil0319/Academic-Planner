@@ -538,6 +538,9 @@ fn course_from_row(r: &Row) -> rusqlite::Result<Course> {
         notes: r.get(6)?,
         min_attendance_pct: r.get(7)?,
         archived: r.get(8)?,
+        // R33: columns arrive with migration 002 (M9 T005).
+        credits: None,
+        rule_set_id: None,
     })
 }
 
@@ -613,6 +616,9 @@ fn assessment_from_row(r: &Row) -> rusqlite::Result<Assessment> {
         notes: r.get(6)?,
         completed: r.get(7)?,
         remind_minutes_before: r.get(8)?,
+        // R36: columns arrive with migration 002 (M9 T005).
+        component_id: None,
+        score: None,
     })
 }
 

@@ -72,6 +72,8 @@ fn course(id: i64, code: &str) -> Course {
         notes: None,
         min_attendance_pct: Some(75),
         archived: false,
+        credits: None,
+        rule_set_id: None,
     }
 }
 
@@ -101,6 +103,8 @@ fn assessment(id: i64, title: &str) -> Assessment {
         notes: Some("Chapters 1-3".to_string()),
         completed: false,
         remind_minutes_before: None,
+        component_id: None,
+        score: None,
     }
 }
 
@@ -556,6 +560,8 @@ fn parse_course_form_valid() {
             room: None,
             notes: None,
             min_attendance_pct: Some(75),
+            credits: None,
+            rule_set_id: None,
         }
     );
 }
@@ -814,6 +820,8 @@ fn parse_assessment_form_valid() {
             due_at: dt(2026, 10, 30, 23, 59),
             notes: None,
             remind_minutes_before: Some(60),
+            component_id: None,
+            score: None,
         }
     );
 }

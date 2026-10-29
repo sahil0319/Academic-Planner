@@ -23,6 +23,8 @@ fn assessment(course_id: i64, title: &str) -> AssessmentInput {
         due_at: dt("2026-01-16T23:59"),
         notes: None,
         remind_minutes_before: None,
+        component_id: None,
+        score: None,
     }
 }
 
@@ -82,12 +84,16 @@ fn t24_attendance_target_out_of_range() {
     for pct in [-1, 101] {
         assert_validation(p.create_course(CourseInput {
             min_attendance_pct: Some(pct),
+            credits: None,
+            rule_set_id: None,
             ..course_input("MTH110")
         }));
         assert_validation(p.update_course(
             cse.id,
             CourseInput {
                 min_attendance_pct: Some(pct),
+                credits: None,
+                rule_set_id: None,
                 ..fixture_course()
             },
         ));
@@ -102,6 +108,8 @@ fn t24_target_bounds_and_none_are_valid() {
         let course = p
             .create_course(CourseInput {
                 min_attendance_pct: pct,
+                credits: None,
+                rule_set_id: None,
                 ..course_input(code)
             })
             .unwrap();

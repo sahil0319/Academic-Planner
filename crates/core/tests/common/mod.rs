@@ -40,6 +40,8 @@ pub fn course_input(code: &str) -> CourseInput {
         room: Some("A-101".into()),
         notes: None,
         min_attendance_pct: None,
+        credits: None,
+        rule_set_id: None,
     }
 }
 
@@ -47,6 +49,8 @@ pub fn fixture_course() -> CourseInput {
     CourseInput {
         name: "Intro to Programming".into(),
         min_attendance_pct: Some(75),
+        credits: None,
+        rule_set_id: None,
         ..course_input("CSE101")
     }
 }
@@ -208,6 +212,8 @@ pub fn assessment_input(
         due_at: dt(due),
         notes: None,
         remind_minutes_before: None,
+        component_id: None,
+        score: None,
     }
 }
 
