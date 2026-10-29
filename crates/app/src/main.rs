@@ -70,6 +70,7 @@ fn main() -> anyhow::Result<()> {
             pages::courses::wire(&app);
             pages::assessments::wire(&app);
             pages::settings::wire(&app);
+            pages::about::wire(&app);
 
             let weak = Rc::downgrade(&app);
             window.global::<AppState>().on_page_selected(move |_| {
@@ -89,6 +90,17 @@ fn main() -> anyhow::Result<()> {
 
             // R6: sync on app start, then fill every page.
             app.changed(true);
+
+            // R27, R29, §1 Network: one background update check per launch when the About
+            // switch is on. It never installs anything; a failure shows only on About. An
+            // unreadable setting counts as off, so no request is made.
+            let check_on_start = app
+                .planner()
+                .settings()
+                .is_ok_and(|s| s.check_updates_on_start);
+            if check_on_start {
+                pages::about::start_check(&window, true);
+            }
             Some(app)
         }
     };
@@ -122,5 +134,16 @@ fn main() -> anyhow::Result<()> {
     })?;
 
     window.run()?;
+
+    // R28, R30: an installed update relaunches only after the database is closed (dropping
+    // `_app` closes it). The updater replaced only the app; the new version's `open` applies
+    // R25/R26 to the untouched database.
+    drop(timer);
+    drop(_app);
+    if let Some(mut command) = pages::about::take_relaunch() {
+        if let Err(e) = command.spawn() {
+            eprintln!("could not start the updated app: {e}");
+        }
+    }
     Ok(())
 }

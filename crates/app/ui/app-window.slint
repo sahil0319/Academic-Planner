@@ -9,6 +9,7 @@ import { TimetablePage, TimetableState } from "timetable.slint";
 import { CoursesPage, CoursesState } from "courses.slint";
 import { AssessmentsPage, AssessmentsState } from "assessments.slint";
 import { SettingsPage, SettingsState } from "settings.slint";
+import { AboutPage, AboutState, UpdateBanner } from "about.slint";
 
 export {
     Chip,
@@ -22,7 +23,7 @@ export {
     SummaryView,
     AppState,
 } from "types.slint";
-export { DashboardState, TimetableState, CoursesState, AssessmentsState, SettingsState }
+export { DashboardState, TimetableState, CoursesState, AssessmentsState, SettingsState, AboutState }
 // Rust sets Theme.mode and the std-widgets color scheme (§6 "Appearance:").
 export { Theme, Palette }
 
@@ -99,22 +100,50 @@ export component AppWindow inherits Window {
                         AppState.page-selected(4);
                     }
                 }
+                NavItem {
+                    text: "About";
+                    active: AppState.current-page == 5;
+                    clicked => {
+                        AppState.current-page = 5;
+                        AppState.page-selected(5);
+                    }
+                }
             }
         }
 
         Rectangle {
             background: Theme.neutral;
 
-            ScrollView {
-                VerticalLayout {
-                    padding: Theme.space-xl;
-                    alignment: start;
+            VerticalLayout {
+                // R29: the update banner sits above the page content, below the title row that
+                // holds the appearance switch, on every page.
+                if AppState.update-banner != "": VerticalLayout {
+                    padding-left: Theme.space-xl;
+                    padding-right: Theme.space-xl;
+                    padding-top: Theme.space-lg * 2 + Theme.appearance-segment;
+                    UpdateBanner {
+                        text: AppState.update-banner;
+                        view => {
+                            AppState.update-banner-view();
+                        }
+                        dismiss => {
+                            AppState.update-banner-dismiss();
+                        }
+                    }
+                }
 
-                    if AppState.current-page == 0: DashboardPage { }
-                    if AppState.current-page == 1: TimetablePage { }
-                    if AppState.current-page == 2: CoursesPage { }
-                    if AppState.current-page == 3: AssessmentsPage { }
-                    if AppState.current-page == 4: SettingsPage { }
+                ScrollView {
+                    VerticalLayout {
+                        padding: Theme.space-xl;
+                        alignment: start;
+
+                        if AppState.current-page == 0: DashboardPage { }
+                        if AppState.current-page == 1: TimetablePage { }
+                        if AppState.current-page == 2: CoursesPage { }
+                        if AppState.current-page == 3: AssessmentsPage { }
+                        if AppState.current-page == 4: SettingsPage { }
+                        if AppState.current-page == 5: AboutPage { }
+                    }
                 }
             }
 

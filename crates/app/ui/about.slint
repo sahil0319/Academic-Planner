@@ -1,0 +1,236 @@
+// About page and update banner (docs/spec.md §13.1 UI, §6, R27–R29;
+// specs/007-m7-updater/contracts/ui-about.md). Bindings only; every string comes from Rust
+// (src/pages/about.rs via src/viewmodel.rs).
+import { Switch, ProgressIndicator } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { PageTitle, SectionCard, PrimaryButton, SecondaryButton } from "components.slint";
+
+export global AboutState {
+    // Errors from opening a link or saving the switch.
+    in property <string> message;
+
+    // §13.1 UI: static About items.
+    in property <string> app-name;
+    in property <string> version-text;
+    in property <string> license-text;
+    in property <string> db-path;
+
+    // R27, R28: update status, action button, and download progress.
+    in property <string> status-text;
+    in property <string> action-label;
+    in property <bool> action-enabled: true;
+    in property <bool> downloading;
+    // 0.0–1.0, or -1 when the total size is unknown.
+    in property <float> progress;
+    in property <string> progress-text;
+    in property <bool> is-error;
+
+    // R28: inline confirm panel before anything is installed.
+    in property <bool> confirm-open;
+    in property <string> confirm-title;
+    in property <string> confirm-notes;
+    in property <string> confirm-label;
+
+    // R29: check for an update once per launch.
+    in-out property <bool> check-on-start;
+
+    callback action();
+    callback confirm();
+    callback cancel();
+    callback check-on-start-toggled();
+    callback open-repo();
+    callback open-notices();
+}
+
+// Body text on a card.
+component BodyText inherits Text {
+    color: Theme.on-surface;
+    wrap: word-wrap;
+    font-family: Theme.font-body;
+    font-size: Theme.body-md-size;
+    font-weight: Theme.body-md-weight;
+}
+
+// Muted secondary text on a card.
+component MutedText inherits Text {
+    color: Theme.on-surface-muted;
+    wrap: word-wrap;
+    font-family: Theme.font-body;
+    font-size: Theme.body-sm-size;
+    font-weight: Theme.body-sm-weight;
+}
+
+// R29: "Version x is available." with View and Dismiss, shown above the page content on every
+// page until dismissed for this launch.
+export component UpdateBanner inherits Rectangle {
+    in property <string> text;
+    callback view();
+    callback dismiss();
+
+    background: Theme.surface-alt;
+    border-radius: Theme.radius-md;
+    border-width: Theme.border-width;
+    border-color: Theme.border;
+
+    HorizontalLayout {
+        padding: Theme.space-md;
+        spacing: Theme.space-sm;
+
+        BodyText {
+            text: root.text;
+            horizontal-stretch: 1;
+            vertical-alignment: center;
+        }
+
+        PrimaryButton {
+            text: "View";
+            clicked => {
+                root.view();
+            }
+        }
+
+        SecondaryButton {
+            text: "Dismiss";
+            clicked => {
+                root.dismiss();
+            }
+        }
+    }
+}
+
+export component AboutPage inherits VerticalLayout {
+    spacing: Theme.space-xl;
+    alignment: start;
+
+    PageTitle {
+        text: "About";
+    }
+
+    if AboutState.message != "": Text {
+        text: AboutState.message;
+        color: Theme.error;
+        wrap: word-wrap;
+        font-family: Theme.font-body;
+        font-size: Theme.body-md-size;
+        font-weight: Theme.body-md-weight;
+    }
+
+    SectionCard {
+        title: AboutState.app-name;
+
+        BodyText {
+            text: AboutState.version-text;
+        }
+
+        BodyText {
+            text: AboutState.license-text;
+        }
+
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            alignment: start;
+            SecondaryButton {
+                text: "Source code";
+                clicked => {
+                    AboutState.open-repo();
+                }
+            }
+
+            SecondaryButton {
+                text: "Third-party notices";
+                clicked => {
+                    AboutState.open-notices();
+                }
+            }
+        }
+    }
+
+    SectionCard {
+        title: "Updates";
+
+        if AboutState.status-text != "": Text {
+            text: AboutState.status-text;
+            color: AboutState.is-error ? Theme.error : Theme.on-surface;
+            wrap: word-wrap;
+            font-family: Theme.font-body;
+            font-size: Theme.body-md-size;
+            font-weight: Theme.body-md-weight;
+        }
+
+        if AboutState.downloading: VerticalLayout {
+            spacing: Theme.space-xs;
+            ProgressIndicator {
+                progress: AboutState.progress;
+                indeterminate: AboutState.progress < 0;
+            }
+
+            MutedText {
+                text: AboutState.progress-text;
+            }
+        }
+
+        if AboutState.confirm-open: Rectangle {
+            background: Theme.surface-alt;
+            border-radius: Theme.radius-sm;
+
+            VerticalLayout {
+                padding: Theme.space-md;
+                spacing: Theme.space-sm;
+
+                BodyText {
+                    text: AboutState.confirm-title;
+                    font-weight: Theme.label-md-weight;
+                }
+
+                if AboutState.confirm-notes != "": BodyText {
+                    text: AboutState.confirm-notes;
+                }
+
+                HorizontalLayout {
+                    spacing: Theme.space-sm;
+                    alignment: start;
+                    PrimaryButton {
+                        text: AboutState.confirm-label;
+                        clicked => {
+                            AboutState.confirm();
+                        }
+                    }
+
+                    SecondaryButton {
+                        text: "Cancel";
+                        clicked => {
+                            AboutState.cancel();
+                        }
+                    }
+                }
+            }
+        }
+
+        if !AboutState.confirm-open: HorizontalLayout {
+            alignment: start;
+            PrimaryButton {
+                text: AboutState.action-label;
+                enabled: AboutState.action-enabled;
+                clicked => {
+                    AboutState.action();
+                }
+            }
+        }
+
+        Switch {
+            text: "Check for updates when the app starts";
+            checked <=> AboutState.check-on-start;
+            toggled => {
+                AboutState.check-on-start-toggled();
+            }
+        }
+    }
+
+    SectionCard {
+        title: "Database";
+
+        MutedText {
+            text: AboutState.db-path;
+        }
+    }
+}
