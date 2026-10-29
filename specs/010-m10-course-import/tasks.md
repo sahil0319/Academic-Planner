@@ -307,7 +307,7 @@ are warnings, nothing is written on error.
 
 ## Phase 8: Polish, gate, Done-when
 
-- [ ] T028 (builder) [core] [app] Run the gate `cargo fmt --check && cargo clippy --workspace
+- [x] T028 (builder) [core] [app] Run the gate `cargo fmt --check && cargo clippy --workspace
   --all-targets -- -D warnings && cargo test --workspace`, the theme grep, `cargo test -p
   planner-core --test m10_import`, and `cargo test -p app viewmodel::import`; confirm every M10
   function has a rule-ID doc comment and no `todo!("M10")` remains; paste the summary. Needs T021,
