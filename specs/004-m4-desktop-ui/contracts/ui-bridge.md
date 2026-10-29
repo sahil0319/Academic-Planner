@@ -69,8 +69,12 @@ Each page file exports `<Name>Page` and `global <Name>State`. Every page global 
   the day panel replaces "Today's classes".
 - In (mini calendar, change 2026-10-29): `month-title: string`, `weekday-initials: [string]`,
   `calendar: [CalendarWeek]` (six `CalendarWeek { days: [CalendarDay] }` from
-  `viewmodel::month_grid`, `types.slint`), `panel-title: string` (`day_panel_title`),
-  `panel-empty-text: string` (`day_panel_empty_text`, shown when the day has no sessions and no
+  `viewmodel::month_grid`, `types.slint`; `CalendarDay` has `is-weekend: bool` (Saturday or
+  Sunday) and `holiday: string` (the holiday label, "Holiday" when unlabeled, "" otherwise) in
+  place of the removed `class-badge`; `has-class` stays but draws no marker),
+  `panel-title: string` (`day_panel_title`), `panel-holiday: string`
+  (`day_panel_holiday_text(holiday_text(holidays, selected))`: "Holiday: Midterm week", or "";
+  shown under the title only when non-empty), `panel-empty-text: string` (`day_panel_empty_text`, shown when the day has no sessions and no
   assessments), `panel-sessions: [SessionRow]`, `panel-assessments: [AssessmentRow]` (`due`
   holds only the time, `format_time`).
 - Callbacks: `set-status(int, StatusAction)` (awaiting rows: Attended / Absent disabled unless
@@ -82,7 +86,8 @@ Each page file exports `<Name>Page` and `global <Name>State`. Every page global 
   `UiState.calendar_month` / `calendar_selected` (default today): `sessions_between(grid first
   day, grid last day, now)` → `class_days`, plus `sessions_between(selected, selected, now)` when
   the selected day is outside the grid; `list_assessments(All)` filtered to the grid → `due_days`,
-  and to the selected day for the panel. Panel sessions are sorted by start time, course code,
+  and to the selected day for the panel; the active term's holidays (none without a term) →
+  `month_grid` and `panel-holiday`. Panel sessions are sorted by start time, course code,
   id. `set-status` calls `set_status(id, status, now)` then `refresh_all` (no sync). Month and
   day callbacks refresh only the dashboard. On an R6 rollover in `tick`, a selection equal to
   the old `last_sync` date moves (with the month) to the new today (`UiState::roll_calendar`).

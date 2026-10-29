@@ -1040,8 +1040,19 @@ fn count_text(n: usize, one: &str, many: &str) -> String {
     }
 }
 
+/// R14: holiday text for `date`: its label, `Holiday` when unlabeled, `""` when not a holiday
+/// (§6 mini calendar change).
+pub fn holiday_text(holidays: &[Holiday], date: NaiveDate) -> String {
+    holidays
+        .iter()
+        .find(|h| h.date == date)
+        .map(|h| h.label.clone().unwrap_or_else(|| "Holiday".to_string()))
+        .unwrap_or_default()
+}
+
 /// Always 42 cells starting at the Monday on or before `month_start`. The label is the long
-/// weekday date, then `, today`, then the class and due counts when non-zero (R3, R16).
+/// weekday date, then `, today`, then the holiday text, then the class and due counts when
+/// non-zero (R3, R14, R16). A holiday without a label reads `Holiday` (§6 mini calendar change).
 pub fn month_grid(
     month_start: NaiveDate,
     today: NaiveDate,
@@ -1050,7 +1061,6 @@ pub fn month_grid(
     due_days: &[NaiveDate],
     holidays: &[Holiday],
 ) -> Vec<CalendarDay> {
-    let _ = holidays;
     let first = grid_start(month_start);
     (0..GRID_CELLS)
         .map(|offset| {
@@ -1061,6 +1071,11 @@ pub fn month_grid(
             let mut label = format!("{}, {}", weekday_name(date.weekday()), format_date(date));
             if is_today {
                 label.push_str(", today");
+            }
+            let holiday = holiday_text(holidays, date);
+            if !holiday.is_empty() {
+                label.push_str(", ");
+                label.push_str(&holiday);
             }
             if classes > 0 {
                 label.push_str(", ");
@@ -1078,8 +1093,8 @@ pub fn month_grid(
                 is_selected: date == selected,
                 has_class: classes > 0,
                 has_due: dues > 0,
-                is_weekend: false,
-                holiday: String::new(),
+                is_weekend: matches!(date.weekday(), Weekday::Sat | Weekday::Sun),
+                holiday,
                 label,
             }
         })
@@ -1106,10 +1121,12 @@ pub fn day_panel_title(selected: NaiveDate, today: NaiveDate) -> String {
 
 /// Holiday line of the day panel: empty for no holiday, else `Holiday: <text>` (§6 mini calendar
 /// change).
-#[allow(dead_code)]
 pub fn day_panel_holiday_text(holiday: &str) -> String {
-    let _ = holiday;
-    todo!("day_panel_holiday_text")
+    if holiday.is_empty() {
+        String::new()
+    } else {
+        format!("Holiday: {holiday}")
+    }
 }
 
 /// R16: empty text of the day panel; today keeps the Today's classes sentence.

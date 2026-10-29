@@ -70,15 +70,11 @@ export global Theme {
     out property <length> window-height: 720px;
     out property <length> divider-width: 1px;
     out property <length> border-width: 1px;
-    // DESIGN.md "Mini calendar": day cells, the today circle inside a cell, the 4px due dot.
-    // Cells are 36px (not 32px) so the class count badge clears the day number.
+    // DESIGN.md "Mini calendar": 36px day cells, the today circle inside a cell, the 4px due dot.
     out property <length> calendar-cell: 36px;
     out property <length> calendar-today: 22px;
     out property <length> calendar-marker: 4px;
-    // DESIGN.md "Mini calendar": class count badge height and text; the text is below label-sm
-    // (11px) so it fits inside the 12px pill.
-    out property <length> calendar-badge: 12px;
-    out property <length> calendar-badge-text: 9px;
-    // DESIGN.md "Mini calendar": class day highlight, primary #B4532F at about 15% opacity.
-    out property <color> calendar-class-highlight: #B4532F26;
+    // DESIGN.md "Mini calendar": holiday and exam period highlight, primary #B4532F at about 15%
+    // opacity.
+    out property <color> calendar-holiday-highlight: #B4532F26;
 }

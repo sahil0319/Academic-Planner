@@ -41,6 +41,8 @@ export global DashboardState {
     in property <[CalendarWeek]> calendar;
     // Day panel: "Today's classes" for today, else "Monday, October 26, 2026".
     in property <string> panel-title;
+    // "Holiday: Midterm week" when the selected day is a holiday, else "".
+    in property <string> panel-holiday;
     // Shown when the selected day has no sessions and no assessments due.
     in property <string> panel-empty-text;
     // R3, R16: the selected day's sessions of non-archived courses, by start time.
@@ -125,41 +127,17 @@ component AssessmentLine inherits ListRow {
     }
 }
 
-// Class count badge (DESIGN.md "Mini calendar"): a terracotta pill with a white number.
-component CalendarBadge inherits Rectangle {
-    in property <string> text;
-
-    height: Theme.calendar-badge;
-    width: max(Theme.calendar-badge, badge-label.preferred-width + Theme.space-xs);
-    border-radius: Theme.radius-full;
-    background: Theme.primary;
-
-    badge-label := Text {
-        width: parent.width;
-        height: parent.height;
-        text: root.text;
-        // The day cell or the legend text carries the meaning.
-        accessible-role: none;
-        horizontal-alignment: center;
-        vertical-alignment: center;
-        color: Theme.on-primary;
-        font-family: Theme.font-body;
-        font-size: Theme.calendar-badge-text;
-        font-weight: Theme.label-sm-weight;
-    }
-}
-
 // One mini calendar day (DESIGN.md "Mini calendar"): the number, a filled terracotta circle for
-// today, a light terracotta highlight and a count badge for class days, and a red dot under the
-// number for assessments due. Selected: surface-selected fill (over the highlight) plus a
-// terracotta border; the badge keeps the class count visible. The accessible label spells out
-// the date and both counts.
+// today, a light terracotta highlight for holidays and exam periods, a fainter oat highlight for
+// weekends (a weekend holiday shows the holiday highlight), and a red dot under the number for
+// assessments due. Class days carry no marker. Selected: surface-selected fill plus a terracotta
+// border. The accessible label spells out the date, the holiday, and the counts.
 component DayCell inherits Rectangle {
     in property <CalendarDay> item;
     callback clicked();
 
-    // The number sits below half the badge height; the due dot is centered in the space left.
-    property <length> number-y: Theme.calendar-badge / 2;
+    // The number sits near the top; the due dot is centered in the space left below it.
+    property <length> number-y: Theme.space-xs;
     property <length> dot-y: root.number-y + Theme.calendar-today
         + (Theme.calendar-cell - root.number-y - Theme.calendar-today - Theme.calendar-marker) / 2;
 
@@ -170,7 +148,8 @@ component DayCell inherits Rectangle {
     border-color: focus-scope.has-focus || root.item.is-selected ? Theme.primary : transparent;
     background: root.item.is-selected ? Theme.surface-selected
         : touch.has-hover ? Theme.surface-alt
-        : root.item.has-class ? Theme.calendar-class-highlight
+        : root.item.holiday != "" ? Theme.calendar-holiday-highlight
+        : root.item.is-weekend ? Theme.surface-alt
         : transparent;
     accessible-role: button;
     accessible-label: root.item.label;
@@ -410,15 +389,23 @@ component CalendarSection inherits HorizontalLayout {
                     width: Theme.calendar-today;
                     height: Theme.calendar-today;
                     border-radius: Theme.radius-sm;
-                    background: Theme.calendar-class-highlight;
-                    CalendarBadge {
-                        x: (parent.width - self.width) / 2;
-                        y: (parent.height - self.height) / 2;
-                        text: "2";
-                    }
+                    background: Theme.calendar-holiday-highlight;
                 }
                 LegendText {
-                    text: "Classes (count)";
+                    text: "Holiday / exam";
+                    vertical-alignment: center;
+                }
+            }
+            HorizontalLayout {
+                spacing: Theme.space-xs;
+                Rectangle {
+                    width: Theme.calendar-today;
+                    height: Theme.calendar-today;
+                    border-radius: Theme.radius-sm;
+                    background: Theme.surface-alt;
+                }
+                LegendText {
+                    text: "Weekend";
                     vertical-alignment: center;
                 }
             }
@@ -455,6 +442,15 @@ component CalendarSection inherits HorizontalLayout {
             font-family: Theme.font-heading;
             font-size: Theme.headline-md-size;
             font-weight: Theme.headline-md-weight;
+        }
+
+        if DashboardState.panel-holiday != "": Text {
+            text: DashboardState.panel-holiday;
+            wrap: word-wrap;
+            color: Theme.on-surface-muted;
+            font-family: Theme.font-body;
+            font-size: Theme.body-sm-size;
+            font-weight: Theme.body-sm-weight;
         }
 
         if DashboardState.panel-sessions.length > 0: VerticalLayout {

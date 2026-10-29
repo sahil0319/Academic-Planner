@@ -83,8 +83,14 @@ fn fill_calendar(app: &App, state: &DashboardState<'_>, now: NaiveDateTime) -> R
     };
     let first = viewmodel::grid_start(month);
     let last = viewmodel::grid_end(month);
-    let (grid_views, selected_views, assessments) = {
+    let (grid_views, selected_views, assessments, holidays) = {
         let planner = app.planner();
+        // §6 mini calendar change, R14: the active term's holidays; none without a term.
+        let holidays = planner
+            .active_term()
+            .map_err(|e| viewmodel::error_text(&e))?
+            .map(|t| t.holidays)
+            .unwrap_or_default();
         let grid_views = planner
             .sessions_between(first, last, now)
             .map_err(|e| viewmodel::error_text(&e))?;
@@ -98,7 +104,7 @@ fn fill_calendar(app: &App, state: &DashboardState<'_>, now: NaiveDateTime) -> R
         let assessments = planner
             .list_assessments(AssessmentFilter::All)
             .map_err(|e| viewmodel::error_text(&e))?;
-        (grid_views, selected_views, assessments)
+        (grid_views, selected_views, assessments, holidays)
     };
 
     let in_grid: Vec<Assessment> = assessments
@@ -112,7 +118,7 @@ fn fill_calendar(app: &App, state: &DashboardState<'_>, now: NaiveDateTime) -> R
         selected,
         &viewmodel::class_days(&grid_views),
         &viewmodel::due_days(&in_grid),
-        &[],
+        &holidays,
     );
     state.set_month_title(viewmodel::month_title(month).into());
     let initials: Vec<String> = viewmodel::weekday_initials()
@@ -149,6 +155,9 @@ fn fill_calendar(app: &App, state: &DashboardState<'_>, now: NaiveDateTime) -> R
         })
         .collect::<Result<Vec<_>, _>>()?;
     state.set_panel_title(viewmodel::day_panel_title(selected, today).into());
+    state.set_panel_holiday(
+        viewmodel::day_panel_holiday_text(&viewmodel::holiday_text(&holidays, selected)).into(),
+    );
     state.set_panel_empty_text(viewmodel::day_panel_empty_text(selected, today).into());
     state.set_panel_sessions(bridge::rows(&day_rows, bridge::session_row)?);
     state.set_panel_assessments(bridge::model(due_rows));
