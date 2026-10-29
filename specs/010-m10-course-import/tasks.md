@@ -137,7 +137,7 @@ are warnings, nothing is written on error.
 
 **Independent test**: `cargo test -p planner-core --test m10_import t44_ t50_ r47_ r50_`.
 
-- [ ] T009 [US1] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T009 [US1] (tester) [core] In crates/core/tests/m10_import.rs write
   `t44_import_into_db_with_no_term`: file with `term` (2026-01-05 to 2026-05-01) and two courses
   (one with `credits: 3, rule_set: "Theory"`, one with `rule_set: "Lab"`, slots on Mon and Fri);
   `apply_import(json, 2026-01-14, today 2026-01-14)`; assert the active term matches the file, both
@@ -146,13 +146,13 @@ are warnings, nothing is written on error.
   sessions exist on every matching weekday from 2026-01-14 to 2026-05-01 and none before.
   Also `r47_term_required_without_active_term` (no `term` → error at `term`, snapshot unchanged)
   and `r47_term_only_file_creates_term` (`courses: []`). Needs T008
-- [ ] T010 [US1] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T010 [US1] (tester) [core] In crates/core/tests/m10_import.rs write
   `t50_preview_writes_nothing_apply_matches`: on a DB with an active term and one existing course
   not in the file, preview a file that adds two courses with slots; snapshot equal before and after
   preview; then `apply_import` with the same input; assert `report.plan == preview` and the DB
   reflects exactly that plan (counts of courses and slots). The update path of T50 is in T014.
   Also `r48_apply_with_errors_writes_nothing` (Validation error, snapshot unchanged). Needs T008
-- [ ] T011 [US1] (tester) [core] In crates/core/tests/m10_import.rs write
+- [x] T011 [US1] (tester) [core] In crates/core/tests/m10_import.rs write
   `r50_template_previews_cleanly`: `include_str!("../../../docs/import/template.json")`, preview on
   `fresh()` with effective 2026-01-05: no errors, no warnings, term planned, one course `CSE 4711`
   with two slots. Needs T003

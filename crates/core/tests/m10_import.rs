@@ -38,7 +38,6 @@ fn semester() -> Planner {
 }
 
 /// A course in the active term, optionally archived.
-#[allow(dead_code)] // used by later test groups
 fn add_course(p: &mut Planner, code: &str, archived: bool) -> Course {
     let course = p.create_course(course_input(code)).unwrap();
     if archived {
@@ -52,7 +51,6 @@ fn add_course(p: &mut Planner, code: &str, archived: bool) -> Course {
 }
 
 /// A weekly slot for a course, valid from `from`.
-#[allow(dead_code)] // used by later test groups
 fn add_slot(
     p: &mut Planner,
     course: &Course,
@@ -98,7 +96,6 @@ fn base() -> Value {
 }
 
 /// A valid document with the Semester 7 term and the given courses.
-#[allow(dead_code)] // used by later test groups
 fn with_courses(courses: Value) -> String {
     doc(json!({
         "format": "academic-planner-courses",
@@ -559,4 +556,226 @@ fn r42_unknown_keys_warn_not_error() {
         .unwrap();
     assert_eq!(stored.notes.as_deref(), Some("keep me"));
     assert!(!stored.archived);
+}
+
+// ---- US1: first import (R47, R48, R50) ----
+
+/// The course with `code` (archived included); panics when absent.
+fn course_by_code(p: &Planner, code: &str) -> Course {
+    p.list_courses(true)
+        .unwrap()
+        .into_iter()
+        .find(|c| c.code == code)
+        .unwrap_or_else(|| panic!("no course {code}"))
+}
+
+/// Slots of a course valid on `on`, ordered by weekday then start time.
+fn slots_of(p: &Planner, course_id: i64, on: &str) -> Vec<Slot> {
+    let mut slots: Vec<Slot> = p
+        .list_slots(d(on))
+        .unwrap()
+        .into_iter()
+        .filter(|s| s.course_id == course_id)
+        .collect();
+    slots.sort_by_key(|s| (s.weekday.num_days_from_monday(), s.start_time));
+    slots
+}
+
+/// `YYYY-MM-DD` of every date from `from` to `to` (inclusive) that falls on one of `days`.
+fn weekday_dates(from: &str, to: &str, days: &[Weekday]) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut day = d(from);
+    while day <= d(to) {
+        if days.contains(&chrono::Datelike::weekday(&day)) {
+            out.push(ymd(day));
+        }
+        day = day.succ_opt().unwrap();
+    }
+    out
+}
+
+/// Dates of the regular sessions of a course, in date order.
+fn regular_dates(p: &Planner, course_id: i64) -> Vec<String> {
+    sessions_of(p, course_id)
+        .into_iter()
+        .filter(|s| s.kind == planner_core::SessionKind::Regular)
+        .map(|s| ymd(s.date))
+        .collect()
+}
+
+/// R47, R48, R45: importing into a database with no term creates the active term, both
+/// courses with every file field, slots valid from the effective date, and regular sessions
+/// from that date to the term end (T44).
+#[test]
+fn t44_import_into_db_with_no_term() {
+    let mut p = fresh();
+    let text = doc(json!({
+        "format": "academic-planner-courses",
+        "version": 1,
+        "term": term_json(),
+        "courses": [
+            {
+                "code": "CSE 4711", "name": "Artificial Intelligence",
+                "credits": 3, "rule_set": "Theory",
+                "instructor": null, "room": null, "min_attendance_pct": 75,
+                "slots": [
+                    {"day": "Mon", "start": "10:30", "end": "11:45", "room": null},
+                    {"day": "Fri", "start": "14:30", "end": "15:45"}
+                ]
+            },
+            {
+                "code": "CSE 4712", "name": "AI Lab",
+                "credits": 1.5, "rule_set": "Lab",
+                "instructor": "Dr. Rahman", "room": "301",
+                "slots": [{"day": "Mon", "start": "14:00", "end": "17:00", "room": "Lab 2"}]
+            }
+        ]
+    }));
+    apply(&mut p, &text).unwrap();
+
+    let term = p.active_term().unwrap().expect("active term created");
+    assert_eq!(term.name, "Semester 7");
+    assert_eq!(term.start_date, d("2026-01-05"));
+    assert_eq!(term.end_date, d("2026-05-01"));
+
+    let rule_set = |name: &str| {
+        p.list_rule_sets()
+            .unwrap()
+            .into_iter()
+            .find(|s| s.name == name)
+            .unwrap()
+            .id
+    };
+    let ai = course_by_code(&p, "CSE 4711");
+    assert_eq!(ai.term_id, term.id);
+    assert_eq!(ai.name, "Artificial Intelligence");
+    assert_eq!(ai.credits, Some(3.0));
+    assert_eq!(ai.rule_set_id, Some(rule_set("Theory")));
+    assert_eq!(ai.instructor, None);
+    assert_eq!(ai.room, None);
+    assert_eq!(ai.min_attendance_pct, Some(75));
+    let lab = course_by_code(&p, "CSE 4712");
+    assert_eq!(lab.credits, Some(1.5));
+    assert_eq!(lab.rule_set_id, Some(rule_set("Lab")));
+    assert_eq!(lab.instructor.as_deref(), Some("Dr. Rahman"));
+    assert_eq!(lab.room.as_deref(), Some("301"));
+    assert_eq!(lab.min_attendance_pct, None);
+
+    let ai_slots = slots_of(&p, ai.id, EFFECTIVE);
+    assert_eq!(ai_slots.len(), 2);
+    assert_eq!(ai_slots[0].weekday, Weekday::Mon);
+    assert_eq!(ai_slots[0].start_time, t("10:30"));
+    assert_eq!(ai_slots[0].end_time, t("11:45"));
+    assert_eq!(ai_slots[0].room, None);
+    assert_eq!(ai_slots[1].weekday, Weekday::Fri);
+    assert_eq!(ai_slots[1].start_time, t("14:30"));
+    let lab_slots = slots_of(&p, lab.id, EFFECTIVE);
+    assert_eq!(lab_slots.len(), 1);
+    assert_eq!(lab_slots[0].room.as_deref(), Some("Lab 2"));
+    for slot in ai_slots.iter().chain(&lab_slots) {
+        assert_eq!(slot.valid_from, d(EFFECTIVE));
+        assert_eq!(slot.valid_to, None);
+    }
+
+    assert_eq!(
+        regular_dates(&p, ai.id),
+        weekday_dates("2026-01-14", "2026-05-01", &[Weekday::Mon, Weekday::Fri])
+    );
+    assert_eq!(
+        regular_dates(&p, lab.id),
+        weekday_dates("2026-01-14", "2026-05-01", &[Weekday::Mon])
+    );
+}
+
+/// R47: with no active term a file without `term` is an error at `term`; nothing is written.
+#[test]
+fn r47_term_required_without_active_term() {
+    let mut p = fresh();
+    assert_invalid(
+        &mut p,
+        &no_term(json!([{"code": "A 1", "name": "A"}])),
+        "term",
+    );
+    assert!(p.active_term().unwrap().is_none());
+}
+
+/// R47: a file with a `term` and no courses creates just the term.
+#[test]
+fn r47_term_only_file_creates_term() {
+    let mut p = fresh();
+    let text = with_courses(json!([]));
+    let plan = assert_valid(&p, &text);
+    assert!(plan.term.is_some() && plan.add.is_empty() && plan.update.is_empty());
+    apply(&mut p, &text).unwrap();
+    let term = p.active_term().unwrap().expect("term created");
+    assert_eq!(term.name, "Semester 7");
+    assert!(p.list_courses(true).unwrap().is_empty());
+}
+
+/// R48: preview writes nothing; apply returns the previewed plan and writes exactly it (T50).
+#[test]
+fn t50_preview_writes_nothing_apply_matches() {
+    let mut p = semester();
+    let old = add_course(&mut p, "OLD 100", false);
+    add_slot(
+        &mut p,
+        &old,
+        Weekday::Tue,
+        "09:00",
+        "10:00",
+        None,
+        "2026-01-05",
+    );
+    let text = no_term(json!([
+        {"code": "CSE 4711", "name": "AI", "slots": [
+            {"day": "Mon", "start": "10:30", "end": "11:45"},
+            {"day": "Fri", "start": "14:30", "end": "15:45"}
+        ]},
+        {"code": "CSE 4712", "name": "AI Lab", "slots": [
+            {"day": "Tue", "start": "09:00", "end": "10:00"}
+        ]}
+    ]));
+    let before = snapshot(&p);
+    let plan = assert_valid(&p, &text);
+    assert_eq!(snapshot(&p), before, "preview wrote to the database");
+    assert_eq!(plan.add.len(), 2);
+
+    let report = apply(&mut p, &text).unwrap();
+    assert_eq!(report.plan, plan);
+    assert_eq!(p.list_courses(true).unwrap().len(), 3);
+    let on = EFFECTIVE;
+    assert_eq!(slots_of(&p, course_by_code(&p, "CSE 4711").id, on).len(), 2);
+    assert_eq!(slots_of(&p, course_by_code(&p, "CSE 4712").id, on).len(), 1);
+    assert_eq!(slots_of(&p, old.id, on).len(), 1, "course not in the file");
+}
+
+/// R48: `apply_import` with errors in the plan writes nothing.
+#[test]
+fn r48_apply_with_errors_writes_nothing() {
+    let mut p = semester();
+    let text = no_term(json!([
+        {"code": "CSE 4711", "name": "AI", "slots": [{"day": "Mon", "start": "10:00", "end": "11:00"}]},
+        {"code": "CSE 4712", "name": "AI Lab", "slots": [{"day": "Xyz", "start": "10:00", "end": "11:00"}]}
+    ]));
+    assert_invalid(&mut p, &text, "courses[1].slots[0].day");
+    assert!(p.list_courses(true).unwrap().is_empty());
+}
+
+/// R50: the shipped template previews without errors or warnings: the term, and one course
+/// `CSE 4711` with two slots.
+#[test]
+fn r50_template_previews_cleanly() {
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../docs/import/template.json"
+    );
+    let text = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("{path}: {e}"));
+    let p = fresh();
+    let plan = p.preview_import(&text, d("2026-01-05")).unwrap();
+    assert!(plan.errors.is_empty(), "{:?}", plan.errors);
+    assert!(plan.warnings.is_empty(), "{:?}", plan.warnings);
+    assert!(plan.term.is_some());
+    assert_eq!(plan.add.len(), 1);
+    assert_eq!(plan.add[0].code, "CSE 4711");
+    assert_eq!(plan.add[0].slots.len(), 2);
 }
