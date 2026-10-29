@@ -35,15 +35,17 @@ Download the file for your system from the
 1. Download the file ending in `_aarch64.dmg`, open it, and drag "Academic Planner" to the
    Applications folder.
 2. The app is not signed by Apple, so macOS blocks the first launch. To allow it:
-   - macOS 15 and later: try to open the app once, then open System Settings → Privacy & Security,
-     scroll down, and click "Open Anyway" next to the message about Academic Planner.
-   - Older macOS: right-click (or Control-click) the app in Applications and choose Open, then
-     confirm with Open.
-   - If neither works, run this in Terminal:
+   - If macOS says "Academic Planner.app is damaged and can't be opened", the app is not damaged.
+     Click Cancel (not Move to Trash), then run this in Terminal:
 
      ```sh
      xattr -dr com.apple.quarantine "/Applications/Academic Planner.app"
      ```
+
+   - If macOS says it cannot verify the developer, on macOS 15 and later open System Settings →
+     Privacy & Security, scroll down, and click "Open Anyway" next to the message about Academic
+     Planner. On older macOS, right-click (or Control-click) the app in Applications, choose Open,
+     and confirm with Open. If that does not work, run the Terminal command above.
 
    You only need to do this once.
 
