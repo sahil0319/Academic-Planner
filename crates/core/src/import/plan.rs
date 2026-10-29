@@ -4,7 +4,9 @@ use chrono::NaiveDate;
 use rusqlite::Connection;
 
 use super::parse::{self, Context, Field, ParsedCourse};
-use super::types::{CourseAdd, ImportPlan, RuleSetRef};
+use super::types::{
+    CourseAdd, CourseUpdate, FieldChange, FieldValue, ImportField, ImportPlan, RuleSetRef,
+};
 use crate::db::{active_term_id, course_from_row, load_term, COURSE_COLS};
 use crate::error::Result;
 use crate::model::Course;
@@ -47,8 +49,11 @@ pub(super) fn build_plan(
         plan.term = parsed.term;
     }
     for course in parsed.courses {
-        if course.matched.is_none() {
-            plan.add.extend(course_add(course));
+        match course.matched {
+            None => plan.add.extend(course_add(course)),
+            Some(i) => plan
+                .update
+                .extend(course_update(&courses[i], course, &rule_sets)),
         }
     }
     Ok(plan)
@@ -60,6 +65,85 @@ fn value<T>(field: Field<T>) -> Option<T> {
         Field::Value(v) => Some(v),
         Field::Absent | Field::Null => None,
     }
+}
+
+/// R44: the new value of a field when the file changes it: `None` = keep (absent, or equal to
+/// the stored value), `Some(None)` = clear (`null` on a set value), `Some(Some(v))` = replace.
+fn changed<T: PartialEq>(field: Field<T>, stored: Option<&T>) -> Option<Option<T>> {
+    match field {
+        Field::Absent => None,
+        Field::Null => stored.is_some().then_some(None),
+        Field::Value(v) => (stored != Some(&v)).then_some(Some(v)),
+    }
+}
+
+/// R43, R44, R46: the field changes of a matched course; `None` when nothing differs. The
+/// stored code, notes, and archived flag are never changed. R44: an archived match stays
+/// archived.
+fn course_update(
+    stored: &Course,
+    course: ParsedCourse,
+    rule_sets: &[RuleSetRef],
+) -> Option<CourseUpdate> {
+    let mut changes = Vec::new();
+    if let Some(new) = changed(course.name, Some(&stored.name)) {
+        changes.push(FieldChange {
+            field: ImportField::Name,
+            old: FieldValue::Text(Some(stored.name.clone())),
+            new: FieldValue::Text(new),
+        });
+    }
+    if let Some(new) = changed(course.credits, stored.credits.as_ref()) {
+        changes.push(FieldChange {
+            field: ImportField::Credits,
+            old: FieldValue::Number(stored.credits),
+            new: FieldValue::Number(new),
+        });
+    }
+    let stored_rule_set = stored
+        .rule_set_id
+        .and_then(|id| rule_sets.iter().find(|r| r.id == id).cloned());
+    if let Some(new) = changed(course.rule_set, stored_rule_set.as_ref()) {
+        changes.push(FieldChange {
+            field: ImportField::RuleSet,
+            old: FieldValue::RuleSet(stored_rule_set),
+            new: FieldValue::RuleSet(new),
+        });
+    }
+    if let Some(new) = changed(course.instructor, stored.instructor.as_ref()) {
+        changes.push(FieldChange {
+            field: ImportField::Instructor,
+            old: FieldValue::Text(stored.instructor.clone()),
+            new: FieldValue::Text(new),
+        });
+    }
+    if let Some(new) = changed(course.room, stored.room.as_ref()) {
+        changes.push(FieldChange {
+            field: ImportField::Room,
+            old: FieldValue::Text(stored.room.clone()),
+            new: FieldValue::Text(new),
+        });
+    }
+    if let Some(new) = changed(
+        course.min_attendance_pct,
+        stored.min_attendance_pct.as_ref(),
+    ) {
+        changes.push(FieldChange {
+            field: ImportField::MinAttendancePct,
+            old: FieldValue::Integer(stored.min_attendance_pct),
+            new: FieldValue::Integer(new),
+        });
+    }
+    if changes.is_empty() {
+        return None;
+    }
+    Some(CourseUpdate {
+        course_id: stored.id,
+        code: stored.code.clone(),
+        archived: stored.archived,
+        changes,
+        slots: None,
+    })
 }
 
 /// R43: a course whose code matches no stored course. Absent and `null` both mean "none".

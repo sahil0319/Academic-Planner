@@ -226,7 +226,7 @@ are warnings, nothing is written on error.
 - [x] T019 [US2] (tester) [core] In crates/core/tests/m10_import.rs write
   `r47_active_term_differs_warns` (file term name or dates differ → warning at `term`, active term
   unchanged, no term in plan) and `r47_active_term_equal_no_warning`. Needs T013
-- [ ] T020 [US2] (builder) [core] Implement matching and merge in crates/core/src/import/plan.rs:
+- [x] T020 [US2] (builder) [core] Implement matching and merge in crates/core/src/import/plan.rs:
   load active-term courses including archived, normalized-code index (research D6), ambiguous
   match error (OQ-1 default), `FieldChange` list per research D14 (present and different only;
   absent keep; `null` clear), archived warning, term-differs warning (research D15/D16); in

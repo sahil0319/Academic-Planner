@@ -4,7 +4,10 @@ use chrono::NaiveDate;
 use rusqlite::{params, Connection};
 
 use super::plan::build_plan;
-use super::types::{CourseAdd, ImportReport, ImportSlot, ImportTerm};
+use super::types::{
+    CourseAdd, CourseUpdate, FieldChange, FieldValue, ImportField, ImportReport, ImportSlot,
+    ImportTerm,
+};
 use crate::db::{active_term_id, fmt_date, insert_slot};
 use crate::error::{Error, Result};
 use crate::model::{SlotInput, SyncReport};
@@ -39,6 +42,9 @@ pub(super) fn apply(
     }
     for add in &plan.add {
         insert_course(&tx, add, effective_from)?;
+    }
+    for update in &plan.update {
+        update_course(&tx, update)?;
     }
     let sync = sync_in(&tx, effective_from.min(today))?;
     tx.commit()?;
@@ -81,6 +87,41 @@ fn insert_course(conn: &Connection, add: &CourseAdd, effective_from: NaiveDate) 
     for slot in &add.slots {
         insert_import_slot(conn, course_id, slot, effective_from)?;
     }
+    Ok(())
+}
+
+/// R44: writes the changed fields of a matched course; every other column (code, notes,
+/// archived) keeps its stored value.
+fn update_course(conn: &Connection, update: &CourseUpdate) -> Result<()> {
+    for change in &update.changes {
+        write_change(conn, update.course_id, change)?;
+    }
+    Ok(())
+}
+
+fn write_change(conn: &Connection, id: i64, change: &FieldChange) -> Result<()> {
+    let sql = |column: &str| format!("UPDATE course SET {column} = ?1 WHERE id = ?2");
+    match (change.field, &change.new) {
+        (ImportField::Name, FieldValue::Text(v)) => conn.execute(&sql("name"), params![v, id]),
+        (ImportField::Instructor, FieldValue::Text(v)) => {
+            conn.execute(&sql("instructor"), params![v, id])
+        }
+        (ImportField::Room, FieldValue::Text(v)) => conn.execute(&sql("room"), params![v, id]),
+        (ImportField::Credits, FieldValue::Number(v)) => {
+            conn.execute(&sql("credits"), params![v, id])
+        }
+        (ImportField::MinAttendancePct, FieldValue::Integer(v)) => {
+            conn.execute(&sql("min_attendance_pct"), params![v, id])
+        }
+        (ImportField::RuleSet, FieldValue::RuleSet(v)) => {
+            conn.execute(&sql("rule_set_id"), params![v.as_ref().map(|r| r.id), id])
+        }
+        (field, _) => {
+            return Err(Error::Validation(format!(
+                "inconsistent value for import field {field:?}"
+            )))
+        }
+    }?;
     Ok(())
 }
 
