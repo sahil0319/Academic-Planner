@@ -156,12 +156,29 @@ export component AppWindow inherits Window {
             background: Theme.neutral;
 
             VerticalLayout {
-                // R29: the update banner sits above the page content, below the title row that
-                // holds the appearance switch, on every page.
+                // §6 "Appearance:", DESIGN.md "Appearance switch": a fixed header band holds the
+                // switch at the top-right. It does not scroll, so scrolled content never runs
+                // under the switch (design review F-01).
+                Rectangle {
+                    height: Theme.appearance-segment + 2 * Theme.space-sm;
+                    background: Theme.neutral;
+
+                    AppearanceSwitch {
+                        x: parent.width - self.width - Theme.space-lg;
+                        y: Theme.space-sm;
+                        selected: Theme.mode;
+                        select(i) => {
+                            AppState.theme-selected(i);
+                        }
+                    }
+                }
+
+                // R29: the update banner sits above the page content, below the header band
+                // that holds the appearance switch, on every page.
                 if AppState.update-banner != "": VerticalLayout {
                     padding-left: Theme.space-xl;
                     padding-right: Theme.space-xl;
-                    padding-top: Theme.space-lg * 2 + Theme.appearance-segment;
+                    padding-top: Theme.space-sm;
                     UpdateBanner {
                         text: AppState.update-banner;
                         view => {
@@ -176,6 +193,7 @@ export component AppWindow inherits Window {
                 ScrollView {
                     VerticalLayout {
                         padding: Theme.space-xl;
+                        padding-top: Theme.space-sm;
                         alignment: start;
 
                         if AppState.current-page == 0: DashboardPage { }
@@ -186,17 +204,6 @@ export component AppWindow inherits Window {
                         if AppState.current-page == 5: AboutPage { }
                         if AppState.current-page == 6: RulesPage { }
                     }
-                }
-            }
-
-            // §6 "Appearance:": fixed in the content area's top-right corner; it does not scroll
-            // and sits in the title row, whose page title is on the left.
-            AppearanceSwitch {
-                x: parent.width - self.width - Theme.space-lg;
-                y: Theme.space-lg;
-                selected: Theme.mode;
-                select(i) => {
-                    AppState.theme-selected(i);
                 }
             }
         }
