@@ -3300,3 +3300,78 @@ fn t_real_negatives_keep_minus() {
     assert_eq!(format_pct(Some(-12.34)), "-12.3%");
     assert_eq!(needed_text(&Needed::Score(-3.0)), "-3.0");
 }
+
+// ---- M18: saved rule lines (R87) ----
+
+fn saved_lines_set(band_90_credit: f64, attendance_weight: f64) -> RuleSet {
+    RuleSet {
+        id: 3,
+        name: "Theory".to_string(),
+        components: vec![
+            RuleComponent {
+                id: 1,
+                rule_set_id: 3,
+                position: 0,
+                name: "Attendance".to_string(),
+                kind: ComponentKind::Attendance,
+                weight_pct: attendance_weight,
+                item_count: None,
+                best_count: None,
+                item_max: None,
+                is_final: false,
+                bands: vec![
+                    AttendanceBand {
+                        min_pct: 95.0,
+                        credit_pct: 100.0,
+                    },
+                    AttendanceBand {
+                        min_pct: 90.0,
+                        credit_pct: band_90_credit,
+                    },
+                ],
+            },
+            RuleComponent {
+                id: 2,
+                rule_set_id: 3,
+                position: 1,
+                name: "Final".to_string(),
+                kind: ComponentKind::Items,
+                weight_pct: 90.0,
+                item_count: Some(1),
+                best_count: Some(1),
+                item_max: None,
+                is_final: true,
+                bands: Vec::new(),
+            },
+        ],
+    }
+}
+
+/// R87: the saved lines list each component once, each band indented under its attendance
+/// component; a changed band and a changed weight change exactly those two lines.
+#[test]
+fn t80_rule_set_lines_follow_the_stored_set() {
+    let before = rule_set_lines(&saved_lines_set(80.0, 10.0));
+    assert_eq!(
+        before,
+        [
+            "Attendance: Attendance \u{b7} 10%",
+            "  \u{2265} 95% \u{2192} 100%",
+            "  \u{2265} 90% \u{2192} 80%",
+            "Final: Items \u{b7} 90% \u{b7} 1 of 1 \u{b7} final",
+        ]
+    );
+
+    let after = rule_set_lines(&saved_lines_set(70.0, 15.0));
+    assert_eq!(after.len(), before.len());
+    let changed: Vec<usize> = (0..before.len())
+        .filter(|&i| before[i] != after[i])
+        .collect();
+    assert_eq!(
+        changed,
+        [0, 2],
+        "only the weight line and the 90 band line differ"
+    );
+    assert_eq!(after[0], "Attendance: Attendance \u{b7} 15%");
+    assert_eq!(after[2], "  \u{2265} 90% \u{2192} 70%");
+}

@@ -1658,6 +1658,15 @@ pub fn component_summary(component: &RuleComponent) -> String {
     }
 }
 
+/// R87: the lines of the "Saved rules" list: each component once as `"name: summary"`, each band
+/// of an attendance component indented by two spaces under it.
+///
+/// M18 stub: the builder moves the text over from `pages/rules.rs`.
+#[allow(dead_code)]
+pub fn rule_set_lines(_set: &RuleSet) -> Vec<String> {
+    todo!("R87: move the saved-lines text out of pages/rules.rs")
+}
+
 /// R35: `"≥ 90% → 100%"`.
 pub fn band_text(band: &AttendanceBand) -> String {
     format!(

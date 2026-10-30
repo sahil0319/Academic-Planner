@@ -10,6 +10,7 @@ mod controller;
 mod notify;
 mod pages;
 mod restore;
+mod toast;
 mod updater;
 mod viewmodel;
 
