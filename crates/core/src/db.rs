@@ -661,6 +661,23 @@ pub(crate) fn course_from_row(r: &Row) -> rusqlite::Result<Course> {
     })
 }
 
+/// R1, R3: courses of term `term_id`, ordered by code; archived ones only when asked.
+pub(crate) fn courses_of_term(
+    conn: &Connection,
+    term_id: i64,
+    include_archived: bool,
+) -> Result<Vec<Course>> {
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {COURSE_COLS} FROM course
+         WHERE term_id = ?1 AND (?2 OR archived = 0)
+         ORDER BY code"
+    ))?;
+    let courses = stmt
+        .query_map(params![term_id, include_archived], course_from_row)?
+        .collect::<rusqlite::Result<_>>()?;
+    Ok(courses)
+}
+
 pub(crate) fn load_course(conn: &Connection, id: i64) -> Result<Course> {
     conn.query_row(
         &format!("SELECT {COURSE_COLS} FROM course WHERE id = ?1"),

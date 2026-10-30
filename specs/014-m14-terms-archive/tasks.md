@@ -62,7 +62,7 @@ Stories (for labels):
 
 ## Phase 2: Core (builder) — US1
 
-- [ ] T003 [US1] Add `PastTermSummary` (exact §13.9 fields, `#[derive(Debug, Clone, PartialEq)]`,
+- [x] T003 [US1] Add `PastTermSummary` (exact §13.9 fields, `#[derive(Debug, Clone, PartialEq)]`,
   doc `/// R70`) to `crates/core/src/model.rs`; add crate-private
   `courses_of_term(conn, term_id, include_archived) -> Result<Vec<Course>>` to
   `crates/core/src/db.rs` (same columns and order as `list_courses`); in

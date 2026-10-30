@@ -129,20 +129,31 @@ impl Planner {
     /// included and every included course is fully assessed; no active term gives an empty,
     /// projected summary.
     pub fn term_gpa(&self) -> Result<GpaSummary> {
+        match crate::db::active_term_id(&self.conn)? {
+            Some(id) => self.term_gpa_for(id),
+            None => Ok(GpaSummary {
+                gpa: None,
+                status: GpaStatus::Projected,
+                included: 0,
+                left_out: 0,
+            }),
+        }
+    }
+
+    /// R40: GPA over the non-archived graded courses of term `term_id` (the active term for
+    /// `term_gpa`, a past term for R70).
+    pub(crate) fn term_gpa_for(&self, term_id: i64) -> Result<GpaSummary> {
         let mut summary = GpaSummary {
             gpa: None,
             status: GpaStatus::Projected,
             included: 0,
             left_out: 0,
         };
-        if self.active_term()?.is_none() {
-            return Ok(summary);
-        }
         let scale = self.grade_scale()?;
         let mut weighted_points = 0.0;
         let mut credits_sum = 0.0;
         let mut all_final = true;
-        for course in self.list_courses(false)? {
+        for course in crate::db::courses_of_term(&self.conn, term_id, false)? {
             let Some(credits) = course.credits else {
                 continue;
             };
