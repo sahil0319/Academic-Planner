@@ -3454,4 +3454,75 @@ fn t83_grade_scale_saved_is_its_own_toast() {
         .map(|toast| toast.text.as_str())
         .collect();
     assert_eq!(texts, ["Rule set saved.", "Grade scale saved."]);
+
+// ---- M13: Progress page ----
+
+/// T62, R63: how many of the remaining classes can still be missed.
+#[test]
+fn t62_classes_you_can_still_miss() {
+    assert_eq!(
+        miss_line(10, 2, 8, Some(75)),
+        "You can miss 3 of the 8 remaining classes and stay at or above 75%"
+    );
+    assert_eq!(
+        miss_line(10, 4, 4, Some(75)),
+        "Attend all 4 remaining classes to stay at or above 75%"
+    );
+    assert_eq!(
+        miss_line(5, 5, 2, Some(75)),
+        "75% is out of reach, even attending all 2 remaining classes"
+    );
+    assert_eq!(
+        miss_line(20, 0, 2, Some(75)),
+        "You can miss all 2 remaining classes and stay at or above 75%"
+    );
+    assert_eq!(miss_line(3, 1, 0, Some(75)), "No classes left to mark");
+    assert_eq!(miss_line(10, 2, 8, None), "");
+}
+
+/// R63, D4: a negative numerator is floored (`div_euclid`), so a small negative gives k < 0.
+#[test]
+fn r63_miss_line_floors_negative_numerator() {
+    // 100 * (6 + 2) - 75 * (6 + 3 + 2) = -25, k = -1.
+    assert_eq!(
+        miss_line(6, 3, 2, Some(75)),
+        "75% is out of reach, even attending all 2 remaining classes"
+    );
+    // 100 * (7 + 2) - 75 * (7 + 3 + 2) = 0, k = 0.
+    assert_eq!(
+        miss_line(7, 3, 2, Some(75)),
+        "Attend all 2 remaining classes to stay at or above 75%"
+    );
+}
+
+/// R63, D6: the noun is singular when the remaining count is 1.
+#[test]
+fn r63_miss_line_singular_class() {
+    assert_eq!(
+        miss_line(10, 0, 1, Some(75)),
+        "You can miss all 1 remaining class and stay at or above 75%"
+    );
+}
+
+/// R62, D6: the attendance line next to the bar.
+#[test]
+fn r62_attendance_line() {
+    assert_eq!(
+        attendance_line(14, 2, Some(87.5)),
+        "87.5% · 14 of 16 classes"
+    );
+    assert_eq!(attendance_line(1, 0, Some(100.0)), "100.0% · 1 of 1 class");
+    assert_eq!(attendance_line(0, 0, None), "No classes marked yet");
+}
+
+/// R62, D7: target text, bar fill, and target marker position.
+#[test]
+fn r62_target_text_and_bar() {
+    assert_eq!(progress_target_text(Some(75)), "Target 75%");
+    assert_eq!(progress_target_text(None), "No target");
+    assert_eq!(bar_fraction(Some(87.5)), 0.875);
+    assert_eq!(bar_fraction(None), 0.0);
+    assert_eq!(bar_fraction(Some(100.0)), 1.0);
+    assert_eq!(target_fraction(Some(75)), Some(0.75));
+    assert_eq!(target_fraction(None), None);
 }
