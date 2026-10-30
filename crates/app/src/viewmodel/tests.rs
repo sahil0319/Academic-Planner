@@ -3454,6 +3454,7 @@ fn t83_grade_scale_saved_is_its_own_toast() {
         .map(|toast| toast.text.as_str())
         .collect();
     assert_eq!(texts, ["Rule set saved.", "Grade scale saved."]);
+}
 
 // ---- M13: Progress page ----
 
