@@ -101,8 +101,13 @@ where
         .map(model)
 }
 
-/// R11, R12: session row.
+/// R11, R12: session row. `can_shift` is false: only the dashboard offers "Move to next week".
 pub fn session_row(r: &vm::SessionRow) -> Result<SessionRow, String> {
+    session_row_with_shift(r, false)
+}
+
+/// R58: session row that also says whether "Move to next week" is offered.
+pub fn session_row_with_shift(r: &vm::SessionRow, can_shift: bool) -> Result<SessionRow, String> {
     Ok(SessionRow {
         id: id(r.id)?,
         date: r.date.as_str().into(),
@@ -114,6 +119,9 @@ pub fn session_row(r: &vm::SessionRow) -> Result<SessionRow, String> {
         chip: chip(r.chip),
         can_mark: r.can_mark,
         note: r.note.as_str().into(),
+        biweekly: r.biweekly,
+        biweekly_label: vm::biweekly_label(r.biweekly).into(),
+        can_shift,
     })
 }
 
@@ -206,6 +214,8 @@ pub fn slot_row(r: &vm::SlotRow) -> Result<SlotRow, String> {
         course: r.course.as_str().into(),
         room: r.room.as_str().into(),
         valid: r.valid.as_str().into(),
+        biweekly: r.biweekly,
+        biweekly_label: vm::biweekly_label(r.biweekly).into(),
     })
 }
 

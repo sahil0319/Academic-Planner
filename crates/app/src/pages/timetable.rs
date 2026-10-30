@@ -314,12 +314,10 @@ fn clear_slot_errors(g: &TimetableState<'_>) {
 fn begin_add_slot(app: &App, window: &AppWindow) {
     let g = window.global::<TimetableState>();
     g.set_message(SharedString::new());
-    let term_start = match app.planner().active_term() {
-        Ok(term) => term
-            .map(|t| vm::format_date_input(t.start_date))
-            .unwrap_or_default(),
-        Err(e) => {
-            g.set_message(vm::error_text(&e).into());
+    let term_start = match active_term_start(app) {
+        Ok(start) => start,
+        Err(text) => {
+            g.set_message(text.into());
             return;
         }
     };
@@ -333,11 +331,29 @@ fn begin_add_slot(app: &App, window: &AppWindow) {
     g.set_slot_end(SharedString::new());
     g.set_slot_end_pm(false);
     g.set_slot_room(SharedString::new());
-    g.set_slot_from(term_start.into());
+    g.set_slot_from(
+        term_start
+            .map(vm::format_date_input)
+            .unwrap_or_default()
+            .into(),
+    );
     g.set_slot_to(SharedString::new());
     g.set_slot_effective(SharedString::new());
+    // R56: a new slot is weekly until "Bi-weekly" is ticked; "Class this week" starts ticked.
+    g.set_slot_biweekly_available(term_start.is_some());
+    g.set_slot_biweekly(false);
+    g.set_slot_class_this_week(true);
     clear_slot_errors(&g);
     g.set_slot_form_open(true);
+}
+
+/// R56: start date of the active term, or `None` without one (the parity needs it). A core error
+/// is returned as display text.
+fn active_term_start(app: &App) -> Result<Option<NaiveDate>, String> {
+    app.planner()
+        .active_term()
+        .map(|term| term.map(|t| t.start_date))
+        .map_err(|e| vm::error_text(&e))
 }
 
 /// Slot `id` among the slots valid today, or `None` with the error in `message`.
@@ -397,11 +413,27 @@ fn begin_edit_slot(app: &App, id: i32) {
             .into(),
     );
     g.set_slot_effective(vm::format_date_input(app.today()).into());
+    // R56: pre-fill "Bi-weekly" and "Class this week" from the stored parity and today. Without
+    // an active term the boxes are hidden and the slot saves as weekly.
+    let term_start = match active_term_start(app) {
+        Ok(start) => start,
+        Err(text) => {
+            g.set_message(text.into());
+            return;
+        }
+    };
+    let (biweekly, class_this_week) = term_start.map_or((false, true), |start| {
+        vm::slot_form_from_parity(start, app.today(), slot.week_parity)
+    });
+    g.set_slot_biweekly_available(term_start.is_some());
+    g.set_slot_biweekly(biweekly);
+    g.set_slot_class_this_week(class_this_week);
     clear_slot_errors(&g);
     g.set_slot_form_open(true);
 }
 
-/// Adds a slot, or when editing changes it from the effective date (R7); then syncs (R6).
+/// Adds a slot, or when editing changes it from the effective date (R7); then syncs (R6). R56:
+/// the slot's week parity comes from the bi-weekly boxes.
 /// Field errors go under the fields, core R2 errors to the form error.
 fn save_slot(app: &App, window: &AppWindow) {
     let g = window.global::<TimetableState>();
@@ -410,6 +442,22 @@ fn save_slot(app: &App, window: &AppWindow) {
     let course_id = usize::try_from(g.get_slot_course())
         .ok()
         .and_then(|i| app.state().course_ids.get(i).copied());
+    // R56: the stored parity comes from the two boxes, today, and the active term's start.
+    let term_start = match active_term_start(app) {
+        Ok(start) => start,
+        Err(text) => {
+            g.set_slot_form_error(text.into());
+            return;
+        }
+    };
+    let week_parity = term_start.and_then(|start| {
+        vm::slot_parity_from_form(
+            start,
+            app.today(),
+            g.get_slot_biweekly(),
+            g.get_slot_class_this_week(),
+        )
+    });
     let parsed = vm::parse_slot_form(
         course_id,
         g.get_slot_weekday(),
@@ -424,7 +472,7 @@ fn save_slot(app: &App, window: &AppWindow) {
         &g.get_slot_room(),
         &g.get_slot_from(),
         &g.get_slot_to(),
-        None,
+        week_parity,
     );
     let editing = g.get_slot_editing();
     let effective = if editing {

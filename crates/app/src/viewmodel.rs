@@ -8,9 +8,9 @@ use std::path::Path;
 
 use chrono::{Datelike, Days, Duration, NaiveDate, NaiveDateTime, NaiveTime, Timelike, Weekday};
 use planner_core::{
-    Assessment, AssessmentFilter, AssessmentInput, AssessmentKind, Assumption, AttendanceBand,
-    AttendanceSummary, ComponentKind, Course, CourseInput, CourseMarks, Dashboard, FinalOutlook,
-    GpaStatus, GpaSummary, GradeRow, Holiday, MakeupInput, Needed, RuleComponent,
+    term_week_parity, Assessment, AssessmentFilter, AssessmentInput, AssessmentKind, Assumption,
+    AttendanceBand, AttendanceSummary, ComponentKind, Course, CourseInput, CourseMarks, Dashboard,
+    FinalOutlook, GpaStatus, GpaSummary, GradeRow, Holiday, MakeupInput, Needed, RuleComponent,
     RuleComponentInput, RuleSet, SessionView, Settings, Slot, SlotInput, Status, TermInput,
     ThemeMode, WeekParity,
 };
@@ -461,32 +461,55 @@ pub fn parse_course_form(
 }
 
 /// R58: label shown next to the time of a bi-weekly session or slot.
-#[allow(dead_code)] // M12 stub: remove once the UI uses it.
 pub const EVERY_OTHER_WEEK: &str = "Every other week";
+
+/// R58: [`EVERY_OTHER_WEEK`] for a bi-weekly session or slot, else an empty label.
+pub fn biweekly_label(biweekly: bool) -> &'static str {
+    if biweekly {
+        EVERY_OTHER_WEEK
+    } else {
+        ""
+    }
+}
+
+/// R54: the other week parity.
+fn other_parity(parity: WeekParity) -> WeekParity {
+    match parity {
+        WeekParity::Odd => WeekParity::Even,
+        WeekParity::Even => WeekParity::Odd,
+    }
+}
 
 /// R56: the stored parity for the slot form. Weekly (`biweekly` false) gives `None`. Bi-weekly
 /// gives `term_week_parity(term_start, today)` when `class_this_week`, else the other parity.
-#[allow(dead_code)] // M12 stub: remove once the controller uses it.
 pub fn slot_parity_from_form(
     term_start: NaiveDate,
     today: NaiveDate,
     biweekly: bool,
     class_this_week: bool,
 ) -> Option<WeekParity> {
-    let _ = (term_start, today, biweekly, class_this_week);
-    todo!("R56")
+    if !biweekly {
+        return None;
+    }
+    let current = term_week_parity(term_start, today);
+    Some(if class_this_week {
+        current
+    } else {
+        other_parity(current)
+    })
 }
 
 /// R56: pre-fills the slot form from a stored parity, as `(biweekly, class_this_week)`.
 /// Weekly (`None`) gives `(false, true)`.
-#[allow(dead_code)] // M12 stub: remove once the controller uses it.
 pub fn slot_form_from_parity(
     term_start: NaiveDate,
     today: NaiveDate,
     parity: Option<WeekParity>,
 ) -> (bool, bool) {
-    let _ = (term_start, today, parity);
-    todo!("R56")
+    match parity {
+        None => (false, true),
+        Some(p) => (true, p == term_week_parity(term_start, today)),
+    }
 }
 
 /// R56: `week_parity` comes from [`slot_parity_from_form`] and is copied into the input.

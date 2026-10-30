@@ -1,7 +1,7 @@
 // Timetable page (docs/spec.md §6, contracts/ui-bridge.md "TimetableState"): a Week tab with the
 // sessions of one week and a Rules tab with the timetable slots. Bindings and callbacks only; every
 // data-derived string comes from src/viewmodel.rs through src/pages/timetable.rs.
-import { ComboBox } from "std-widgets.slint";
+import { CheckBox, ComboBox } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { SessionRow, DayGroup, SlotRow, StatusAction } from "types.slint";
 import {
@@ -59,6 +59,10 @@ export global TimetableState {
     in-out property <string> slot-from;
     in-out property <string> slot-to;
     in-out property <string> slot-effective;
+    // R56: "Bi-weekly" and "Class this week" (ticked by default). Hidden without an active term.
+    in property <bool> slot-biweekly-available;
+    in-out property <bool> slot-biweekly;
+    in-out property <bool> slot-class-this-week: true;
     in property <string> slot-course-error;
     in property <string> slot-weekday-error;
     in property <string> slot-start-error;
@@ -368,10 +372,16 @@ component WeekTab inherits VerticalLayout {
                 ListRow {
                     // Fixed columns (preferred widths that may shrink) keep every row's cells at the
                     // same x.
-                    RowText {
-                        text: row.time;
+                    // R58: "Every other week" sits under the time of a bi-weekly session.
+                    VerticalLayout {
                         preferred-width: Theme.time-column-width;
                         min-width: 0;
+                        RowText {
+                            text: row.time;
+                        }
+                        if row.biweekly: RowMeta {
+                            text: row.biweekly-label;
+                        }
                     }
                     RowText {
                         text: row.course;
@@ -471,6 +481,19 @@ component RulesTab inherits VerticalLayout {
                 error: TimetableState.slot-to-error;
             }
         }
+        // R56: "Class this week" says whether the slot meets in the week of today.
+        if TimetableState.slot-biweekly-available: HorizontalLayout {
+            spacing: Theme.space-md;
+            alignment: start;
+            CheckBox {
+                text: "Bi-weekly";
+                checked <=> TimetableState.slot-biweekly;
+            }
+            if TimetableState.slot-biweekly: CheckBox {
+                text: "Class this week";
+                checked <=> TimetableState.slot-class-this-week;
+            }
+        }
         if TimetableState.slot-form-error != "": FormError {
             text: TimetableState.slot-form-error;
         }
@@ -536,6 +559,10 @@ component RulesTab inherits VerticalLayout {
                 }
                 RowText {
                     text: slot.time;
+                }
+                // R58: label next to the time of a bi-weekly slot.
+                if slot.biweekly: RowMeta {
+                    text: slot.biweekly-label;
                 }
                 RowText {
                     text: slot.course;

@@ -4029,3 +4029,10 @@ fn t61_every_other_week_label() {
     assert_eq!(EVERY_OTHER_WEEK, "Every other week");
 >>>>>>> 9522010 (M12: app T61 tests)
 }
+
+/// R58: the label is empty for a weekly session or slot and "Every other week" for a bi-weekly one.
+#[test]
+fn biweekly_label_follows_the_flag() {
+    assert_eq!(biweekly_label(true), EVERY_OTHER_WEEK);
+    assert_eq!(biweekly_label(false), "");
+}

@@ -20,7 +20,7 @@ Tests (tester) come before implementation (builder). Decisions are in `decisions
 - [x] T010 R59 import `biweekly` key, R45 comparison, template and AI prompt (T59)
 
 ## Phase 4: app (builder)
-- [ ] T011 Slot form, parity conversion in `viewmodel.rs` (R56, T61)
+- [x] T011 Slot form, parity conversion in `viewmodel.rs` (R56, T61)
 - [ ] T012 `SessionView.biweekly`, "Every other week" label, "Move to next week" button, controller wiring (R58)
 
 ## Phase 5: gate

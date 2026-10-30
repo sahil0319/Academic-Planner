@@ -442,11 +442,17 @@ export component CoursesPage inherits VerticalLayout {
                             preferred-width: Theme.weekday-column-width;
                             min-width: 0;
                         }
-                        Body {
-                            text: s.time;
+                        // R58: "Every other week" sits under the time of a bi-weekly session.
+                        VerticalLayout {
                             horizontal-stretch: 0;
                             preferred-width: Theme.time-column-width;
                             min-width: 0;
+                            Body {
+                                text: s.time;
+                            }
+                            if s.biweekly: Meta {
+                                text: s.biweekly-label;
+                            }
                         }
                         Meta {
                             text: s.room;
