@@ -1937,7 +1937,6 @@ pub fn field_errors_text(errors: &FormErrors) -> String {
 // ---- M13: Progress page ----
 
 /// R65: card status; declaration order is the R61 card order.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ProgressStatus {
     AtRisk,
@@ -1947,7 +1946,6 @@ pub enum ProgressStatus {
 }
 
 /// R65: "At risk", "Watch", "On track", "Not enough data".
-#[allow(dead_code)]
 pub fn progress_status_label(status: ProgressStatus) -> &'static str {
     match status {
         ProgressStatus::AtRisk => "At risk",
@@ -1958,7 +1956,6 @@ pub fn progress_status_label(status: ProgressStatus) -> &'static str {
 }
 
 /// R65: On track = Attended, Watch = Pending, At risk = Absent, Not enough data = Cancelled.
-#[allow(dead_code)]
 pub fn progress_chip(status: ProgressStatus) -> ChipKind {
     match status {
         ProgressStatus::AtRisk => ChipKind::Absent,
@@ -1974,7 +1971,6 @@ pub fn progress_chip(status: ProgressStatus) -> ChipKind {
 /// 5 points above the target (needs both a percentage and a target, D12), or projected grade
 /// points under 3.0. On track: otherwise, when attendance or a projected percentage exists. Not
 /// enough data: neither exists.
-#[allow(dead_code)]
 pub fn progress_status(
     below_target: bool,
     pct: Option<f64>,
@@ -1997,7 +1993,6 @@ pub fn progress_status(
 }
 
 /// R65: points of `letter` in the grade scale; None when the letter is None or not in the scale.
-#[allow(dead_code)]
 pub fn letter_points(letter: Option<&str>, scale: &[GradeRow]) -> Option<f64> {
     let letter = letter?;
     scale
@@ -2020,7 +2015,6 @@ fn class_noun(n: u32) -> &'static str {
 /// Checks run in the D5 order: no target gives no line; no remaining classes gives "No classes
 /// left to mark"; then `k >= r` (miss all), `0 < k < r` (miss k), `k = 0` (attend all), and
 /// `k < 0` (out of reach). A negative numerator floors, so -25 / 100 is -1 (D4).
-#[allow(dead_code)]
 pub fn miss_line(attended: u32, absent: u32, remaining: u32, target: Option<i64>) -> String {
     let Some(t) = target else {
         return String::new();
@@ -2043,7 +2037,6 @@ pub fn miss_line(attended: u32, absent: u32, remaining: u32, target: Option<i64>
 }
 
 /// R62: "87.5% · 14 of 16 classes", or "No classes marked yet" when attended + absent = 0.
-#[allow(dead_code)]
 pub fn attendance_line(attended: u32, absent: u32, pct: Option<f64>) -> String {
     let marked = attended + absent;
     if marked == 0 {
@@ -2057,7 +2050,6 @@ pub fn attendance_line(attended: u32, absent: u32, pct: Option<f64>) -> String {
 }
 
 /// R62: "Target 75%", or "No target" (D7).
-#[allow(dead_code)]
 pub fn progress_target_text(target: Option<i64>) -> String {
     match target {
         Some(t) => format!("Target {t}%"),
@@ -2066,7 +2058,6 @@ pub fn progress_target_text(target: Option<i64>) -> String {
 }
 
 /// R62: bar fill 0.0..=1.0 = pct / 100, clamped; 0.0 when pct is None (empty bar).
-#[allow(dead_code)]
 pub fn bar_fraction(pct: Option<f64>) -> f32 {
     match pct {
         Some(p) if p.is_finite() => (p / 100.0).clamp(0.0, 1.0) as f32,
@@ -2075,13 +2066,11 @@ pub fn bar_fraction(pct: Option<f64>) -> f32 {
 }
 
 /// R62: marker position 0.0..=1.0 = target / 100, clamped; None = no marker.
-#[allow(dead_code)]
 pub fn target_fraction(target: Option<i64>) -> Option<f32> {
     target.map(|t| (t as f64 / 100.0).clamp(0.0, 1.0) as f32)
 }
 
 /// R64: "Not graded" | "No marks entered yet" | "Secured 129.0 of 150 assessed marks".
-#[allow(dead_code)]
 pub fn progress_marks_line(marks: &CourseMarks) -> String {
     if !marks.graded {
         return "Not graded".to_string();
@@ -2101,7 +2090,6 @@ pub fn progress_marks_line(marks: &CourseMarks) -> String {
 ///
 /// The rows run from the highest letter down, so the first row that is not `Not reachable` is the
 /// best reachable grade (D10: no such row means no line).
-#[allow(dead_code)]
 pub fn best_grade_line(outlook: Option<&FinalOutlook>) -> String {
     match outlook {
         Some(FinalOutlook::Needed {
@@ -2127,7 +2115,6 @@ pub fn best_grade_line(outlook: Option<&FinalOutlook>) -> String {
 }
 
 /// R61: "1 on track · 1 to watch · 1 at risk" (Not enough data is not counted).
-#[allow(dead_code)]
 pub fn progress_counts_text(statuses: &[ProgressStatus]) -> String {
     let count = |wanted: ProgressStatus| statuses.iter().filter(|s| **s == wanted).count();
     format!(
@@ -2139,7 +2126,6 @@ pub fn progress_counts_text(statuses: &[ProgressStatus]) -> String {
 }
 
 /// R61: empty-state text; `has_term` false gives the no-term text, else the no-courses text.
-#[allow(dead_code)]
 pub fn progress_empty_text(has_term: bool) -> &'static str {
     if has_term {
         "No courses yet. Add one on the Courses page."
@@ -2149,7 +2135,6 @@ pub fn progress_empty_text(has_term: bool) -> &'static str {
 }
 
 /// R61–R65: one card.
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct ProgressCardView {
     /// Sort key and title.
@@ -2186,7 +2171,6 @@ pub struct ProgressCardView {
 ///
 /// Grade points count only when a projected percentage exists (D11); the Marks figure is the
 /// projected percentage and letter of a graded course, else an em dash (D9).
-#[allow(dead_code)]
 pub fn progress_card(
     summary: &AttendanceSummary,
     marks: &CourseMarks,
@@ -2233,7 +2217,6 @@ pub fn progress_card(
 }
 
 /// R61: header texts and cards sorted by (status, code).
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct ProgressView {
     pub gpa_text: String,
@@ -2242,7 +2225,6 @@ pub struct ProgressView {
 }
 
 /// R61: gpa_text = gpa_header_text(gpa) (R40, reused); counts from the cards.
-#[allow(dead_code)]
 pub fn progress_view(gpa: &GpaSummary, mut cards: Vec<ProgressCardView>) -> ProgressView {
     cards.sort_by(|a, b| (a.status, &a.code).cmp(&(b.status, &b.code)));
     let statuses: Vec<ProgressStatus> = cards.iter().map(|card| card.status).collect();
