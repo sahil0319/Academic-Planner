@@ -157,15 +157,16 @@ export component AppWindow inherits Window {
 
             VerticalLayout {
                 // §6 "Appearance:", DESIGN.md "Appearance switch": a fixed header band holds the
-                // switch at the top-right. It does not scroll, so scrolled content never runs
-                // under the switch (design review F-01).
+                // switch space-lg from the top-right corner. It does not scroll, so scrolled
+                // content never runs under the switch (design review F-01). space-sm below the
+                // switch keeps the page title close to its old position.
                 Rectangle {
-                    height: Theme.appearance-segment + 2 * Theme.space-sm;
+                    height: Theme.space-lg + Theme.appearance-segment + Theme.space-sm;
                     background: Theme.neutral;
 
                     AppearanceSwitch {
                         x: parent.width - self.width - Theme.space-lg;
-                        y: Theme.space-sm;
+                        y: Theme.space-lg;
                         selected: Theme.mode;
                         select(i) => {
                             AppState.theme-selected(i);
@@ -178,7 +179,6 @@ export component AppWindow inherits Window {
                 if AppState.update-banner != "": VerticalLayout {
                     padding-left: Theme.space-xl;
                     padding-right: Theme.space-xl;
-                    padding-top: Theme.space-sm;
                     padding-bottom: Theme.space-sm;
                     UpdateBanner {
                         text: AppState.update-banner;
@@ -194,7 +194,7 @@ export component AppWindow inherits Window {
                 ScrollView {
                     VerticalLayout {
                         padding: Theme.space-xl;
-                        padding-top: Theme.space-sm;
+                        padding-top: 0;
                         alignment: start;
 
                         if AppState.current-page == 0: DashboardPage { }
