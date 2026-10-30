@@ -1,14 +1,15 @@
 {
-  "milestone": "M11",
-  "phase": "done-pending-human",
+  "milestone": "M12-M17 (spec only)",
+  "phase": "specified-awaiting-human-start",
   "tasks": {
-    "spec-13.6": "done",
-    "T51-T53 core tests": "done",
-    "R51 delete_courses": "done",
-    "T54 viewmodel tests": "done",
-    "R52 courses multi-select delete UI": "done",
-    "R53 GitHub button": "done",
-    "gate": "done",
-    "human visual check": "pending"
+    "M11": "done (v0.2.1 tagged)",
+    "M12 spec": "done",
+    "M13 spec": "done",
+    "M14 spec": "done",
+    "M15 spec": "done",
+    "M16 spec": "done",
+    "M17 spec + DESIGN.md v2": "done",
+    "DESIGN.md lint": "pending (npx blocked; human to run)",
+    "M12-M17 build": "not started (human decision: spec only)"
   }
 }

@@ -37,6 +37,11 @@ colors:
   progress-fill: "#161616"
   progress-target: "#0F62FE"
   calendar-holiday: "#D0E2FF"
+  calendar-midterm: "#D4BBFF"
+  calendar-final: "#FFAFD2"
+  calendar-public-holiday: "#9EF0F0"
+  success: "#24A148"
+  success-bg: "#DEFBE6"
   dark-primary: "#0F62FE"
   dark-primary-hover: "#0050E6"
   dark-primary-active: "#002D9C"
@@ -71,6 +76,11 @@ colors:
   dark-progress-fill: "#F4F4F4"
   dark-progress-target: "#78A9FF"
   dark-calendar-holiday: "#002D9C"
+  dark-calendar-midterm: "#6929C4"
+  dark-calendar-final: "#9F1853"
+  dark-calendar-public-holiday: "#005D5D"
+  dark-success: "#24A148"
+  dark-success-bg: "#071908"
 typography:
   title-lg:
     fontFamily: IBM Plex Sans
@@ -245,6 +255,32 @@ components:
     typography: "{typography.body-md}"
     rounded: "{rounded.none}"
     padding: "{spacing.lg}"
+  success-note:
+    backgroundColor: "{colors.success-bg}"
+    textColor: "{colors.on-surface}"
+    typography: "{typography.body-md}"
+    rounded: "{rounded.none}"
+    padding: "{spacing.md}"
+  term-line:
+    backgroundColor: "{colors.neutral}"
+    textColor: "{colors.on-surface-muted}"
+    typography: "{typography.body-md}"
+  calendar-day-holiday:
+    backgroundColor: "{colors.calendar-holiday}"
+    textColor: "{colors.on-surface}"
+    typography: "{typography.body-md}"
+  calendar-day-midterm:
+    backgroundColor: "{colors.calendar-midterm}"
+    textColor: "{colors.on-surface}"
+    typography: "{typography.body-md}"
+  calendar-day-final:
+    backgroundColor: "{colors.calendar-final}"
+    textColor: "{colors.on-surface}"
+    typography: "{typography.body-md}"
+  calendar-day-public-holiday:
+    backgroundColor: "{colors.calendar-public-holiday}"
+    textColor: "{colors.on-surface}"
+    typography: "{typography.body-md}"
   progress-bar:
     backgroundColor: "{colors.progress-track}"
     textColor: "{colors.progress-fill}"
@@ -334,6 +370,26 @@ components:
     backgroundColor: "{colors.dark-below-target-bg}"
     textColor: "{colors.dark-below-target}"
     typography: "{typography.body-md}"
+  dark-success-note:
+    backgroundColor: "{colors.dark-success-bg}"
+    textColor: "{colors.dark-on-surface}"
+    typography: "{typography.body-md}"
+  dark-term-line:
+    backgroundColor: "{colors.dark-neutral}"
+    textColor: "{colors.dark-on-surface-muted}"
+    typography: "{typography.body-md}"
+  dark-calendar-day-holiday:
+    backgroundColor: "{colors.dark-calendar-holiday}"
+    textColor: "{colors.dark-on-surface}"
+  dark-calendar-day-midterm:
+    backgroundColor: "{colors.dark-calendar-midterm}"
+    textColor: "{colors.dark-on-surface}"
+  dark-calendar-day-final:
+    backgroundColor: "{colors.dark-calendar-final}"
+    textColor: "{colors.dark-on-surface}"
+  dark-calendar-day-public-holiday:
+    backgroundColor: "{colors.dark-calendar-public-holiday}"
+    textColor: "{colors.dark-on-surface}"
   dark-progress-bar:
     backgroundColor: "{colors.dark-progress-track}"
     textColor: "{colors.dark-progress-fill}"
@@ -345,10 +401,10 @@ components:
 
 # Academic Planner Design System
 
-Version 2 (human decision 2026-10-30). This is the target of milestone M14 (docs/spec.md §13.9).
-Until M14 is built, `ui/theme.slint` still holds the version 1 values (warm cream, terracotta,
-Georgia; see this file at tag `v0.2.1`). Code written before M14 keeps using `Theme.*` tokens only,
-so M14 is a token swap plus the component changes described here.
+Version 2 (human decision 2026-10-30). This is the target of milestone M17 (docs/spec.md §13.12).
+Until M17 is built, `ui/theme.slint` still holds the version 1 values (warm cream, terracotta,
+Georgia; see this file at tag `v0.2.1`). Code written before M17 keeps using `Theme.*` tokens only,
+so M17 is a token swap plus the component changes described here.
 
 ## Overview
 
@@ -366,7 +422,7 @@ decoration.
 - **Square:** everything you click or type into has square corners. Pills only for status chips.
 - **Meaning is never carried by colour alone.** Every status colour is paired with its text label
   ("Attended", "Absent", "Cancelled", "Pending", "Below target", "On track", "Watch", "At risk",
-  "Not enough data"), and every bar has its number printed beside it.
+  "Not enough data", "Holiday", "Mid exam", "Final exam", "Public holiday"), and every bar has its number printed beside it, and every calendar fill is named in the legend.
 
 ## Colors
 
@@ -403,7 +459,12 @@ chips, the below-target banner, and the progress-bar target marker.
   error-colour rule on its left edge (Carbon notification).
 - **Progress track (#E0E0E0 / dark #393939), fill (#161616 / dark #F4F4F4), target marker
   (#0F62FE / dark #78A9FF):** the attendance bar on the Progress page.
-- **Calendar holiday (#D0E2FF / dark #002D9C):** the highlight behind holiday and exam-period days.
+- **Calendar days off:** each kind has its own fill behind the day number, and the legend names
+  it. Holiday #D0E2FF / dark #002D9C (blue), Mid exam #D4BBFF / dark #6929C4 (purple), Final exam
+  #FFAFD2 / dark #9F1853 (magenta), Public holiday #9EF0F0 / dark #005D5D (teal). Day numbers stay
+  in on-surface on every fill (at least 7:1 light, 7:1 dark).
+- **Success (#24A148 rule on #DEFBE6; dark #24A148 on #071908):** the "Term saved." note and other
+  confirmations of a completed action, with a 3px success rule on the left edge. Text is on-surface.
 
 Every text/background pair above was checked: all meet WCAG AA (4.5:1) for normal text; the lowest
 are pending (4.52:1) and the light link and error on the card (4.55:1).
@@ -484,9 +545,32 @@ and the appearance switch. Fully rounded pills only for status chips.
   each for "classes you can still miss" and the best reachable grade.
 - **Empty state:** muted body text in the card, e.g. "No classes today."
 - **Mini calendar:** square 36px day cells, Monday first, weekday initials in label text. Today: a
-  primary-filled square with white number. Selected day: surface-selected fill. Holidays and exam
-  periods: calendar-holiday fill; weekends: surface-hover fill; a day with an assessment due shows
-  a 4px error-colour square under the number. A one-line legend names all three.
+  primary-filled square with white number. Selected day: a 2px focus-colour inset outline, so it
+  stays visible on any fill. Days off use their kind's fill (holiday, mid exam, final exam); public
+  holidays that are not days off use the public-holiday fill; weekends use surface-hover; a day with
+  an assessment due shows a 4px error-colour square under the number. The legend under the grid
+  names every fill in use plus the due marker, each with a 12px swatch, and wraps to two lines when
+  needed.
+- **Day panel lines:** "Holiday: {label}", "Mid exam: {label}", "Final exam: {label}", and
+  "Public holiday: {name}" in body text, above the day's classes.
+- **Term line (Dashboard):** body text in on-surface-muted directly under the page title, e.g.
+  "Spring 2026 · January 5 – May 1, 2026 · Week 3 of 17". When the term has ended, the sentence
+  "Archive it in Settings." follows in link colour as a text button.
+- **Term card (Settings):** the active term read-only (name in body-emphasis, dates and week line in
+  muted body) with Edit (secondary) and Archive (danger) buttons; Archive is disabled before the end
+  date with a muted line saying when it becomes available. The form appears in the card only when
+  creating or editing.
+- **Success note:** success-bg fill, 3px success rule on the left, on-surface body text, 12px
+  padding, in normal flow at the top of the card that the action belongs to. It stays until the
+  next action on that card.
+- **Past terms list (Settings):** a section card of 40px rows: name in body-emphasis, date range,
+  then "{n} courses", "Attendance {pct}", "GPA {gpa}" as muted figures. Read-only: no buttons.
+- **Exam period cards (Settings):** Mid exams and Final exams use the same layout as the Holidays
+  card (range input, label, Add, list of ranges with Remove); a 12px swatch of the kind's calendar
+  fill sits before each card title so the link to the calendar colour is visible.
+- **Public holidays card (Settings):** the country choice, a muted status line ("Updated today",
+  "Couldn't load public holidays" with a Retry text button), and a list of the term's public
+  holidays with checkboxes and one secondary button "Add selected as holidays".
 - **Appearance switch:** a square segmented control (Carbon content switcher) 16px from the
   top-right corner: three 28px icon segments (monitor, sun, moon) with a 1px border-strong edge;
   the selected segment is surface-inverse with on-surface-inverse icon. Accessible labels "Use

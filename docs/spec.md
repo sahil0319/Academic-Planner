@@ -23,7 +23,7 @@
 | Notifications (M5) | `notify-rust` |
 | Saving | Every mutation commits immediately. No save button |
 | Weekday | ISO numbering: 1 = Monday … 7 = Sunday |
-| Network | Only the updater (M7, §13.1) uses the network, and only to read GitHub Releases. Everything else stays local |
+| Network | Only the updater (M7, §13.1) and the public-holiday fetch (M16, §13.11) use the network: GitHub Releases and Google's public holiday calendar. Both run in the app crate, never in core. Everything else stays local |
 | Updates (M7) | `cargo-packager-updater`; updates are minisign-signed and verified against a public key embedded at build time (human decision 2026-10-29) |
 | License | Decide in **M0**, not at release, because the Slint license option constrains the repo license. Verify Slint's current license terms and note any attribution requirement in `NOTICE`/README |
 
@@ -248,7 +248,7 @@ impl Planner {
 }
 ```
 
-M7–M12 add the methods listed in §13.
+M7–M16 add the methods listed in §13.
 
 `SessionView` includes course code/name, `display_status` ("Pending" / "Attended" / "Absent" / "Cancelled" / "Rescheduled → 2026-01-15"), and `is_past` (`now >= session start`, i.e. attendance may be marked per R12; `now` is passed in because core never reads the clock).
 
@@ -289,7 +289,10 @@ Each milestone ends with the **gate**: `cargo fmt --check && cargo clippy --work
 | **M11** | Delete courses (multi-select) and the GitHub button on About (§13.6) | Gate passes; T51–T54 pass |
 | **M12** | Bi-weekly slots, "Move to next week", import and backup support (§13.7) | Gate passes; T55–T61 pass |
 | **M13** | Progress page (§13.8) | Gate passes; T62–T65 pass |
-| **M14** | Carbon restyle from DESIGN.md v2, light and dark, IBM Plex Sans (§13.9) | Gate passes; theme grep check and DESIGN.md lint pass; `impeccable` critique of every page in both themes has no open high-severity items; human approves screenshots |
+| **M14** | Current term on the dashboard, term save feedback and editing, archive a finished term, past terms list (§13.9) | Gate passes; T66–T70 pass |
+| **M15** | Mid exam and final exam periods, separate from holidays (§13.10) | Gate passes; T71–T74 pass |
+| **M16** | Public holidays of the user's country from Google's public holiday calendar (§13.11) | Gate passes; T75–T79 pass; human sees their country's holidays on the dashboard |
+| **M17** | Carbon restyle from DESIGN.md v2, light and dark, IBM Plex Sans (§13.12) | Gate passes; theme grep check and DESIGN.md lint pass; `impeccable` critique of every page in both themes has no open high-severity items; human approves screenshots |
 
 **Parallelism:** after M1 the API is frozen as stubs, so one agent can do M2–M3 (core) while another builds M4 (UI) against the stubs. Merge before the M4 smoke test.
 
@@ -330,7 +333,7 @@ Fixture unless stated: active term **2026-01-05 (Mon) → 2026-01-25 (Sun)**; co
 | T29 | two courses, dashboard on 01-05 | today's classes sorted by start time |
 | T30 | export → restore into empty DB → export | JSON equal except `exported_at`; bad format / newer version → error and DB unchanged |
 
-T31–T50 (M7–M10) are in §13.5; T51–T54 (M11) in §13.6; T55–T65 (M12–M13) in §13.7–§13.8.
+T31–T50 (M7–M10) are in §13.5; T51–T54 (M11) in §13.6; T55–T79 (M12–M16) in §13.7–§13.11.
 
 ## 9. M4 manual smoke checklist (human, ~5 minutes)
 
@@ -429,7 +432,7 @@ Never run Spec Kit on the whole app at once. Per-milestone features keep `tasks.
 - `progress.json`: `{"milestone": "M2", "phase": "implement", "tasks": {"T001": "done", ...}}`, using Spec Kit task IDs. The agent updates it after each task, not at the end.
 - `checkpoint.md`, at most 15 lines: current milestone, last green gate (commit hash), next task, open questions. A new session reads **only** `AGENTS.md` + `checkpoint.md` + the current `specs/<milestone>/tasks.md`. This replaces re-reading chat history and is the cheapest way to resume after `/clear` or an expired prompt cache.
 
-## 13. After v0.1.1: M7–M14 (human decisions 2026-10-29; M11–M14 2026-10-30)
+## 13. After v0.1.1: M7–M17 (human decisions 2026-10-29; M11–M17 2026-10-30)
 
 Build in order: **M7 → M8 → M9 → M10**. The updater ships first so every later feature reaches installed copies with one click. Rules continue the R-numbering (R26–R50) and tests continue the T-numbering (§13.5). Everything in §1–§12 still applies.
 
@@ -623,7 +626,7 @@ pub fn delete_courses(&mut self, ids: &[i64]) -> Result<()>;   // R51
 
 ### 13.7 M12: bi-weekly slots (human decisions 2026-10-30)
 
-Some lab courses meet every other week. Light flow, like M11.
+Some lab courses meet every other week. Light flow, like M11. Spec only until the human starts it (human decision 2026-10-30).
 
 **Migration 003**
 
@@ -664,7 +667,7 @@ pub fn shift_biweekly(&mut self, course_id: i64, from: NaiveDate) -> Result<()>;
 
 ### 13.8 M13: Progress page (human decisions 2026-10-30)
 
-A second dashboard that shows how each course is going so far. It reads existing data only: no schema change and no new core API (it uses `all_summaries`, `course_marks`, `grade_scale`, and `term_gpa`). Every computation below is a pure function in `viewmodel.rs` with unit tests.
+A second dashboard that shows how each course is going so far. Spec only until the human starts it (human decision 2026-10-30). It reads existing data only: no schema change and no new core API (it uses `all_summaries`, `course_marks`, `grade_scale`, and `term_gpa`). Every computation below is a pure function in `viewmodel.rs` with unit tests.
 
 **Rules**
 - **R61** A new sidebar page **Progress**, between Dashboard and Timetable. The top line shows the term GPA (R40) and the counts "N on track · N to watch · N at risk". Below it, one card per non-archived course of the active term, ordered At risk, Watch, On track, Not enough data, then by code. No active term or no courses → an empty state.
@@ -673,7 +676,7 @@ A second dashboard that shows how each course is going so far. It reads existing
 - **R64** Marks on a card (graded courses, R33): "Secured {secured} of {assessed} assessed marks" and the projected percentage with its letter (R37), e.g. "86.7% · A+". Not graded → "Not graded"; nothing assessed → "No marks entered yet". Best grade still reachable, from R38: the first grade row (highest first) that is not "Not reachable": "Secured" → "{letter} is already secured"; a score → "{letter} needs {score} of {final item max} in the final". If the final already has a score (R38 actual), "Final grade: {letter}".
 - **R65** Status chip per course: **At risk** when below target (R14) or the projected letter's grade points are 0; otherwise **Watch** when the attendance percentage is less than 5 points above the target, or the projected letter's grade points are below 3.00; otherwise **On track** when there is an attendance percentage or a projected percentage; otherwise **Not enough data**. Chip colours: On track = attended, Watch = pending, At risk = absent, Not enough data = cancelled.
 
-**UI:** the card layout is the "Progress card" in DESIGN.md. Until M14, it uses the existing `Theme.*` tokens, with one new token pair for the bar.
+**UI:** the card layout is the "Progress card" in DESIGN.md. Until M17, it uses the existing `Theme.*` tokens, with one new token pair for the bar.
 
 **Tests** (app, `viewmodel.rs`)
 
@@ -684,12 +687,114 @@ A second dashboard that shows how each course is going so far. It reads existing
 | T64 | needed rows A+ not reachable, A 96.0 of 150; first row secured; final scored A | "A needs 96.0 of 150 in the final"; "A+ is already secured"; "Final grade: A" |
 | T65 | four courses with each status | ordered At risk, Watch, On track, Not enough data; header "1 on track · 1 to watch · 1 at risk" |
 
-### 13.9 M14: Carbon restyle (human decisions 2026-10-30; spec only until the human starts it)
+### 13.9 M14: terms on the dashboard, save feedback, archive (human decisions 2026-10-30; spec only until the human starts it)
 
-The whole UI takes the look of DESIGN.md version 2: IBM Carbon, as in agentic-paper-search's Paper-Triage-Carbon design, with a dark theme derived from Carbon g100. Behaviour, layout structure, and the left sidebar stay; only the visual layer changes.
+No schema change: an archived term is a term with `is_active = 0`. Terms made inactive by an earlier `save_term` (R1) also count as archived.
 
-- **R66** `ui/theme.slint` takes every value from DESIGN.md v2, light and dark (`dark-*` tokens). Token names follow DESIGN.md: new tokens (`surface-hover`, `surface-inverse`, `on-surface-inverse`, `field`, `border-strong`, `on-surface-subtle`, `link`, `focus`, `progress-*`, `calendar-holiday`, `nav-item-height`, `space-xxxl`) are added, `radius-sm`/`radius-md` are replaced by `radius-none`, and every `.slint` file is updated to match. The theme grep check (§12) still passes.
-- **R67** Fonts: IBM Plex Sans Regular (400) and SemiBold (600) TTF from IBM's official release are vendored under `crates/app/ui/fonts/` and embedded with Slint font imports; `font-heading` and `font-body` both name "IBM Plex Sans". The SIL OFL 1.1 text ships in `THIRD-PARTY-NOTICES.html`. No other weights.
-- **R68** Components follow DESIGN.md v2: square corners everywhere except status chips; 32px buttons and fields; 40px rows; Carbon fields (field fill, bottom rule, inset focus ring); nav items with a 3px primary bar on the active item; danger button style for destructive confirms (course delete, restore); GitHub button in surface-inverse; square appearance switch; square calendar cells with the calendar-holiday fill; the below-target banner with a 3px left rule.
-- **R69** Sidebar width 240px, nav order Dashboard, Progress, Timetable, Courses, Assessments, Rules, Settings, About. Window default size unchanged.
-- **R70** Workflow: full Spec Kit flow (§12). The design skills (`impeccable`) are allowed in M14 as in M4 (human decision). Screenshots of every page in light and dark go to `specs/<m14>/screenshots/` for the critique and the human's approval.
+**Rules**
+- **R66** Dashboard: a term line under the page title. Active term: "{name} · {start} – {end} · Week {n} of {N}", dates as "January 5, 2026", weeks numbered as in R54 (N = the term week of the end date). Before the start: "{name} · starts {start}". After the end: "{name} ended on {end}. Archive it in Settings." No active term: "No active term. Set one up in Settings."
+- **R67** Settings → Term: with an active term, the card shows it read-only (name, dates, week line of R66) with **Edit** and **Archive** buttons; the form is shown only to create a term (no active term) or after Edit. Edit pre-fills the form. Save success: the form closes, its fields are cleared, a success note "Term saved." shows on the card until the next action, and every page refreshes (the dashboard term line included). Errors stay inline as before. Cancel closes the form without changes.
+- **R68** `archive_term(id, today)` sets `is_active = 0`. Allowed only when `today > end_date` (else `Error::Validation`: "This term ends on {end}; archive it after that"); the UI disables Archive before then and says why. The Archive button opens an inline confirm: "Archive {name}? Its courses, attendance, assessments, and marks are kept and shown under Past terms. You can then set up the next term." All data stays. After archiving there is no active term (R1), so sync, reminders, the dashboard, import, and every page work as with no term until a new one is saved.
+- **R69** With an active term, the UI does not offer a new term; the human archives the current term first. Core keeps R1 unchanged.
+- **R70** Settings → **Past terms**: every inactive term, newest end date first: name, date range, number of courses, overall attendance (attended / (attended + absent) over all its courses, R13 rounding, "—" if none), and its GPA (R40 rules applied to that term, "—" if none). Read-only; nothing in a past term can be edited from the UI. Backups (R21) already include every term.
+
+**API additions**
+
+```rust
+pub fn archive_term(&mut self, id: i64, today: NaiveDate) -> Result<()>;  // R68
+pub fn past_terms(&self) -> Result<Vec<PastTermSummary>>;                // R70
+pub struct PastTermSummary { pub term: Term, pub courses: u32, pub attendance_pct: Option<f64>, pub gpa: Option<f64> }
+```
+
+**Tests**
+
+| ID | Given | Then |
+|---|---|---|
+| T66 (app) | term 01-05..05-01, today 01-21 / 01-01 / 05-02; no term | "Week 3 of 17"; "starts January 5, 2026"; "ended on May 1, 2026. Archive it in Settings."; "No active term…" |
+| T67 | `archive_term` on 04-30 and on 05-02 (end 05-01) | `Error::Validation`, still active; archived, no active term, courses and sessions kept |
+| T68 | archived term, then `sync_sessions`, `dashboard`, `due_reminders` | nothing created or shown for the archived term's courses |
+| T69 | two past terms with attendance and graded courses, one with nothing marked | ordered newest first; counts, attendance %, and GPA right; "—" where nothing is marked |
+| T70 (app) | save a valid term; save with an end before the start | note "Term saved.", fields cleared, form closed; inline error, fields kept |
+
+### 13.10 M15: mid exam and final exam periods (human decisions 2026-10-30; spec only until the human starts it)
+
+Exam periods are days off from classes like holidays, but tagged separately and drawn in their own colours. They replace the earlier habit of entering exam weeks as labelled holidays.
+
+**Migration 004** (renumbered to the next free number if M12–M16 land in another order)
+
+```sql
+ALTER TABLE holiday ADD COLUMN kind TEXT NOT NULL DEFAULT 'holiday'
+  CHECK (kind IN ('holiday','midterm','final'));
+```
+
+**Rules**
+- **R71** A day off has a kind: `holiday`, `midterm`, or `final`. A date holds at most one day off per term (the primary key is unchanged); adding a date that already has another kind is `Error::Validation` naming the date and its current kind.
+- **R72** (amends R4) Every kind skips classes: sync produces no session on any day off. Existing rows stay `holiday`.
+- **R73** Settings: next to Holidays, two cards **Mid exams** and **Final exams**, each with the same input as holidays (one date or an inclusive range, one label; default labels "Mid exam" and "Final exam"), a list of ranges, and remove per day. Each card edits only its kind.
+- **R74** Dashboard calendar: holiday, mid exam, and final exam days each get their own fill (DESIGN.md `calendar-holiday`, `calendar-midterm`, `calendar-final`), and the legend names each one. The day panel shows "Mid exam: {label}" / "Final exam: {label}" / "Holiday: {label}". Weekends keep their fill.
+- **R75** Backup (amends R21): holiday rows carry `kind`; `schema_version` goes up with the migration; an older backup restores every day off as `holiday`. CSV is unchanged.
+
+**API changes**
+
+```rust
+pub enum DayOffKind { Holiday, Midterm, Final }
+// Holiday gains: kind: DayOffKind
+// set_holidays(term_id, days) keeps replacing every day off of the term, all kinds together.
+```
+
+**Tests**
+
+| ID | Given | Then |
+|---|---|---|
+| T71 | a slot on Mondays; midterm 01-12, final 01-19 | no sessions on 01-12 and 01-19; other Mondays kept |
+| T72 | date already a holiday, added as midterm | `Error::Validation`; nothing changed |
+| T73 | backup with all three kinds → restore; restore an older backup | kinds kept; every row `holiday` |
+| T74 (app) | calendar month with one day of each kind | each day carries its kind for the fill; legend lists Holiday, Mid exam, Final exam |
+
+### 13.11 M16: public holidays (human decisions 2026-10-30; spec only until the human starts it)
+
+The dashboard shows the government public holidays of the user's country. They do not change classes unless the human adds them as holidays.
+
+**Source:** Google's public holiday calendar feed, `https://calendar.google.com/calendar/ical/{calendar_id}/public/basic.ics` (iCalendar, no API key). Only events whose description says "Public holiday" are used; observances are ignored. A built-in table maps ISO country codes to Google calendar ids (for example `BD` → `en.bd#holiday@group.v.calendar.google.com`, URL-encoded in the request); it ships as `crates/app/data/holiday-calendars.json` and covers at least BD, IN, PK, NP, LK, MY, SG, ID, AE, SA, GB, IE, US, CA, AU, NZ, DE, FR. Network code lives in the app crate (as R27); core only stores the result.
+
+**Migration** (next free number)
+
+```sql
+CREATE TABLE public_holiday (country TEXT NOT NULL, date TEXT NOT NULL, name TEXT NOT NULL, PRIMARY KEY (country, date, name));
+```
+
+**Rules**
+- **R76** Country: from the operating system's region setting (locale such as `en-BD`), never from an IP lookup. Settings → **Public holidays** has a country choice (countries in the table, plus "Off"), saved in setting `public_holiday_country` (included in backups; absent = OS region; a region not in the table = Off).
+- **R77** Fetch: once per launch in the background, and when the country changes. One request to the feed; keep the events dated within the active term's years. A successful fetch replaces that country's rows in `public_holiday`; a failure keeps the cached rows and shows "Couldn't load public holidays" with Retry in the Settings card; nothing blocks the app. With no active term or country Off, nothing is fetched.
+- **R78** Dashboard calendar: public holiday days get the `calendar-public-holiday` fill and a legend entry; the day panel lists "Public holiday: {name}". A day that is also a term day off shows the term kind's fill (R74) and both lines in the day panel.
+- **R79** Settings → Public holidays lists the cached public holidays inside the active term (date and name), each with a checkbox, and **Add selected as holidays**: each ticked date that is not already a day off becomes a `holiday` with the public name as its label (R71), then sync runs (R6). The result says how many were added and how many were skipped because the day already had a day off. Public holidays never skip classes until added.
+- **R80** `public_holiday` rows are a cache: they are not in backups or CSV, and restoring a backup leaves them alone.
+- **R81** The iCalendar parsing (all-day `DTSTART;VALUE=DATE`, multi-day `DTEND` exclusive, line unfolding, the public/observance filter) is a pure function in the app crate with unit tests on saved sample feeds.
+
+**API additions**
+
+```rust
+pub struct PublicHoliday { pub date: NaiveDate, pub name: String }
+pub fn set_public_holidays(&mut self, country: &str, days: &[PublicHoliday]) -> Result<()>;           // R77
+pub fn public_holidays_between(&self, country: &str, from: NaiveDate, to: NaiveDate) -> Result<Vec<PublicHoliday>>;
+```
+
+**Tests**
+
+| ID | Given | Then |
+|---|---|---|
+| T75 (app) | sample feed: a public holiday, an observance, a two-day event, a folded line | public holiday kept, observance dropped, two dates for the two-day event, folded name joined |
+| T76 (app) | locales `en-BD`, `bn-BD`, `en-US`, `fr` (no region), `xx-ZZ` | BD, BD, US, Off, Off |
+| T77 | `set_public_holidays` twice for BD; once for IN | second call replaces BD rows; IN untouched; backup has no public holidays |
+| T78 | add selected public holidays: one free day, one already a midterm day | one holiday added with the public name; one skipped; sessions on the added day deleted by sync |
+| T79 (app) | fetch fails with cached rows | cached rows still shown; status "Couldn't load public holidays" with Retry |
+
+### 13.12 M17: Carbon restyle (human decisions 2026-10-30; spec only until the human starts it)
+
+The whole UI takes the look of DESIGN.md version 2: IBM Carbon, as in agentic-paper-search's Paper-Triage-Carbon design, with a dark theme derived from Carbon g100. Behaviour, layout structure, and the left sidebar stay; only the visual layer changes. It comes last so every page added by M12–M16 is restyled once.
+
+- **R82** `ui/theme.slint` takes every value from DESIGN.md v2, light and dark (`dark-*` tokens). Token names follow DESIGN.md: new tokens (`surface-hover`, `surface-inverse`, `on-surface-inverse`, `field`, `border-strong`, `on-surface-subtle`, `link`, `focus`, `success`, `success-bg`, `progress-*`, `calendar-*`, `nav-item-height`, `space-xxxl`) are added, `radius-sm`/`radius-md` are replaced by `radius-none`, and every `.slint` file is updated to match. The theme grep check (§12) still passes.
+- **R83** Fonts: IBM Plex Sans Regular (400) and SemiBold (600) TTF from IBM's official release are vendored under `crates/app/ui/fonts/` and embedded with Slint font imports; `font-heading` and `font-body` both name "IBM Plex Sans". The SIL OFL 1.1 text ships in `THIRD-PARTY-NOTICES.html`. No other weights.
+- **R84** Components follow DESIGN.md v2: square corners everywhere except status chips; 32px buttons and fields; 40px rows; Carbon fields (field fill, bottom rule, inset focus ring); nav items with a 3px primary bar on the active item; danger button style for destructive confirms (course delete, restore, archive term); GitHub button in surface-inverse; square appearance switch; square calendar cells with the calendar fills; banners and the success note with a 3px left rule.
+- **R85** Sidebar width 240px, nav order Dashboard, Progress, Timetable, Courses, Assessments, Rules, Settings, About. Window default size unchanged.
+- **R86** Workflow: full Spec Kit flow (§12). The design skills (`impeccable`) are allowed in M17 as in M4 (human decision). Screenshots of every page in light and dark go to `specs/<m17>/screenshots/` for the critique and the human's approval.
