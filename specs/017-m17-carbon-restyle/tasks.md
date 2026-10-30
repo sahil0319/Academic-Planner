@@ -88,7 +88,7 @@ checked through the T011 screenshots, so the builder needs no human between them
   Cross-check the colour values against DESIGN.md with a script (not committed). Done-check: Gate,
   Grep, Same behaviour. Optional human quick look (Light and Dark). Commit `M17: theme.slint v2
   tokens, light and dark`. Needs T001
-- [ ] T003 [US3] (builder) Restyle the shared components in crates/app/ui/components.slint per
+- [x] T003 [US3] (builder) Restyle the shared components in crates/app/ui/components.slint per
   contracts/components.md rows for task 3 (R84): `PrimaryButton` (states, disabled, focus with
   inner ring), `SecondaryButton` (field fill, border-strong edge), new `DangerButton` (same
   interface as `SecondaryButton`; field fill, 1px error edge, error label), `Field`/`TimeField`

@@ -1,4 +1,4 @@
-// Shared components built from base elements (DESIGN.md "Components", research R-D7).
+// Shared components built from base elements (DESIGN.md v2 "Components", R84).
 // Every color, size, spacing, radius, and font comes from Theme.*; no logic beyond bindings.
 import { ComboBox } from "std-widgets.slint";
 import { Theme } from "theme.slint";
@@ -60,17 +60,41 @@ export component NavItem inherits Rectangle {
     }
 }
 
-// Terracotta button; at most one per panel (DESIGN.md).
+// R84: Carbon focus ring (DESIGN.md "Focus"): a focus-ring-width ring drawn inside the control's bounds, so it
+// never changes the control size. `filled` adds the on-primary inner ring that filled buttons
+// carry so the ring stays visible on the blue fill. Overlay it as the last child of a control.
+component FocusRing inherits Rectangle {
+    in property <bool> filled;
+    in property <color> ring-color: Theme.focus;
+
+    border-width: Theme.focus-ring-width;
+    border-color: root.ring-color;
+
+    if root.filled: Rectangle {
+        x: Theme.focus-ring-width;
+        y: Theme.focus-ring-width;
+        width: parent.width - 2 * Theme.focus-ring-width;
+        height: parent.height - 2 * Theme.focus-ring-width;
+        border-width: Theme.focus-inner-width;
+        border-color: Theme.on-primary;
+    }
+}
+
+// R84: primary button; at most one per panel (DESIGN.md). Hover primary-hover, press
+// primary-active; disabled surface-selected with on-surface-subtle text.
 export component PrimaryButton inherits Rectangle {
     in property <string> text;
     in property <bool> enabled: true;
     callback clicked();
 
     height: Theme.input-height;
-    min-width: label.preferred-width + 2 * Theme.space-md;
+    min-width: label.preferred-width + 2 * Theme.space-lg;
     horizontal-stretch: 0;
-    border-radius: Theme.radius-sm;
-    background: !root.enabled ? Theme.surface-alt : touch.has-hover ? Theme.primary-hover : Theme.primary;
+    border-radius: Theme.radius-none;
+    background: !root.enabled ? Theme.surface-selected
+        : touch.pressed ? Theme.primary-active
+        : touch.has-hover ? Theme.primary-hover
+        : Theme.primary;
     accessible-role: button;
     accessible-label: root.text;
     accessible-enabled: root.enabled;
@@ -108,38 +132,33 @@ export component PrimaryButton inherits Rectangle {
         accessible-role: none;
         horizontal-alignment: center;
         vertical-alignment: center;
-        color: root.enabled ? Theme.on-primary : Theme.on-surface-muted;
+        color: root.enabled ? Theme.on-primary : Theme.on-surface-subtle;
         font-family: Theme.font-body;
-        font-size: Theme.label-md-size;
-        font-weight: Theme.label-md-weight;
+        font-size: Theme.body-md-size;
+        font-weight: Theme.body-md-weight;
     }
 
-    // Focus ring: the fill is already terracotta, so the ring sits just outside the button with a
-    // gap of two border widths (DESIGN.md: terracotta focus rings).
-    if focus-scope.has-focus: Rectangle {
-        x: -3 * Theme.border-width;
-        y: -3 * Theme.border-width;
-        width: parent.width + 6 * Theme.border-width;
-        height: parent.height + 6 * Theme.border-width;
-        border-radius: Theme.radius-sm + 3 * Theme.border-width;
-        border-width: Theme.border-width;
-        border-color: Theme.primary;
+    if focus-scope.has-focus: FocusRing {
+        filled: true;
     }
 }
 
-// Paper button with a border, for row actions such as Attended / Absent / Cancelled.
-export component SecondaryButton inherits Rectangle {
+// R84: shared look of the bordered buttons (field fill, thin edge, hover surface-hover, inset
+// focus ring). `SecondaryButton` and `DangerButton` only choose the edge and label colours.
+component OutlineButton inherits Rectangle {
     in property <string> text;
     in property <bool> enabled: true;
+    in property <color> edge-color;
+    in property <color> label-color;
     callback clicked();
 
     height: Theme.input-height;
-    min-width: label.preferred-width + 2 * Theme.space-md;
+    min-width: label.preferred-width + 2 * Theme.space-lg;
     horizontal-stretch: 0;
-    border-radius: Theme.radius-sm;
-    border-width: Theme.border-width;
-    border-color: focus-scope.has-focus ? Theme.primary : Theme.border;
-    background: root.enabled && touch.has-hover ? Theme.surface-alt : Theme.surface;
+    border-radius: Theme.radius-none;
+    border-width: Theme.control-edge-width;
+    border-color: root.enabled ? root.edge-color : Theme.border;
+    background: root.enabled && touch.has-hover ? Theme.surface-hover : Theme.field;
     accessible-role: button;
     accessible-label: root.text;
     accessible-enabled: root.enabled;
@@ -177,17 +196,71 @@ export component SecondaryButton inherits Rectangle {
         accessible-role: none;
         horizontal-alignment: center;
         vertical-alignment: center;
-        color: root.enabled ? Theme.on-surface : Theme.on-surface-muted;
+        color: root.enabled ? root.label-color : Theme.on-surface-subtle;
         font-family: Theme.font-body;
-        font-size: Theme.label-md-size;
-        font-weight: Theme.label-md-weight;
+        font-size: Theme.body-md-size;
+        font-weight: Theme.body-md-weight;
+    }
+
+    if focus-scope.has-focus: FocusRing {}
+}
+
+// R84: secondary button (field fill, border-strong edge) for row actions such as Attended /
+// Absent / Cancelled.
+export component SecondaryButton inherits OutlineButton {
+    edge-color: Theme.border-strong;
+    label-color: Theme.on-surface;
+}
+
+// R84: danger button for "Delete selected" and the confirm of a destructive action: same
+// interface as `SecondaryButton`, with an error edge and label. Never more than one per panel.
+export component DangerButton inherits OutlineButton {
+    edge-color: Theme.error;
+    label-color: Theme.error;
+}
+
+// R84: Carbon text box shared by `Field` and `TimeField`: field fill, border-strong bottom
+// rule, inset ring on focus (focus colour) or when invalid (error colour, which wins).
+component FieldBox inherits Rectangle {
+    in-out property <string> text <=> input.text;
+    in property <bool> invalid;
+    callback edited(string);
+
+    height: Theme.input-height;
+    border-radius: Theme.radius-none;
+    background: Theme.field;
+
+    HorizontalLayout {
+        padding-left: Theme.space-lg;
+        padding-right: Theme.space-lg;
+        input := TextInput {
+            vertical-alignment: center;
+            color: Theme.on-surface;
+            font-family: Theme.font-body;
+            font-size: Theme.body-md-size;
+            font-weight: Theme.body-md-weight;
+            single-line: true;
+            edited => {
+                root.edited(self.text);
+            }
+        }
+    }
+
+    Rectangle {
+        y: parent.height - self.height;
+        height: Theme.control-edge-width;
+        background: Theme.border-strong;
+    }
+
+    if root.invalid || input.has-focus: FocusRing {
+        ring-color: root.invalid ? Theme.error : Theme.focus;
     }
 }
 
-// FR-007: labelled text input; a non-empty `error` turns the border red and is shown below.
+// FR-007, R84: labelled text input; a non-empty `error` draws the error ring and is shown below.
 export component Field inherits VerticalLayout {
     in property <string> label;
-    in-out property <string> text <=> input.text;
+    in-out property <string> text <=> box.text;
     in property <string> error;
     callback edited(string);
 
@@ -201,26 +274,10 @@ export component Field inherits VerticalLayout {
         font-weight: Theme.label-md-weight;
     }
 
-    Rectangle {
-        height: Theme.input-height;
-        border-radius: Theme.radius-sm;
-        border-width: Theme.border-width;
-        border-color: root.error != "" ? Theme.error : input.has-focus ? Theme.primary : Theme.border;
-        background: Theme.surface;
-
-        HorizontalLayout {
-            padding-left: Theme.space-sm;
-            padding-right: Theme.space-sm;
-            input := TextInput {
-                vertical-alignment: center;
-                color: Theme.on-surface;
-                font-family: Theme.font-body;
-                font-size: Theme.body-md-size;
-                single-line: true;
-                edited => {
-                    root.edited(self.text);
-                }
-            }
+    box := FieldBox {
+        invalid: root.error != "";
+        edited(value) => {
+            root.edited(value);
         }
     }
 
@@ -235,7 +292,7 @@ export component Field inherits VerticalLayout {
 }
 
 // Labelled combo box with an error line, matching `Field`. `selected` fires when the user picks
-// an entry, not when Rust changes the index.
+// an entry, not when Rust changes the index. The fluent `ComboBox` itself stays (R84, research D8).
 export component ComboField inherits VerticalLayout {
     in property <string> label;
     in property <[string]> model;
@@ -272,16 +329,15 @@ export component ComboField inherits VerticalLayout {
     }
 }
 
-// One AM or PM segment of `AmPmToggle`. The active segment sits on a surface fill with a border.
+// One AM or PM segment of `AmPmToggle` (R84). The active segment sits on surface-selected with
+// label weight 600 (research D11); hover surface-hover; focus is an inset ring.
 component AmPmSegment inherits Rectangle {
     in property <string> label;
     in property <bool> active;
     callback clicked();
 
-    border-radius: Theme.radius-full;
-    border-width: Theme.border-width;
-    border-color: focus-scope.has-focus ? Theme.primary : root.active ? Theme.border : transparent;
-    background: root.active ? Theme.surface : transparent;
+    border-radius: Theme.radius-none;
+    background: root.active ? Theme.surface-selected : touch.has-hover ? Theme.surface-hover : Theme.field;
     accessible-role: button;
     accessible-label: root.label;
     accessible-action-default => {
@@ -309,33 +365,35 @@ component AmPmSegment inherits Rectangle {
     }
 
     HorizontalLayout {
-        padding-left: Theme.space-sm;
-        padding-right: Theme.space-sm;
-        padding-top: Theme.space-xs;
-        padding-bottom: Theme.space-xs;
+        padding-left: Theme.space-md;
+        padding-right: Theme.space-md;
         Text {
             text: root.label;
             vertical-alignment: center;
-            color: root.active || touch.has-hover ? Theme.on-surface : Theme.on-surface-muted;
+            color: Theme.on-surface;
             font-family: Theme.font-body;
-            font-size: Theme.label-md-size;
-            font-weight: Theme.label-md-weight;
+            font-size: Theme.body-md-size;
+            font-weight: root.active ? Theme.body-emphasis-weight : Theme.body-md-weight;
             accessible-role: none;
         }
     }
+
+    if focus-scope.has-focus: FocusRing {}
 }
 
-// R32: AM / PM toggle (`pm` false is AM) for `TimeField`: two segments on a surface-alt pill.
+// R32, R84: AM / PM toggle (`pm` false is AM) for `TimeField`: two square segments inside a
+// border-strong edge, as tall as an input field.
 export component AmPmToggle inherits Rectangle {
     in-out property <bool> pm;
 
-    width: layout.preferred-width;
-    height: layout.preferred-height;
-    border-radius: Theme.radius-full;
-    background: Theme.surface-alt;
+    width: layout.preferred-width + 2 * Theme.control-edge-width;
+    height: Theme.input-height;
+    border-radius: Theme.radius-none;
+    border-width: Theme.control-edge-width;
+    border-color: Theme.border-strong;
+    background: Theme.field;
 
     layout := HorizontalLayout {
-        padding: Theme.border-width * 2;
         AmPmSegment {
             label: "AM";
             active: !root.pm;
@@ -353,11 +411,11 @@ export component AmPmToggle inherits Rectangle {
     }
 }
 
-// FR-007, R32: labelled time input (digits such as 930) with an AM / PM toggle beside it; a
-// non-empty `error` turns the border red and is shown below, like `Field`.
+// FR-007, R32, R84: labelled time input (digits such as 930) with an AM / PM toggle beside it; a
+// non-empty `error` draws the error ring and is shown below, like `Field`.
 export component TimeField inherits VerticalLayout {
     in property <string> label;
-    in-out property <string> text <=> input.text;
+    in-out property <string> text <=> box.text;
     in-out property <bool> pm <=> toggle.pm;
     in property <string> error;
     callback edited(string);
@@ -375,33 +433,14 @@ export component TimeField inherits VerticalLayout {
     HorizontalLayout {
         spacing: Theme.space-sm;
 
-        Rectangle {
-            height: Theme.input-height;
-            border-radius: Theme.radius-sm;
-            border-width: Theme.border-width;
-            border-color: root.error != "" ? Theme.error : input.has-focus ? Theme.primary : Theme.border;
-            background: Theme.surface;
-
-            HorizontalLayout {
-                padding-left: Theme.space-sm;
-                padding-right: Theme.space-sm;
-                input := TextInput {
-                    vertical-alignment: center;
-                    color: Theme.on-surface;
-                    font-family: Theme.font-body;
-                    font-size: Theme.body-md-size;
-                    single-line: true;
-                    edited => {
-                        root.edited(self.text);
-                    }
-                }
+        box := FieldBox {
+            invalid: root.error != "";
+            edited(value) => {
+                root.edited(value);
             }
         }
 
-        VerticalLayout {
-            alignment: center;
-            toggle := AmPmToggle {}
-        }
+        toggle := AmPmToggle {}
     }
 
     if root.error != "": Text {
@@ -414,7 +453,8 @@ export component TimeField inherits VerticalLayout {
     }
 }
 
-// R11: status pill. The text label is always shown next to the color (DESIGN.md).
+// R11, R84: status pill (the one rounded shape). The text label is always shown next to the
+// color (DESIGN.md): label-sm text, space-sm horizontal padding.
 export component StatusChip inherits Rectangle {
     in property <Chip> chip;
     in property <string> text;
@@ -446,14 +486,13 @@ export component StatusChip inherits Rectangle {
     }
 }
 
-// Paper card with a serif headline title; children stack below the title.
+// R84: section card: surface fill, square, no border, space-lg padding, headline title; children
+// stack below the title.
 export component SectionCard inherits Rectangle {
     in property <string> title;
 
     background: Theme.surface;
-    border-radius: Theme.radius-md;
-    border-width: Theme.border-width;
-    border-color: Theme.border;
+    border-radius: Theme.radius-none;
 
     VerticalLayout {
         padding: Theme.space-lg;
@@ -469,8 +508,9 @@ export component SectionCard inherits Rectangle {
     }
 }
 
-// One list row: paper background, bottom divider; children are laid out left to right.
-// The vertical inset keeps a row holding a field-height button at the row height (DESIGN.md).
+// R84: one list row: surface background, bottom divider in `border`; children are laid out
+// left to right. The vertical inset keeps a row holding a field-height button at the row height
+// (row-height, DESIGN.md).
 export component ListRow inherits Rectangle {
     min-height: Theme.row-height;
     background: Theme.surface;
@@ -492,28 +532,39 @@ export component ListRow inherits Rectangle {
     }
 }
 
-// Muted sentence centered in its section, e.g. "No classes today."
-export component EmptyState inherits Text {
-    color: Theme.on-surface-muted;
-    horizontal-alignment: center;
-    vertical-alignment: center;
-    wrap: word-wrap;
-    font-family: Theme.font-body;
-    font-size: Theme.body-md-size;
-    font-weight: Theme.body-md-weight;
+// R84: muted sentence in its card with space-xl padding, e.g. "No classes today."
+export component EmptyState inherits Rectangle {
+    in property <string> text;
+
     min-height: Theme.row-height;
+
+    VerticalLayout {
+        padding: Theme.space-xl;
+        Text {
+            text: root.text;
+            color: Theme.on-surface-muted;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            wrap: word-wrap;
+            font-family: Theme.font-body;
+            font-size: Theme.body-md-size;
+            font-weight: Theme.body-md-weight;
+        }
+    }
 }
 
-// R14: tinted card listing each course below its attendance target. The "Below target" label
-// is always shown with the color (DESIGN.md: meaning is never carried by color alone).
+// R14, R84: below-target banner: below-target-bg fill, square, error rule on the left, space-lg
+// padding, text wraps. The "Below target" label is always shown with the color (DESIGN.md: meaning
+// is never carried by color alone).
 export component Banner inherits Rectangle {
     in property <[string]> lines;
 
     background: Theme.below-target-bg;
-    border-radius: Theme.radius-md;
+    border-radius: Theme.radius-none;
 
     VerticalLayout {
-        padding: Theme.space-md;
+        padding: Theme.space-lg;
+        padding-left: Theme.space-lg + Theme.rule-width;
         spacing: Theme.space-xs;
         Text {
             text: "Below target";
@@ -531,9 +582,15 @@ export component Banner inherits Rectangle {
             font-weight: Theme.body-md-weight;
         }
     }
+
+    Rectangle {
+        x: 0;
+        width: Theme.rule-width;
+        background: Theme.error;
+    }
 }
 
-// Serif page title.
+// R84: page title (title-lg, on-surface).
 export component PageTitle inherits Text {
     color: Theme.on-surface;
     font-family: Theme.font-heading;
