@@ -3687,3 +3687,174 @@ fn r65_label_and_chip() {
     assert_eq!(progress_chip(OnTrack), ChipKind::Attended);
     assert_eq!(progress_chip(NotEnoughData), ChipKind::Cancelled);
 }
+
+fn progress_summary(
+    code: &str,
+    attended: u32,
+    absent: u32,
+    pending: u32,
+    pct: Option<f64>,
+    target: Option<i64>,
+    below_target: bool,
+) -> AttendanceSummary {
+    AttendanceSummary {
+        course_id: 1,
+        course_code: code.to_string(),
+        course_name: format!("{code} name"),
+        attended,
+        absent,
+        cancelled: 0,
+        pending,
+        pct,
+        target,
+        below_target,
+    }
+}
+
+fn ungraded_marks() -> CourseMarks {
+    CourseMarks {
+        graded: false,
+        projected_pct: None,
+        letter: None,
+        outlook: None,
+        ..course_marks(None)
+    }
+}
+
+/// R61: every card field comes from its source function; target and grading variants.
+#[test]
+fn r61_progress_card_fields() {
+    let scale = progress_scale();
+    let card = progress_card(
+        &progress_summary("CSE101", 14, 2, 8, Some(87.5), Some(75), false),
+        &course_marks(None),
+        &scale,
+    );
+    assert_eq!(card.code, "CSE101");
+    assert_eq!(card.name, "CSE101 name");
+    assert_eq!(card.status, ProgressStatus::OnTrack);
+    assert_eq!(card.status_label, "On track");
+    assert_eq!(card.chip, ChipKind::Attended);
+    assert_eq!(card.attendance_figure, "87.5%");
+    assert_eq!(card.attendance_line, "87.5% · 14 of 16 classes");
+    assert_eq!(card.target_text, "Target 75%");
+    assert_eq!(card.bar_fill, 0.875);
+    assert!(card.has_marker);
+    assert_eq!(card.marker_at, 0.75);
+    assert_eq!(card.miss_line, miss_line(14, 2, 8, Some(75)));
+    assert_eq!(card.marks_figure, "86.0% · A+");
+    assert_eq!(card.marks_line, "Secured 129.0 of 150 assessed marks");
+    assert_eq!(card.best_grade_line, "");
+
+    let ungraded = progress_card(
+        &progress_summary("CSE101", 14, 2, 8, Some(87.5), Some(75), false),
+        &ungraded_marks(),
+        &scale,
+    );
+    assert_eq!(ungraded.marks_figure, "—");
+    assert_eq!(ungraded.marks_line, "Not graded");
+
+    let no_target = progress_card(
+        &progress_summary("CSE101", 14, 2, 8, Some(87.5), None, false),
+        &course_marks(None),
+        &scale,
+    );
+    assert!(!no_target.has_marker);
+    assert_eq!(no_target.marker_at, 0.0);
+    assert_eq!(no_target.miss_line, "");
+}
+
+/// T65, R61: cards sort by status then code; the header carries the GPA and the status counts.
+#[test]
+fn t65_progress_order_and_counts() {
+    let scale = progress_scale();
+    let ungraded = ungraded_marks();
+    let cards = vec![
+        progress_card(
+            &progress_summary("AAA101", 18, 2, 5, Some(90.0), Some(75), false),
+            &course_marks(None),
+            &scale,
+        ),
+        progress_card(
+            &progress_summary("BBB101", 0, 0, 10, None, Some(75), false),
+            &ungraded,
+            &scale,
+        ),
+        progress_card(
+            &progress_summary("CCC101", 7, 3, 5, Some(70.0), Some(75), true),
+            &ungraded,
+            &scale,
+        ),
+        progress_card(
+            &progress_summary("DDD101", 39, 11, 5, Some(78.0), Some(75), false),
+            &ungraded,
+            &scale,
+        ),
+    ];
+    let statuses: Vec<_> = cards.iter().map(|card| card.status).collect();
+    assert_eq!(
+        statuses,
+        vec![
+            ProgressStatus::OnTrack,
+            ProgressStatus::NotEnoughData,
+            ProgressStatus::AtRisk,
+            ProgressStatus::Watch,
+        ]
+    );
+    let gpa = GpaSummary {
+        gpa: Some(3.67),
+        status: GpaStatus::Projected,
+        included: 1,
+        left_out: 0,
+    };
+    let view = progress_view(&gpa, cards);
+    let codes: Vec<_> = view.cards.iter().map(|card| card.code.as_str()).collect();
+    assert_eq!(codes, vec!["CCC101", "DDD101", "AAA101", "BBB101"]);
+    assert_eq!(view.counts_text, "1 on track · 1 to watch · 1 at risk");
+    assert_eq!(view.gpa_text, gpa_header_text(&gpa));
+}
+
+/// R61: cards with the same status are ordered by course code.
+#[test]
+fn r61_same_status_sorted_by_code() {
+    let scale = progress_scale();
+    let ungraded = ungraded_marks();
+    let cards = vec![
+        progress_card(
+            &progress_summary("ZZZ101", 7, 3, 5, Some(70.0), Some(75), true),
+            &ungraded,
+            &scale,
+        ),
+        progress_card(
+            &progress_summary("AAA101", 7, 3, 5, Some(70.0), Some(75), true),
+            &ungraded,
+            &scale,
+        ),
+    ];
+    let gpa = GpaSummary {
+        gpa: None,
+        status: GpaStatus::Projected,
+        included: 0,
+        left_out: 0,
+    };
+    let view = progress_view(&gpa, cards);
+    let codes: Vec<_> = view.cards.iter().map(|card| card.code.as_str()).collect();
+    assert_eq!(codes, vec!["AAA101", "ZZZ101"]);
+}
+
+/// R61, D13: empty-state texts and the counts text with no cards.
+#[test]
+fn r61_empty_text() {
+    assert_eq!(
+        progress_empty_text(false),
+        "No term yet. Create one in Settings → Term."
+    );
+    assert_eq!(
+        progress_empty_text(true),
+        "No courses yet. Add one on the Courses page."
+    );
+    assert_eq!(
+        progress_counts_text(&[]),
+        "0 on track · 0 to watch · 0 at risk"
+    );
+}
