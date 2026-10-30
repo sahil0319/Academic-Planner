@@ -1,6 +1,6 @@
 {
-  "milestone": "M17 done; M18 next (human decides)",
-  "phase": "m17-approved",
+  "milestone": "M18 built (gate green); M12 next",
+  "phase": "m18-built",
   "tasks": {
     "M11": "done (v0.2.1 tagged)",
     "M12 spec": "done",
@@ -12,13 +12,14 @@
     "DESIGN.md lint": "done (0 errors, 0 warnings)",
     "M18 spec (Rules save confirmation)": "done",
     "M19 spec (default attendance bands)": "done",
-    "M12-M19 build": "M17 built; M12-M16, M18, M19 not started",
+    "M12-M19 build": "M17, M18 built; M12-M16, M19 not started",
     "M17 build": "done, human approved 2026-10-31",
     "M17 human fix 1 (appearance switch gap)": "done",
     "M17 human fix 2 (Rules form row columns)": "done",
     "M17 human fix 3 (square status chips, aligned columns)": "done",
     "M17 human fix 4 (dark theme very dark navy)": "done (human decision 2026-10-31; dark-* tokens in DESIGN.md, theme.slint, contract; light unchanged)",
     "M17 human fix 5 (dark theme GitHub Dark Dimmed palette)": "done (human decision 2026-10-31; replaces navy; dark-* tokens in DESIGN.md, theme.slint, contract, spec wording; light unchanged)",
-    "M17 approval": "approved by human 2026-10-31 (OQ-1..4 defaults)"
+    "M17 approval": "approved by human 2026-10-31 (OQ-1..4 defaults)",
+    "M18 build": "done 2026-10-31 overnight (T001-T006), gate green, 556+ tests; human visual check pending (toast look, wrapped text height)"
   }
 }
