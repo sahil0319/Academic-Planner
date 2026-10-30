@@ -22,8 +22,16 @@ pub(crate) const ACTIVE_SCOPE: &str =
 /// the Monday of `term_start`'s week and the Monday of `date`'s week are even (weeks 1, 3,
 /// 5, ...), else `Even`. Dates before the term follow the same alternation.
 pub fn term_week_parity(term_start: NaiveDate, date: NaiveDate) -> WeekParity {
-    let _ = (term_start, date);
-    todo!("R54: term_week_parity")
+    let monday = |d: NaiveDate| {
+        d.signed_duration_since(NaiveDate::MIN).num_days()
+            - i64::from(d.weekday().num_days_from_monday())
+    };
+    let weeks = (monday(date) - monday(term_start)) / 7;
+    if weeks.rem_euclid(2) == 0 {
+        WeekParity::Odd
+    } else {
+        WeekParity::Even
+    }
 }
 
 impl Planner {

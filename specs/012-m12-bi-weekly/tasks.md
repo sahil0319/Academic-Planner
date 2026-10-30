@@ -13,7 +13,7 @@ Tests (tester) come before implementation (builder). Decisions are in `decisions
 - [x] T005 (core part; app T004 pending) Confirm new tests fail for the right reason
 
 ## Phase 3: core (builder)
-- [ ] T006 R54 `term_week_parity` (T55)
+- [x] T006 R54 `term_week_parity` (T55)
 - [ ] T007 R55 sync and slot persistence with parity (T56)
 - [ ] T008 R57 `shift_biweekly` (T57, T58)
 - [ ] T009 R60 backup and migration (T60)
