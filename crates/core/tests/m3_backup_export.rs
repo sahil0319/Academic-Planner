@@ -230,6 +230,7 @@ fn r21_export_rows_keep_ids_and_value_types() {
                 "room": null,
                 "valid_from": "2026-01-05",
                 "valid_to": null,
+                "week_parity": null,
             },
             {
                 "id": pop.slot_b_id,
@@ -240,6 +241,7 @@ fn r21_export_rows_keep_ids_and_value_types() {
                 "room": null,
                 "valid_from": "2026-01-05",
                 "valid_to": null,
+                "week_parity": null,
             },
         ])
     );
