@@ -130,7 +130,7 @@ screenshot in both themes (T011 screens 01–12 all show it).
 **Goal**: dashboard in v2 incl. calendar cells and fills. **Independent test**: T011 screens 01,
 02.
 
-- [ ] T005 [US5] (builder) Restyle crates/app/ui/dashboard.slint (R84, research D7): `DayCell`
+- [x] T005 [US5] (builder) Restyle crates/app/ui/dashboard.slint (R84, research D7): `DayCell`
   square `calendar-cell` with `radius-none`; fill priority today (primary fill, on-primary number)
   > holiday (`calendar-holiday`, replaces `calendar-holiday-highlight`) > weekend (`surface-hover`)
   > none; selected = 2px `focus-ring-width` inset `focus` outline, plus a 1px `on-primary` inner

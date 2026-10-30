@@ -3,6 +3,7 @@
 import { Theme } from "theme.slint";
 import { SessionRow, AssessmentRow, StatusAction, CalendarDay, CalendarWeek } from "types.slint";
 import {
+    FocusRing,
     PageTitle,
     EmptyState,
     Banner,
@@ -127,29 +128,28 @@ component AssessmentLine inherits ListRow {
     }
 }
 
-// One mini calendar day (DESIGN.md "Mini calendar"): the number, a filled terracotta circle for
-// today, a light terracotta highlight for holidays and exam periods, a fainter oat highlight for
-// weekends (a weekend holiday shows the holiday highlight), and a red dot under the number for
-// assessments due. Class days carry no marker. Selected: surface-selected fill plus a terracotta
-// border. The accessible label spells out the date, the holiday, and the counts.
+// R84: one mini calendar day (DESIGN.md "Mini calendar", research D7): a square cell with the
+// number. Fill priority: today (primary fill, on-primary number), then holiday or exam period
+// (calendar-holiday), then weekend (surface-hover), else none. A weekend holiday shows the holiday
+// fill. Selected: a focus-ring-width inset focus outline, plus an on-primary inner ring when the
+// selected day is today. A day with an assessment due shows a calendar-marker square in error under
+// the number. Class days carry no marker. The accessible label spells out the date, the holiday,
+// and the counts.
 component DayCell inherits Rectangle {
     in property <CalendarDay> item;
     callback clicked();
 
-    // The number sits near the top; the due dot is centered in the space left below it.
+    // The number sits near the top; the due square sits below it, inside the cell.
     property <length> number-y: Theme.space-xs;
-    property <length> dot-y: root.number-y + Theme.calendar-today
-        + (Theme.calendar-cell - root.number-y - Theme.calendar-today - Theme.calendar-marker) / 2;
+    property <length> number-height: Theme.calendar-cell - 3 * Theme.space-xs - Theme.calendar-marker;
+    property <length> marker-y: root.number-y + root.number-height + Theme.space-xs;
 
     width: Theme.calendar-cell;
     height: Theme.calendar-cell;
-    border-radius: Theme.radius-sm;
-    border-width: Theme.border-width;
-    border-color: focus-scope.has-focus || root.item.is-selected ? Theme.primary : transparent;
-    background: root.item.is-selected ? Theme.surface-selected
-        : touch.has-hover ? Theme.surface-alt
-        : root.item.holiday != "" ? Theme.calendar-holiday-highlight
-        : root.item.is-weekend ? Theme.surface-alt
+    border-radius: Theme.radius-none;
+    background: root.item.is-today ? (touch.has-hover ? Theme.primary-hover : Theme.primary)
+        : root.item.holiday != "" ? Theme.calendar-holiday
+        : root.item.is-weekend || touch.has-hover ? Theme.surface-hover
         : transparent;
     accessible-role: button;
     accessible-label: root.item.label;
@@ -179,20 +179,11 @@ component DayCell inherits Rectangle {
         }
     }
 
-    if root.item.is-today: Rectangle {
-        x: (parent.width - self.width) / 2;
-        y: root.number-y;
-        width: Theme.calendar-today;
-        height: Theme.calendar-today;
-        border-radius: Theme.radius-full;
-        background: Theme.primary;
-    }
-
     Text {
         x: 0;
         y: root.number-y;
         width: parent.width;
-        height: Theme.calendar-today;
+        height: root.number-height;
         text: root.item.day;
         // The cell carries the accessible label.
         accessible-role: none;
@@ -208,11 +199,15 @@ component DayCell inherits Rectangle {
 
     if root.item.has-due: Rectangle {
         x: (parent.width - self.width) / 2;
-        y: root.dot-y;
+        y: root.marker-y;
         width: Theme.calendar-marker;
         height: Theme.calendar-marker;
-        border-radius: Theme.radius-full;
+        border-radius: Theme.radius-none;
         background: Theme.error;
+    }
+
+    if root.item.is-selected || focus-scope.has-focus: FocusRing {
+        filled: root.item.is-today;
     }
 }
 
@@ -350,7 +345,7 @@ component CalendarSection inherits HorizontalLayout {
             }
         }
 
-        // A small gap between cells keeps neighbouring class highlights apart.
+        // A small gap between cells keeps neighbouring fills apart.
         VerticalLayout {
             alignment: start;
             spacing: Theme.space-xs / 2;
@@ -379,17 +374,21 @@ component CalendarSection inherits HorizontalLayout {
             }
         }
 
-        // Markers are explained in words, never by color alone (DESIGN.md "Mini calendar").
+        // R84: fills and the due marker are explained in words, never by color alone (DESIGN.md "Mini
+        // calendar"). Slint has no flow layout; the three fixed entries fit one line.
         HorizontalLayout {
             alignment: start;
             spacing: Theme.space-md;
             HorizontalLayout {
                 spacing: Theme.space-xs;
-                Rectangle {
-                    width: Theme.calendar-today;
-                    height: Theme.calendar-today;
-                    border-radius: Theme.radius-sm;
-                    background: Theme.calendar-holiday-highlight;
+                VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: Theme.swatch-size;
+                        height: Theme.swatch-size;
+                        border-radius: Theme.radius-none;
+                        background: Theme.calendar-holiday;
+                    }
                 }
                 LegendText {
                     text: "Holiday / exam";
@@ -398,11 +397,14 @@ component CalendarSection inherits HorizontalLayout {
             }
             HorizontalLayout {
                 spacing: Theme.space-xs;
-                Rectangle {
-                    width: Theme.calendar-today;
-                    height: Theme.calendar-today;
-                    border-radius: Theme.radius-sm;
-                    background: Theme.surface-alt;
+                VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: Theme.swatch-size;
+                        height: Theme.swatch-size;
+                        border-radius: Theme.radius-none;
+                        background: Theme.surface-hover;
+                    }
                 }
                 LegendText {
                     text: "Weekend";
@@ -416,7 +418,7 @@ component CalendarSection inherits HorizontalLayout {
                     Rectangle {
                         width: Theme.calendar-marker;
                         height: Theme.calendar-marker;
-                        border-radius: Theme.radius-full;
+                        border-radius: Theme.radius-none;
                         background: Theme.error;
                     }
                 }
@@ -481,7 +483,7 @@ component CalendarSection inherits HorizontalLayout {
 // Section order (T028 critique, §6 mini calendar change): banner, the action list (awaiting
 // attendance), the calendar with today's day panel, next class, overdue, then upcoming.
 export component DashboardPage inherits VerticalLayout {
-    spacing: Theme.space-xl;
+    spacing: Theme.space-xxl;
     alignment: start;
 
     PageTitle {
@@ -511,7 +513,7 @@ export component DashboardPage inherits VerticalLayout {
     }
 
     if DashboardState.has-term: VerticalLayout {
-        spacing: Theme.space-xl;
+        spacing: Theme.space-xxl;
 
         SectionCard {
             title: "Awaiting attendance";
