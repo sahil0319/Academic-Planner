@@ -2,10 +2,10 @@
 
 - Milestones M7–M10 (docs/spec.md §13) are all built; version bumped to 0.2.0 for release. Each waits only on human steps.
 - M12–M17 specified in docs/spec.md §13.7–§13.12 (2026-10-30), spec only: build nothing until the human starts a milestone. Order M12 bi-weekly, M13 Progress, M14 terms/archive, M15 exam periods, M16 public holidays (Google ICS), M17 Carbon restyle last. DESIGN.md is v2 (Carbon) but theme.slint stays v1 until M17. DESIGN.md lint passes (0 errors, 0 warnings).
-- M11 (§13.6, light flow, 2026-10-30): delete courses (multi-select, hard delete R51) and the GitHub button on About. Gate green at 573263e (544 tests). Human checked it in the app. Released as v0.2.1 (tag pushed 2026-10-30); the draft release must be published on GitHub, then an installed 0.2.0 can update in-app (M7 T035).
+- M11 (§13.6, light flow, 2026-10-30): delete courses (multi-select, hard delete R51) and the GitHub button on About. Gate green at 573263e (544 tests). Human checked it in the app. Released as v0.2.1 (tag pushed 2026-10-30); published on GitHub 2026-10-30.
 - Last green gate: 1966d7c, v0.2.1 (fmt ok, clippy 0 warnings, 544 tests pass, theme grep clean). The v1→v2 upgrade was checked on a copy of the real DB at M10 (9 courses, 90 sessions kept, backup written).
 - Human tasks:
-  - Publish the draft v0.2.1 release on GitHub, then update an installed 0.2.0 in-app to it: this closes M7 T035 (specs/007-m7-updater/quickstart.md §5).
+  - v0.2.1 is published (2026-10-30, latest.json 0.2.1 for all 3 platforms). Update an installed 0.2.0 in-app to it: this closes M7 T035 (specs/007-m7-updater/quickstart.md §5).
   - M8 T025: visual pass on 12-hour times (specs/008-m8-12-hour-times/quickstart.md).
   - M9 T028: look at Rules page, marks card, needed-in-final, GPA header (specs/009-m9-grading-gpa/quickstart.md).
   - M10 T029: Import panel, including pasting after Copy template / Copy AI prompt (clipboard untested; fallback arboard, research D17).
