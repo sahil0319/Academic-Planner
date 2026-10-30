@@ -255,12 +255,23 @@ components:
     typography: "{typography.body-md}"
     rounded: "{rounded.none}"
     padding: "{spacing.lg}"
-  success-note:
+  toast:
     backgroundColor: "{colors.success-bg}"
     textColor: "{colors.on-surface}"
     typography: "{typography.body-md}"
     rounded: "{rounded.none}"
     padding: "{spacing.md}"
+    width: 320px
+  toast-close:
+    textColor: "{colors.on-surface}"
+    rounded: "{rounded.none}"
+    size: 24px
+  toast-timer-track:
+    backgroundColor: "{colors.border}"
+    height: 3px
+  toast-timer-bar:
+    backgroundColor: "{colors.success}"
+    height: 3px
   term-line:
     backgroundColor: "{colors.neutral}"
     textColor: "{colors.on-surface-muted}"
@@ -404,10 +415,18 @@ components:
     backgroundColor: "{colors.dark-below-target-bg}"
     textColor: "{colors.dark-below-target}"
     typography: "{typography.body-md}"
-  dark-success-note:
+  dark-toast:
     backgroundColor: "{colors.dark-success-bg}"
     textColor: "{colors.dark-on-surface}"
     typography: "{typography.body-md}"
+  dark-toast-close:
+    textColor: "{colors.dark-on-surface}"
+  dark-toast-timer-track:
+    backgroundColor: "{colors.dark-border}"
+    height: 3px
+  dark-toast-timer-bar:
+    backgroundColor: "{colors.dark-success}"
+    height: 3px
   dark-term-line:
     backgroundColor: "{colors.dark-neutral}"
     textColor: "{colors.dark-on-surface-muted}"
@@ -497,8 +516,9 @@ chips, the below-target banner, and the progress-bar target marker.
   it. Holiday #D0E2FF / dark #002D9C (blue), Mid exam #D4BBFF / dark #6929C4 (purple), Final exam
   #FFAFD2 / dark #9F1853 (magenta), Public holiday #9EF0F0 / dark #005D5D (teal). Day numbers stay
   in on-surface on every fill (at least 7:1 light, 7:1 dark).
-- **Success (#24A148 rule on #DEFBE6; dark #24A148 on #071908):** the "Term saved." note and other
-  confirmations of a completed action, with a 3px success rule on the left edge. Text is on-surface.
+- **Success (#24A148 rule on #DEFBE6; dark #24A148 on #071908):** the toast
+  notification (see Components): every confirmation of a completed action, such as "Term saved.",
+  with a 3px success rule on the left edge. Text is on-surface.
 
 Every text/background pair above was checked: all meet WCAG AA (4.5:1) for normal text; the lowest
 are pending (4.52:1) and the light link and error on the card (4.55:1).
@@ -594,9 +614,15 @@ and the appearance switch. Fully rounded pills only for status chips.
   muted body) with Edit (secondary) and Archive (danger) buttons; Archive is disabled before the end
   date with a muted line saying when it becomes available. The form appears in the card only when
   creating or editing.
-- **Success note:** success-bg fill, 3px success rule on the left, on-surface body text, 12px
-  padding, in normal flow at the top of the card that the action belongs to. It stays until the
-  next action on that card.
+- **Toast notification:** the one way the app confirms a completed action ("Term saved.", "Rule set
+  saved.", "Backup saved to …"). It is a 320px panel, success-bg fill, 3px success rule on the left
+  edge, on-surface body text, 12px padding, with a 24px close button (a cross icon, accessible label
+  "Dismiss") in the top-right corner. A 3px timer bar runs along the bottom edge: a border-coloured
+  track with a success-coloured bar that starts full and shrinks from right to left, linearly, over
+  5 seconds; the toast disappears when the bar is empty. Toasts sit in the bottom-right corner of the
+  window, 16px from the edges, above every page and dialog, stacked 8px apart with the newest at the
+  bottom, at most three at once. No shadow, no slide or fade: the toast appears and disappears at
+  once. Errors are not toasts: they stay inline next to the thing that failed until fixed.
 - **Past terms list (Settings):** a section card of 40px rows: name in body-emphasis, date range,
   then "{n} courses", "Attendance {pct}", "GPA {gpa}" as muted figures. Read-only: no buttons.
 - **Exam period cards (Settings):** Mid exams and Final exams use the same layout as the Holidays
