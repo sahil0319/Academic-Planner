@@ -161,7 +161,7 @@ T011 screenshots listed per task.
   (today `SecondaryButton` and `PrimaryButton`; research D10); confirm panel square `surface`;
   replace every `radius-sm`/`radius-md`. Done-check: Gate, Grep, Same behaviour; screens 05, 06,
   07. Commit `M17: courses restyle, danger delete confirm`. Needs T004
-- [ ] T008 [P] [US1] (builder) Restyle crates/app/ui/assessments.slint: `FilterTab` square,
+- [x] T008 [P] [US1] (builder) Restyle crates/app/ui/assessments.slint: `FilterTab` square,
   selected surface-selected + 600, hover surface-hover, 2px inset focus ring (replaces the
   primary border); rows on `ListRow`; form with Carbon fields; row "Delete" stays
   `SecondaryButton` (research D10); replace every `radius-sm`/`radius-md`. Done-check: Gate, Grep,
