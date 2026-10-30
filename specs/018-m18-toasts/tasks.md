@@ -60,7 +60,7 @@ Result: 11 texts become toasts; the page `message` property holds errors only af
   - failed parse (any component or band row): no toast, a line above the Save button with the hint "Fix the rows marked in red before saving."; core's validation text stays inline (R34);
   - a failed reload after a successful save: the error text stays in `message` (today `save_set` overwrites it with an empty string at `rules.rs:377`).
   Commit: `M18: rules page save feedback`.
-- [ ] T006 Final gate and checks: `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`; grep `crates/app/ui/*.slint` for raw hex and px literals outside `ui/theme.slint` (comments included) and fix any; `npx -y @google/design.md@0.4.0 lint DESIGN.md`. Update `.claude/state/progress.json`. Commit: `M18: gate and lint` (only if files changed).
+- [x] T006 Final gate and checks: `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`; grep `crates/app/ui/*.slint` for raw hex and px literals outside `ui/theme.slint` (comments included) and fix any; `npx -y @google/design.md@0.4.0 lint DESIGN.md`. Update `.claude/state/progress.json`. Commit: `M18: gate and lint` (only if files changed).
 
 ## Tests (written first by the tester; the builder never edits them)
 
