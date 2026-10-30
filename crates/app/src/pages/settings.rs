@@ -13,8 +13,9 @@ use crate::controller::App;
 use crate::viewmodel as vm;
 use crate::{bridge, restore, SettingsState};
 
-/// Reloads the holiday list, the term flag, and the database path. Form text is not touched here
-/// (see [`load_forms`]) so the minute timer does not wipe what the student is typing.
+/// Reloads the Term card, the holiday list, the past terms, and the database path. Form text is
+/// not touched here (see [`load_forms`], [`edit_term`]) so the minute timer does not wipe what the
+/// student is typing, and `term-editing` is kept so it does not close an open form.
 pub fn refresh(app: &App) {
     let Some(window) = app.window() else {
         return;
@@ -23,9 +24,37 @@ pub fn refresh(app: &App) {
     page.set_message(SharedString::new());
     // R24: database file path as text.
     page.set_db_path(vm::db_path_text(app.db_path()).into());
-    match app.planner().active_term() {
+    let today = app.today();
+    let active = app.planner().active_term();
+    match active {
         Ok(term) => {
-            page.set_has_term(term.is_some());
+            let has_term = term.is_some();
+            page.set_has_term(has_term);
+            if !has_term {
+                // Nothing to edit or archive without an active term.
+                page.set_term_editing(false);
+                page.set_confirm_archive(false);
+            }
+            let editing = has_term && page.get_term_editing();
+            // R67, R69: the form shows only with no active term or after Edit.
+            page.set_term_form_open(vm::term_form_open(has_term, editing));
+            // R67, R68: the read-only Term card and the Archive state.
+            let card = term
+                .as_ref()
+                .map(|t| vm::term_card(t, today))
+                .unwrap_or_default();
+            page.set_term_title(card.title.into());
+            page.set_term_dates(card.dates.into());
+            page.set_term_week(card.week.into());
+            let (enabled, hint) = match &term {
+                Some(t) => (
+                    vm::archive_enabled(t.end_date, today),
+                    vm::archive_hint_text(t.end_date, today),
+                ),
+                None => (false, String::new()),
+            };
+            page.set_archive_enabled(enabled);
+            page.set_archive_hint(hint.into());
             let rows = term
                 .map(|t| t.holidays.iter().map(vm::holiday_row).collect::<Vec<_>>())
                 .unwrap_or_default();
@@ -35,28 +64,38 @@ pub fn refresh(app: &App) {
         }
         Err(e) => page.set_message(vm::error_text(&e).into()),
     }
+    // R70: past terms, newest first.
+    let past = app.planner().past_terms();
+    match past {
+        Ok(terms) => {
+            let rows = terms
+                .iter()
+                .map(|t| bridge::past_term_row(&vm::past_term_row(t)))
+                .collect();
+            page.set_past_terms(bridge::model(rows));
+        }
+        Err(e) => page.set_message(vm::error_text(&e).into()),
+    }
 }
 
-/// Fills the term and settings forms from the database: at startup and after a save or restore.
+/// R67: empties the term form fields and their errors.
+fn clear_term_fields(page: &SettingsState<'_>) {
+    page.set_term_name(SharedString::new());
+    page.set_term_start(SharedString::new());
+    page.set_term_end(SharedString::new());
+    page.set_term_start_error(SharedString::new());
+    page.set_term_end_error(SharedString::new());
+    page.set_term_form_error(SharedString::new());
+}
+
+/// Fills the settings form from the database: at startup and after a save or restore. The term
+/// fields are filled only by Edit (R67).
 fn load_forms(app: &App) {
     let Some(window) = app.window() else {
         return;
     };
     let page = window.global::<SettingsState>();
     let planner = app.planner();
-    match planner.active_term() {
-        Ok(Some(term)) => {
-            page.set_term_name(term.name.as_str().into());
-            page.set_term_start(vm::format_date_input(term.start_date).into());
-            page.set_term_end(vm::format_date_input(term.end_date).into());
-        }
-        Ok(None) => {
-            page.set_term_name(SharedString::new());
-            page.set_term_start(SharedString::new());
-            page.set_term_end(SharedString::new());
-        }
-        Err(e) => page.set_term_form_error(vm::error_text(&e).into()),
-    }
     match planner.settings() {
         Ok(s) => {
             page.set_reminder(s.class_reminder_minutes.to_string().into());
@@ -76,6 +115,11 @@ pub fn wire(app: &Rc<App>) {
     let page = window.global::<SettingsState>();
 
     page.on_save_term(with(app, save_term));
+    page.on_edit_term(with(app, edit_term));
+    page.on_cancel_term(with(app, cancel_term));
+    page.on_archive_term(with(app, archive_term));
+    page.on_archive_confirm(with(app, archive_confirm));
+    page.on_archive_cancel(with(app, archive_cancel));
     page.on_add_holiday(with(app, add_holiday));
     let weak = Rc::downgrade(app);
     page.on_remove_holiday(move |date| {
@@ -151,14 +195,100 @@ fn save_term(app: &App) {
     page.set_term_end_error(SharedString::new());
     // R2: core validates the range; its message is the form error.
     let saved = app.planner_mut().save_term(input);
-    match saved {
-        Err(e) => page.set_term_form_error(vm::error_text(&e).into()),
-        Ok(_) => {
-            page.set_term_form_error(SharedString::new());
-            // R6: a term change re-syncs sessions.
-            changed_then_toast(app, true, &vm::term_saved_text());
-            load_forms(app);
+    // R67, R88, T70: success toasts, clears the fields and closes the form; an error stays
+    // inline with the fields kept.
+    let outcome = vm::term_save_outcome(&saved);
+    if outcome.close_form {
+        page.set_term_editing(false);
+    }
+    if outcome.clear_fields {
+        clear_term_fields(&page);
+    }
+    page.set_term_form_error(outcome.form_error.into());
+    if let Some(text) = outcome.toast {
+        // R6: a term change re-syncs sessions; every page refreshes.
+        changed_then_toast(app, true, &text);
+    }
+}
+
+/// R67: Edit opens the form pre-filled with the active term.
+fn edit_term(app: &App) {
+    let Some(window) = app.window() else {
+        return;
+    };
+    let page = window.global::<SettingsState>();
+    let active = app.planner().active_term();
+    let term = match active {
+        Ok(Some(term)) => term,
+        Ok(None) => return,
+        Err(e) => return message(app, &vm::error_text(&e)),
+    };
+    clear_term_fields(&page);
+    page.set_term_name(term.name.as_str().into());
+    page.set_term_start(vm::format_date_input(term.start_date).into());
+    page.set_term_end(vm::format_date_input(term.end_date).into());
+    page.set_term_editing(true);
+    page.set_confirm_archive(false);
+    refresh(app);
+}
+
+/// R67: Cancel closes the form and drops what was typed; no data changes.
+fn cancel_term(app: &App) {
+    let Some(window) = app.window() else {
+        return;
+    };
+    let page = window.global::<SettingsState>();
+    page.set_term_editing(false);
+    clear_term_fields(&page);
+    refresh(app);
+}
+
+/// R68: Archive opens the inline confirm panel for the active term.
+fn archive_term(app: &App) {
+    let Some(window) = app.window() else {
+        return;
+    };
+    let page = window.global::<SettingsState>();
+    let active = app.planner().active_term();
+    let term = match active {
+        Ok(Some(term)) => term,
+        Ok(None) => return,
+        Err(e) => return message(app, &vm::error_text(&e)),
+    };
+    page.set_archive_confirm_text(vm::archive_confirm_text(&term.name).into());
+    page.set_confirm_archive(true);
+}
+
+/// R68, R88: archives the active term (core checks the end date), then toasts and refreshes
+/// every page; an error stays inline in the page message.
+fn archive_confirm(app: &App) {
+    let Some(window) = app.window() else {
+        return;
+    };
+    let page = window.global::<SettingsState>();
+    page.set_confirm_archive(false);
+    let active = app.planner().active_term();
+    let term = match active {
+        Ok(Some(term)) => term,
+        Ok(None) => return,
+        Err(e) => return message(app, &vm::error_text(&e)),
+    };
+    let today = app.today();
+    let archived = app.planner_mut().archive_term(term.id, today);
+    match archived {
+        Err(e) => message(app, &vm::error_text(&e)),
+        Ok(()) => {
+            page.set_term_editing(false);
+            clear_term_fields(&page);
+            changed_then_toast(app, true, &vm::term_archived_text());
         }
+    }
+}
+
+/// R68: Cancel hides the confirm panel; nothing changes.
+fn archive_cancel(app: &App) {
+    if let Some(window) = app.window() {
+        window.global::<SettingsState>().set_confirm_archive(false);
     }
 }
 
@@ -357,6 +487,13 @@ fn restore_confirm(app: &App) {
         let mut state = app.state();
         state.detail_course = None;
         state.selected_session = None;
+    }
+    // The restored data may hold another term: close the term form and the archive panel.
+    if let Some(window) = app.window() {
+        let page = window.global::<SettingsState>();
+        page.set_term_editing(false);
+        page.set_confirm_archive(false);
+        clear_term_fields(&page);
     }
     changed_then_toast(app, true, &vm::restored_message(&copy));
     load_forms(app);

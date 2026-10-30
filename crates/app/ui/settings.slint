@@ -3,7 +3,7 @@
 // data-derived string comes from Rust (src/pages/settings.rs via src/viewmodel.rs).
 import { Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { HolidayRow } from "types.slint";
+import { HolidayRow, PastTermRow } from "types.slint";
 import {
     PageTitle, EmptyState, SectionCard, ListRow, Field, PrimaryButton, SecondaryButton, DangerButton,
 } from "components.slint";
@@ -20,6 +20,22 @@ export global SettingsState {
     in property <string> term-start-error;
     in property <string> term-end-error;
     in property <string> term-form-error;
+    // R67: read-only Term card of the active term.
+    in property <string> term-title;
+    in property <string> term-dates;
+    in property <string> term-week;
+    // R67, R69: the form shows only with no active term or after Edit (Rust computes it).
+    in property <bool> term-form-open;
+    // Set by Rust on Edit and Cancel; Rust reads it back on refresh so the minute timer keeps
+    // the form open.
+    in property <bool> term-editing;
+    // R68: Archive enablement, the muted reason line, and the inline confirm panel.
+    in property <bool> archive-enabled;
+    in property <string> archive-hint;
+    in property <bool> confirm-archive;
+    in property <string> archive-confirm-text;
+    // R70: Past terms rows.
+    in property <[PastTermRow]> past-terms;
 
     // Holidays of the active term (human decision §6: one date or an inclusive range).
     in property <[HolidayRow]> holidays;
@@ -45,6 +61,12 @@ export global SettingsState {
     in property <bool> confirm-restore;
 
     callback save-term();
+    callback edit-term();
+    callback cancel-term();
+    // Opens the archive confirm panel.
+    callback archive-term();
+    callback archive-confirm();
+    callback archive-cancel();
     callback add-holiday();
     callback remove-holiday(string);
     callback save-settings();
@@ -73,6 +95,15 @@ component BodyText inherits Text {
     font-weight: Theme.body-md-weight;
 }
 
+// Muted body text on a card.
+component MutedText inherits Text {
+    color: Theme.on-surface-muted;
+    wrap: word-wrap;
+    font-family: Theme.font-body;
+    font-size: Theme.body-md-size;
+    font-weight: Theme.body-md-weight;
+}
+
 export component SettingsPage inherits VerticalLayout {
     spacing: Theme.space-xxl;
     alignment: start;
@@ -92,36 +123,175 @@ export component SettingsPage inherits VerticalLayout {
             text: "No term saved yet. Enter the term below to start.";
         }
 
-        HorizontalLayout {
-            spacing: Theme.space-md;
-            Field {
-                label: "Name";
-                text <=> SettingsState.term-name;
+        // R67: the active term read-only, with Edit and Archive.
+        if SettingsState.has-term && !SettingsState.term-form-open: VerticalLayout {
+            spacing: Theme.space-sm;
+            Text {
+                text: SettingsState.term-title;
+                color: Theme.on-surface;
+                wrap: word-wrap;
+                font-family: Theme.font-body;
+                font-size: Theme.body-emphasis-size;
+                font-weight: Theme.body-emphasis-weight;
             }
 
-            Field {
-                label: "Start (DD-MM-YYYY)";
-                text <=> SettingsState.term-start;
-                error: SettingsState.term-start-error;
+            MutedText {
+                text: SettingsState.term-dates;
             }
 
-            Field {
-                label: "End (DD-MM-YYYY)";
-                text <=> SettingsState.term-end;
-                error: SettingsState.term-end-error;
+            MutedText {
+                text: SettingsState.term-week;
+            }
+
+            HorizontalLayout {
+                spacing: Theme.space-sm;
+                alignment: start;
+                SecondaryButton {
+                    text: "Edit";
+                    clicked => {
+                        SettingsState.edit-term();
+                    }
+                }
+
+                // R68: disabled until the end date has passed.
+                DangerButton {
+                    text: "Archive";
+                    enabled: SettingsState.archive-enabled;
+                    clicked => {
+                        SettingsState.archive-term();
+                    }
+                }
+            }
+
+            if SettingsState.archive-hint != "": MutedText {
+                text: SettingsState.archive-hint;
+            }
+
+            // R68: inline confirm panel, styled like the restore panel.
+            if SettingsState.confirm-archive: Rectangle {
+                background: Theme.surface;
+                border-radius: Theme.radius-none;
+                border-width: Theme.divider-width;
+                border-color: Theme.border;
+
+                VerticalLayout {
+                    padding: Theme.space-lg;
+                    spacing: Theme.space-sm;
+
+                    BodyText {
+                        text: SettingsState.archive-confirm-text;
+                    }
+
+                    HorizontalLayout {
+                        spacing: Theme.space-sm;
+                        alignment: start;
+                        // R84: archiving is destructive, so it uses the danger style.
+                        DangerButton {
+                            text: "Archive";
+                            clicked => {
+                                SettingsState.archive-confirm();
+                            }
+                        }
+
+                        SecondaryButton {
+                            text: "Cancel";
+                            clicked => {
+                                SettingsState.archive-cancel();
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        if SettingsState.term-form-error != "": FormError {
-            text: SettingsState.term-form-error;
+        // R67, R69: the form, only with no active term or after Edit.
+        if SettingsState.term-form-open: VerticalLayout {
+            spacing: Theme.space-sm;
+            HorizontalLayout {
+                spacing: Theme.space-md;
+                Field {
+                    label: "Name";
+                    text <=> SettingsState.term-name;
+                }
+
+                Field {
+                    label: "Start (DD-MM-YYYY)";
+                    text <=> SettingsState.term-start;
+                    error: SettingsState.term-start-error;
+                }
+
+                Field {
+                    label: "End (DD-MM-YYYY)";
+                    text <=> SettingsState.term-end;
+                    error: SettingsState.term-end-error;
+                }
+            }
+
+            if SettingsState.term-form-error != "": FormError {
+                text: SettingsState.term-form-error;
+            }
+
+            HorizontalLayout {
+                spacing: Theme.space-sm;
+                alignment: start;
+                PrimaryButton {
+                    text: "Save term";
+                    clicked => {
+                        SettingsState.save-term();
+                    }
+                }
+
+                if SettingsState.has-term: SecondaryButton {
+                    text: "Cancel";
+                    clicked => {
+                        SettingsState.cancel-term();
+                    }
+                }
+            }
+        }
+    }
+
+    // R70: past terms, read-only.
+    SectionCard {
+        title: "Past terms";
+
+        if SettingsState.past-terms.length == 0: EmptyState {
+            text: "No past terms yet. A term shows here after you archive it.";
         }
 
-        HorizontalLayout {
-            alignment: start;
-            PrimaryButton {
-                text: "Save term";
-                clicked => {
-                    SettingsState.save-term();
+        if SettingsState.past-terms.length > 0: VerticalLayout {
+            for row in SettingsState.past-terms: ListRow {
+                Text {
+                    text: row.name;
+                    vertical-alignment: center;
+                    overflow: elide;
+                    color: Theme.on-surface;
+                    font-family: Theme.font-body;
+                    font-size: Theme.body-emphasis-size;
+                    font-weight: Theme.body-emphasis-weight;
+                }
+
+                MutedText {
+                    text: row.dates;
+                    horizontal-stretch: 1;
+                    vertical-alignment: center;
+                    wrap: no-wrap;
+                    overflow: elide;
+                }
+
+                MutedText {
+                    text: row.courses;
+                    vertical-alignment: center;
+                }
+
+                MutedText {
+                    text: row.attendance;
+                    vertical-alignment: center;
+                }
+
+                MutedText {
+                    text: row.gpa;
+                    vertical-alignment: center;
                 }
             }
         }

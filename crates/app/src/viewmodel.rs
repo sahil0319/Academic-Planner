@@ -1101,6 +1101,7 @@ pub struct TermLine {
 
 impl TermLine {
     /// `text`, then a space and `link` when `link` is not empty (the R66 sentence).
+    // The page binds `text` and `link` separately; the whole sentence is for tests (T66).
     #[allow(dead_code)]
     pub fn full(&self) -> String {
         if self.link.is_empty() {
@@ -1147,7 +1148,6 @@ pub fn dashboard_term_line(term: Option<&Term>, today: NaiveDate) -> TermLine {
 }
 
 /// R67: read-only Term card lines of the active term.
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct TermCard {
     pub title: String,
@@ -1156,7 +1156,6 @@ pub struct TermCard {
 }
 
 /// R67: the read-only Term card of the active term.
-#[allow(dead_code)]
 pub fn term_card(term: &Term, today: NaiveDate) -> TermCard {
     TermCard {
         title: term.name.clone(),
@@ -1182,19 +1181,16 @@ pub fn term_week_text(term: &Term, today: NaiveDate) -> String {
 }
 
 /// R67, R69: the term form shows only when there is no active term or after Edit.
-#[allow(dead_code)]
 pub fn term_form_open(has_term: bool, editing: bool) -> bool {
     !has_term || editing
 }
 
 /// R68: Archive is enabled only when `today > end`.
-#[allow(dead_code)]
 pub fn archive_enabled(end: NaiveDate, today: NaiveDate) -> bool {
     today > end
 }
 
 /// R68: muted line under a disabled Archive; `""` when enabled.
-#[allow(dead_code)]
 pub fn archive_hint_text(end: NaiveDate, today: NaiveDate) -> String {
     if archive_enabled(end, today) {
         String::new()
@@ -1204,7 +1200,6 @@ pub fn archive_hint_text(end: NaiveDate, today: NaiveDate) -> String {
 }
 
 /// R68: the inline archive confirmation text.
-#[allow(dead_code)]
 pub fn archive_confirm_text(name: &str) -> String {
     format!(
         "Archive {name}? Its courses, attendance, assessments, and marks are kept and shown \
@@ -1213,13 +1208,11 @@ pub fn archive_confirm_text(name: &str) -> String {
 }
 
 /// R88, R89: toast after a successful archive.
-#[allow(dead_code)]
 pub fn term_archived_text() -> String {
     "Term archived.".to_string()
 }
 
 /// R70: one read-only Past terms row.
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct PastTermRow {
     pub name: String,
@@ -1230,7 +1223,6 @@ pub struct PastTermRow {
 }
 
 /// R70: the Past terms row of one summary (R13 attendance, R40 GPA with two decimals).
-#[allow(dead_code)]
 pub fn past_term_row(s: &PastTermSummary) -> PastTermRow {
     PastTermRow {
         name: s.term.name.clone(),
@@ -1245,7 +1237,6 @@ pub fn past_term_row(s: &PastTermSummary) -> PastTermRow {
 }
 
 /// R67, R88, T70: what the Settings page does after `save_term` returned `saved`.
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct TermSaveOutcome {
     pub toast: Option<String>,
@@ -1256,7 +1247,6 @@ pub struct TermSaveOutcome {
 
 /// R67, R88, T70: the outcome of a term save. Success toasts, clears the fields, and closes
 /// the form; an error keeps both and shows the message inline (R89: no toast on error).
-#[allow(dead_code)]
 pub fn term_save_outcome(saved: &planner_core::Result<Term>) -> TermSaveOutcome {
     match saved {
         Ok(_) => TermSaveOutcome {

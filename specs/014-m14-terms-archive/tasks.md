@@ -104,7 +104,7 @@ Stories (for labels):
   `AppState.current-page = 4`. In `crates/app/src/pages/dashboard.rs` `refresh`, set both from
   `vm::dashboard_term_line(term.as_ref(), app.today())` for the term and no-term cases. The
   existing "Getting started" card stays (D11). Commit: `M14: dashboard term line`.
-- [ ] T008 [US3] Settings Term card, save, archive, Past terms (R67-R70) in
+- [x] T008 [US3] Settings Term card, save, archive, Past terms (R67-R70) in
   `crates/app/ui/settings.slint` and `crates/app/src/pages/settings.rs`, exactly as plan.md
   "Slint" and "Page wiring": new `SettingsState` properties and callbacks (`term-title`,
   `term-dates`, `term-week`, `term-form-open`, `term-editing`, `archive-enabled`, `archive-hint`,
