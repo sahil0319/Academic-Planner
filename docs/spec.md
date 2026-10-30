@@ -293,7 +293,7 @@ Each milestone ends with the **gate**: `cargo fmt --check && cargo clippy --work
 | **M15** | Mid exam and final exam periods, separate from holidays (§13.10) | Gate passes; T71–T74 pass |
 | **M16** | Public holidays of the user's country from Google's public holiday calendar (§13.11) | Gate passes; T75–T79 pass; human sees their country's holidays on the dashboard |
 | **M17** | Carbon restyle from DESIGN.md v2, light and dark, IBM Plex Sans (§13.12) | Gate passes; theme grep check and DESIGN.md lint pass; `impeccable` critique of every page in both themes has no open high-severity items; human approves screenshots |
-| **M18** | Toast notifications system-wide (5 s timer bar, cross button); Rules page save confirmation; build first (§13.13) | Gate passes; T80–T85 (incl. T84b) pass; DESIGN.md lint passes; human sees the toasts in the app |
+| **M18** | Toast notifications system-wide (5 s timer bar, cross button); Rules page save confirmation; build right after M17 (§13.13) | Gate passes; T80–T85 (incl. T84b) pass; DESIGN.md lint passes; human sees the toasts in the app |
 | **M19** | Default attendance bands: the human's table for rule sets not configured yet (§13.14) | Gate passes; T86–T90 pass; human sees the new defaults in the app |
 
 **Parallelism:** after M1 the API is frozen as stubs, so one agent can do M2–M3 (core) while another builds M4 (UI) against the stubs. Merge before the M4 smoke test.
@@ -803,7 +803,7 @@ The whole UI takes the look of DESIGN.md version 2: IBM Carbon, as in agentic-pa
 
 ### 13.13 M18: toast notifications and Rules page save confirmation (human decisions 2026-10-30; spec only until the human starts it)
 
-Light flow like M11: no Spec Kit plan/checklist/analyze artifacts; T-tests first, then the gate. No schema or core change. **Build M18 first, before M12**, so every later milestone confirms its actions with a toast. The look of the toast is in DESIGN.md ("Toast notification").
+Light flow like M11: no Spec Kit plan/checklist/analyze artifacts; T-tests first, then the gate. No schema or core change. **Build M18 right after M17 and before M12**, so every later milestone confirms its actions with a toast. The look of the toast is in DESIGN.md ("Toast notification").
 
 **Review of the report.** The human saw no sign that a save worked on the Rules page and suspected the "Saved rules" list kept old values. Code review shows the list is rebuilt from the rule set core returns after a save (`load_form` in `crates/app/src/pages/rules.rs`), so the values were not hard-coded and the human confirmed it did update. Two real gaps remain, and both are fixed here:
 1. A successful save gives no feedback. The form stays open and, when nothing changed in the numbers, looks the same as before. The grade scale save has the same gap. More widely, the app confirms actions only with small inline text in each page's `message` line, which is easy to miss.
