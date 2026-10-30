@@ -65,7 +65,7 @@ page compared with DESIGN.md.
 
 ---
 
-### User Story 2 - Dark theme derived from Carbon g100 (Priority: P1)
+### User Story 2 - Dark theme in very dark navy (Priority: P1)
 
 The user switches the appearance to Dark (or System on a dark OS). Every page uses the `dark-*`
 values of DESIGN.md v2.
@@ -78,9 +78,9 @@ dark value or dark mode breaks.
 
 **Acceptance Scenarios**:
 
-1. **Given** Dark appearance, **When** any page is shown, **Then** the page is `#161616`, cards
-   `#262626`, fields `#393939`, text `#F4F4F4` / `#C6C6C6` / `#A8A8A8`, links `#78A9FF`, focus
-   `#FFFFFF` (R82).
+1. **Given** Dark appearance, **When** any page is shown, **Then** the page is `#0B1220`, cards
+   `#111A2E`, fields `#1A2542`, text `#E8EDF7` / `#A9B4CC` / `#8C98B3`, links `#78A9FF`, focus
+   `#FFFFFF` (R82; navy values are a human decision of 2026-10-31, replacing the Carbon g100 greys).
 2. **Given** System appearance, **When** the OS switches between light and dark, **Then** the app
    follows as it does today (§6 Appearance; detection logic unchanged).
 3. **Given** Dark appearance, **When** status chips, the below-target banner, and calendar fills are

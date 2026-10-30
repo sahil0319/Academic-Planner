@@ -6,7 +6,7 @@
 
 ## Summary
 
-A visual-layer swap from DESIGN.md v1 to v2 (IBM Carbon, light and g100 dark, IBM Plex Sans),
+A visual-layer swap from DESIGN.md v1 to v2 (IBM Carbon, light and very dark navy dark, IBM Plex Sans),
 done in small commits that each build and pass the gate:
 
 1. **Fonts (R83).** Vendor Plex Sans 400 and 600 TTF and the OFL under `crates/app/ui/fonts/`,

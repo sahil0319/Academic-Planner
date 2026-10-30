@@ -1,7 +1,7 @@
 ---
 version: "2.0"
 name: Academic Planner
-description: Light, square, dense desktop UI for tracking courses, timetables, assessments, attendance, and marks. Derived from IBM Carbon (the same family as the Paper-Triage-Carbon design of agentic-paper-search), with a matching Carbon g100 dark theme. IBM Plex Sans at 400 and 600.
+description: Light, square, dense desktop UI for tracking courses, timetables, assessments, attendance, and marks. Derived from IBM Carbon (the same family as the Paper-Triage-Carbon design of agentic-paper-search), with a matching very dark navy dark theme (human decision 2026-10-31) that keeps the Carbon structure. IBM Plex Sans at 400 and 600.
 colors:
   primary: "#0F62FE"
   primary-hover: "#0050E6"
@@ -46,19 +46,19 @@ colors:
   dark-primary-hover: "#0050E6"
   dark-primary-active: "#002D9C"
   dark-on-primary: "#FFFFFF"
-  dark-neutral: "#161616"
-  dark-surface: "#262626"
-  dark-surface-alt: "#161616"
-  dark-surface-hover: "#333333"
-  dark-surface-selected: "#393939"
+  dark-neutral: "#0B1220"
+  dark-surface: "#111A2E"
+  dark-surface-alt: "#0B1220"
+  dark-surface-hover: "#212D4F"
+  dark-surface-selected: "#2B3C6E"
   dark-surface-inverse: "#F4F4F4"
   dark-on-surface-inverse: "#161616"
-  dark-field: "#393939"
-  dark-border: "#393939"
-  dark-border-strong: "#8D8D8D"
-  dark-on-surface: "#F4F4F4"
-  dark-on-surface-muted: "#C6C6C6"
-  dark-on-surface-subtle: "#A8A8A8"
+  dark-field: "#1A2542"
+  dark-border: "#26324D"
+  dark-border-strong: "#6B7A99"
+  dark-on-surface: "#E8EDF7"
+  dark-on-surface-muted: "#A9B4CC"
+  dark-on-surface-subtle: "#8C98B3"
   dark-link: "#78A9FF"
   dark-focus: "#FFFFFF"
   dark-error: "#FF8389"
@@ -72,8 +72,8 @@ colors:
   dark-status-pending-bg: "#483700"
   dark-below-target: "#FFB3B8"
   dark-below-target-bg: "#4A0C10"
-  dark-progress-track: "#393939"
-  dark-progress-fill: "#F4F4F4"
+  dark-progress-track: "#26324D"
+  dark-progress-fill: "#E8EDF7"
   dark-progress-target: "#78A9FF"
   dark-calendar-holiday: "#002D9C"
   dark-calendar-midterm: "#6929C4"
@@ -469,8 +469,9 @@ decoration.
 - **Personality:** calm, precise, unobtrusive. No illustrations, gradients, glass, glow, or
   animation beyond short colour changes on hover and press.
 - **Density:** 40px list rows, 32px controls, 14px body text, a 4px grid.
-- **Theme:** light by default, with a dark theme derived from Carbon g100 (charcoal `#161616` page,
-  `#262626` cards, `#393939` fields, near-white text). The three-way System / Light / Dark switch
+- **Theme:** light by default, with a dark theme in very dark navy (human decision 2026-10-31, replacing the
+  Carbon g100 neutral greys; the Carbon layer structure stays): navy `#0B1220` page, `#111A2E` cards,
+  `#1A2542` fields, near-white text. The three-way System / Light / Dark switch
   stays in the window's top-right corner on every page.
 - **Square:** everything you click or type into has square corners, status chips included.
 - **Meaning is never carried by colour alone.** Every status colour is paired with its text label
@@ -479,27 +480,27 @@ decoration.
 
 ## Colors
 
-Neutral greys with one blue accent. Colour appears only on actions, focus, links, errors, status
+Neutral greys (navy-tinted in dark) with one blue accent. Colour appears only on actions, focus, links, errors, status
 chips, the below-target banner, and the progress-bar target marker.
 
 - **Primary (#0F62FE) "IBM Blue":** the one primary button per panel, the active nav bar, focus
   rings, links, today in the calendar. Hover #0050E6, press #002D9C. The same blue stays the primary
   fill in dark; dark links and the dark target marker use #78A9FF.
-- **Neutral (#FFFFFF) / dark (#161616):** the page behind cards, and the nav column
+- **Neutral (#FFFFFF) / dark (#0B1220):** the page behind cards, and the nav column
   (surface-alt).
-- **Surface (#F4F4F4) / dark (#262626):** section cards, list rows, panels.
-- **Field (#FFFFFF) / dark (#393939):** text fields and secondary buttons on a card. Fields
+- **Surface (#F4F4F4) / dark (#111A2E):** section cards, list rows, panels.
+- **Field (#FFFFFF) / dark (#1A2542):** text fields and secondary buttons on a card. Fields
   alternate against their layer, as in Carbon.
-- **Surface Hover (#E8E8E8) / dark (#333333)** and **Surface Selected (#E0E0E0) / dark
-  (#393939):** hover fills and the active nav item or selected row. Selection is a tonal fill plus
+- **Surface Hover (#E8E8E8) / dark (#212D4F)** and **Surface Selected (#E0E0E0) / dark
+  (#2B3C6E):** hover fills and the active nav item or selected row. Selection is a tonal fill plus
   weight 600 and a 3px blue bar, not colour alone.
 - **Surface Inverse (#161616) / dark (#F4F4F4):** the GitHub button and the selected segment of the
   appearance switch, with on-surface-inverse text.
-- **Border (#E0E0E0) / dark (#393939):** 1px dividers between rows and around cards. Decorative.
-- **Border Strong (#8D8D8D):** edges of controls (field bottom rule, secondary buttons, checkbox).
-  3.0:1 on the light card, 4.6:1 on the dark card.
-- **On Surface (#161616) / dark (#F4F4F4), On Surface Muted (#525252) / dark (#C6C6C6), On Surface
-  Subtle (#6F6F6F) / dark (#A8A8A8):** the whole text ladder. Do not add greys. Subtle text is never
+- **Border (#E0E0E0) / dark (#26324D):** 1px dividers between rows and around cards. Decorative.
+- **Border Strong (#8D8D8D) / dark (#6B7A99):** edges of controls (field bottom rule, secondary
+  buttons, checkbox). 3.0:1 on the light card, 4.0:1 on the dark card and 3.5:1 on the dark field.
+- **On Surface (#161616) / dark (#E8EDF7), On Surface Muted (#525252) / dark (#A9B4CC), On Surface
+  Subtle (#6F6F6F) / dark (#8C98B3):** the whole text ladder. Do not add greys. Subtle text is never
   placed on surface-selected.
 - **Error (#DA1E28) / dark (#FF8389):** inline validation messages, danger buttons.
 - **Attended (#0E6027 on #A7F0BA; dark #6FDC8C on #044317):** green chip, also "On track".
@@ -510,7 +511,7 @@ chips, the below-target banner, and the progress-bar target marker.
   attendance, also "Watch".
 - **Below target (#A2191F on #FFF1F1; dark #FFB3B8 on #4A0C10):** the dashboard banner, with a 3px
   error-colour rule on its left edge (Carbon notification).
-- **Progress track (#E0E0E0 / dark #393939), fill (#161616 / dark #F4F4F4), target marker
+- **Progress track (#E0E0E0 / dark #26324D), fill (#161616 / dark #E8EDF7), target marker
   (#0F62FE / dark #78A9FF):** the attendance bar on the Progress page.
 - **Calendar days off:** each kind has its own fill behind the day number, and the legend names
   it. Holiday #D0E2FF / dark #002D9C (blue), Mid exam #D4BBFF / dark #6929C4 (purple), Final exam
@@ -521,7 +522,10 @@ chips, the below-target banner, and the progress-bar target marker.
   with a 3px success rule on the left edge. Text is on-surface.
 
 Every text/background pair above was checked: all meet WCAG AA (4.5:1) for normal text; the lowest
-are pending (4.52:1) and the light link and error on the card (4.55:1).
+are pending (4.52:1) and the light link and error on the card (4.55:1). In dark the lowest text pair
+is subtle text on surface-hover (4.67:1); control edges (border-strong) and the focus ring meet
+3:1 on the dark page, card, and field (lowest 3.51:1 on the field). In dark, the selected fill
+(#2B3C6E), hover fill (#212D4F), and field (#1A2542) are three different values.
 
 ## Typography
 

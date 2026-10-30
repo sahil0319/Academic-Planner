@@ -4,6 +4,9 @@ Source: DESIGN.md v2 front matter and component prose. Pattern (research D3): ev
 `out property <color> <name>: dark ? <dark value> : <light value>;`. `mode`, `dark`, and
 `std-background` stay exactly as they are (System appearance detection is unchanged).
 
+Dark values are very dark navy (human decision 2026-10-31, overriding the original Carbon g100
+greys); light values and all token names are unchanged.
+
 Status column: **kept** (name exists, value changes), **new**, **alias** (temporary, removed in
 task 11), **removed** (in task 11).
 
@@ -15,19 +18,19 @@ task 11), **removed** (in task 11).
 | `primary-hover` | #0050E6 | #0050E6 | kept |
 | `primary-active` | #002D9C | #002D9C | new |
 | `on-primary` | #FFFFFF | #FFFFFF | kept |
-| `neutral` | #FFFFFF | #161616 | kept |
-| `surface` | #F4F4F4 | #262626 | kept |
-| `surface-alt` | #FFFFFF | #161616 | kept |
-| `surface-hover` | #E8E8E8 | #333333 | new |
-| `surface-selected` | #E0E0E0 | #393939 | kept |
+| `neutral` | #FFFFFF | #0B1220 | kept |
+| `surface` | #F4F4F4 | #111A2E | kept |
+| `surface-alt` | #FFFFFF | #0B1220 | kept |
+| `surface-hover` | #E8E8E8 | #212D4F | new |
+| `surface-selected` | #E0E0E0 | #2B3C6E | kept |
 | `surface-inverse` | #161616 | #F4F4F4 | new |
 | `on-surface-inverse` | #FFFFFF | #161616 | new |
-| `field` | #FFFFFF | #393939 | new |
-| `border` | #E0E0E0 | #393939 | kept |
-| `border-strong` | #8D8D8D | #8D8D8D | new |
-| `on-surface` | #161616 | #F4F4F4 | kept |
-| `on-surface-muted` | #525252 | #C6C6C6 | kept |
-| `on-surface-subtle` | #6F6F6F | #A8A8A8 | new |
+| `field` | #FFFFFF | #1A2542 | new |
+| `border` | #E0E0E0 | #26324D | kept |
+| `border-strong` | #8D8D8D | #6B7A99 | new |
+| `on-surface` | #161616 | #E8EDF7 | kept |
+| `on-surface-muted` | #525252 | #A9B4CC | kept |
+| `on-surface-subtle` | #6F6F6F | #8C98B3 | new |
 | `link` | #0F62FE | #78A9FF | new |
 | `focus` | #0F62FE | #FFFFFF | new |
 | `error` | #DA1E28 | #FF8389 | kept |
@@ -41,8 +44,8 @@ task 11), **removed** (in task 11).
 | `status-pending-bg` | #FCF4D6 | #483700 | kept |
 | `below-target` | #A2191F | #FFB3B8 | kept |
 | `below-target-bg` | #FFF1F1 | #4A0C10 | kept |
-| `progress-track` | #E0E0E0 | #393939 | new (used from M13) |
-| `progress-fill` | #161616 | #F4F4F4 | new (used from M13) |
+| `progress-track` | #E0E0E0 | #26324D | new (used from M13) |
+| `progress-fill` | #161616 | #E8EDF7 | new (used from M13) |
 | `progress-target` | #0F62FE | #78A9FF | new (used from M13) |
 | `calendar-holiday` | #D0E2FF | #002D9C | new |
 | `calendar-midterm` | #D4BBFF | #6929C4 | new (used from M15) |
