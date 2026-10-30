@@ -74,6 +74,15 @@ pub struct Term {
     pub holidays: Vec<Holiday>,
 }
 
+/// R70: one inactive term with its course count, overall attendance, and GPA.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PastTermSummary {
+    pub term: Term,
+    pub courses: u32,
+    pub attendance_pct: Option<f64>,
+    pub gpa: Option<f64>,
+}
+
 /// A day without classes (`holiday` table).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Holiday {

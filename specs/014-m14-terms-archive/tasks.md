@@ -21,7 +21,7 @@ Stories (for labels):
 
 ## Phase 1: Tests first (tester)
 
-- [ ] T001 [P] [US1] Write core integration tests in `crates/core/tests/m14_terms_archive.rs`
+- [x] T001 [P] [US1] Write core integration tests in `crates/core/tests/m14_terms_archive.rs`
   (`mod common;`, in-memory SQLite) exactly as plan.md "Test plan" core list:
   `t67_archive_before_or_on_end_is_rejected` (term 2026-01-05..2026-05-01; today 04-30 and 05-01
   → `Error::Validation("This term ends on May 1, 2026; archive it after that")`, still active),

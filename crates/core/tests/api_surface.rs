@@ -82,4 +82,8 @@ fn api_signatures_match_spec_section_5() {
 
     // M11 (§13.6)
     let _: fn(&mut Planner, &[i64]) -> Result<()> = Planner::delete_courses;
+
+    // M14 (§13.9)
+    let _: fn(&mut Planner, i64, NaiveDate) -> Result<()> = Planner::archive_term;
+    let _: fn(&Planner) -> Result<Vec<PastTermSummary>> = Planner::past_terms;
 }
