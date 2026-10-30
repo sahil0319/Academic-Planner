@@ -59,10 +59,22 @@ pub fn chip_kind(status: Status) -> ChipKind {
     }
 }
 
+/// Fixed-point text with `decimals` places that never shows a minus sign for zero.
+///
+/// A negative zero, or a small negative that rounds to zero at this precision, prints
+/// without a sign (`"0.0"`, not `"-0.0"`). Real negatives keep their sign.
+fn fixed(value: f64, decimals: usize) -> String {
+    let text = format!("{value:.decimals$}");
+    match text.strip_prefix('-') {
+        Some(unsigned) if unsigned.chars().all(|c| matches!(c, '0' | '.')) => unsigned.to_string(),
+        _ => text,
+    }
+}
+
 /// R13: percentage with one decimal; `None` (nothing attended or absent) shows an em dash.
 pub fn format_pct(pct: Option<f64>) -> String {
     match pct {
-        Some(p) if p.is_finite() => format!("{p:.1}%"),
+        Some(p) if p.is_finite() => format!("{}%", fixed(p, 1)),
         _ => DASH.to_string(),
     }
 }
@@ -1482,19 +1494,22 @@ pub struct NeededRowView {
 /// R37: a mark such as `45` or `37.5`, without a trailing `.0`. Two decimals at most.
 pub fn format_mark(value: f64) -> String {
     let rounded = (value * 100.0).round() / 100.0;
+    if rounded == 0.0 {
+        return "0".to_string();
+    }
     format!("{rounded}")
 }
 
 /// R35/R36: `"39.0 of 45"`, earned with one decimal, possible as a plain mark.
 pub fn format_marks(earned: f64, possible: f64) -> String {
-    format!("{earned:.1} of {}", format_mark(possible))
+    format!("{} of {}", fixed(earned, 1), format_mark(possible))
 }
 
 /// R37: `"80.0% · A+"`; `None` shows an em dash.
 pub fn format_projected(pct: Option<f64>, letter: Option<&str>) -> String {
     match (pct, letter) {
-        (Some(pct), Some(letter)) => format!("{pct:.1}% \u{b7} {letter}"),
-        (Some(pct), None) => format!("{pct:.1}%"),
+        (Some(pct), Some(letter)) => format!("{}% \u{b7} {letter}", fixed(pct, 1)),
+        (Some(pct), None) => format!("{}%", fixed(pct, 1)),
         _ => DASH.to_string(),
     }
 }
@@ -1502,7 +1517,7 @@ pub fn format_projected(pct: Option<f64>, letter: Option<&str>) -> String {
 /// R38: `"111.0"`, `"Secured"`, or `"Not reachable"`.
 pub fn needed_text(needed: &Needed) -> String {
     match needed {
-        Needed::Score(v) => format!("{v:.1}"),
+        Needed::Score(v) => fixed(*v, 1),
         Needed::Secured => "Secured".to_string(),
         Needed::NotReachable => "Not reachable".to_string(),
     }
@@ -1544,7 +1559,7 @@ pub fn gpa_header_text(summary: &GpaSummary) -> String {
                 GpaStatus::Projected => "projected",
                 GpaStatus::Final => "final",
             };
-            format!("Term GPA {gpa:.2} ({status})")
+            format!("Term GPA {} ({status})", fixed(gpa, 2))
         }
         None => format!("Term GPA {DASH}"),
     };

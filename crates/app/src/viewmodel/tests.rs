@@ -3262,3 +3262,41 @@ fn t39_worked_example_end_to_end() {
         "Term GPA 4.00 (projected)"
     );
 }
+
+/// R35/R36: zero earned marks print "0.0 of 45", never "-0.0 of 45" (negative zero).
+#[test]
+fn t_negative_zero_prints_without_minus() {
+    assert_eq!(format_marks(-0.0, 45.0), "0.0 of 45");
+    assert_eq!(format_marks(-0.0, 75.0), "0.0 of 75");
+    assert_eq!(format_marks(-0.0, 150.0), "0.0 of 150");
+    assert_eq!(format_mark(-0.0), "0");
+}
+
+/// R35/R36: a value that rounds to zero at the printed precision has no minus sign.
+#[test]
+fn t_tiny_negative_rounds_to_unsigned_zero() {
+    assert_eq!(format_marks(-0.04, 45.0), "0.0 of 45");
+    assert_eq!(format_mark(-0.001), "0");
+    assert_eq!(format_pct(Some(-0.04)), "0.0%");
+    assert_eq!(format_pct(Some(-0.0)), "0.0%");
+    assert_eq!(format_projected(Some(-0.0), Some("F")), "0.0% \u{b7} F");
+    assert_eq!(format_projected(Some(-0.04), None), "0.0%");
+    assert_eq!(needed_text(&Needed::Score(-0.0)), "0.0");
+    assert_eq!(needed_text(&Needed::Score(-0.04)), "0.0");
+    let zero_gpa = GpaSummary {
+        gpa: Some(-0.0),
+        status: GpaStatus::Projected,
+        included: 1,
+        left_out: 0,
+    };
+    assert_eq!(gpa_header_text(&zero_gpa), "Term GPA 0.00 (projected)");
+}
+
+/// Real negatives keep their minus sign.
+#[test]
+fn t_real_negatives_keep_minus() {
+    assert_eq!(format_marks(-1.5, 45.0), "-1.5 of 45");
+    assert_eq!(format_mark(-2.5), "-2.5");
+    assert_eq!(format_pct(Some(-12.34)), "-12.3%");
+    assert_eq!(needed_text(&Needed::Score(-3.0)), "-3.0");
+}
