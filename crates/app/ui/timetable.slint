@@ -10,7 +10,7 @@ import {
     SecondaryButton,
     Field,
     TimeField,
-    StatusChip,
+    StatusColumn,
     SectionCard,
     ListRow,
     EmptyState,
@@ -364,8 +364,12 @@ component WeekTab inherits VerticalLayout {
         if day.rows.length > 0: VerticalLayout {
             for row in day.rows: VerticalLayout {
                 ListRow {
+                    // Fixed columns (preferred widths that may shrink) keep every row's cells at the
+                    // same x.
                     RowText {
                         text: row.time;
+                        preferred-width: Theme.time-column-width;
+                        min-width: 0;
                     }
                     RowText {
                         text: row.course;
@@ -373,13 +377,12 @@ component WeekTab inherits VerticalLayout {
                     }
                     RowMeta {
                         text: row.room;
+                        preferred-width: Theme.room-column-width;
+                        min-width: 0;
                     }
-                    VerticalLayout {
-                        alignment: center;
-                        StatusChip {
-                            chip: row.chip;
-                            text: row.status-label;
-                        }
+                    StatusColumn {
+                        chip: row.chip;
+                        text: row.status-label;
                     }
                     SecondaryButton {
                         text: TimetableState.has-selected && TimetableState.selected.id == row.id ? "Close" : "Select";

@@ -473,15 +473,16 @@ export component TimeField inherits VerticalLayout {
     }
 }
 
-// R11, R84: status pill (the one rounded shape). The text label is always shown next to the
-// color (DESIGN.md): label-sm text, space-sm horizontal padding.
+// R11, R84: status chip, square like every other shape. The text label is always shown next to
+// the color (DESIGN.md): label-sm text, space-sm horizontal padding, space-xs vertical padding.
+// The label elides when the chip is squeezed (a long "Rescheduled -> date").
 export component StatusChip inherits Rectangle {
     in property <Chip> chip;
     in property <string> text;
 
     horizontal-stretch: 0;
     vertical-stretch: 0;
-    border-radius: Theme.radius-full;
+    border-radius: Theme.radius-none;
     background: root.chip == Chip.attended ? Theme.status-attended-bg
         : root.chip == Chip.absent ? Theme.status-absent-bg
         : root.chip == Chip.cancelled ? Theme.status-cancelled-bg
@@ -495,6 +496,7 @@ export component StatusChip inherits Rectangle {
         Text {
             text: root.text;
             vertical-alignment: center;
+            overflow: elide;
             color: root.chip == Chip.attended ? Theme.status-attended
                 : root.chip == Chip.absent ? Theme.status-absent
                 : root.chip == Chip.cancelled ? Theme.status-cancelled
@@ -502,6 +504,26 @@ export component StatusChip inherits Rectangle {
             font-family: Theme.font-body;
             font-size: Theme.label-sm-size;
             font-weight: Theme.label-sm-weight;
+        }
+    }
+}
+
+// R84: status chip in a left-aligned column of fixed preferred width, so the chips of every row
+// start at the same x. The column shrinks (and the chip text elides) before it breaks a narrow row.
+export component StatusColumn inherits VerticalLayout {
+    in property <Chip> chip;
+    in property <string> text;
+
+    horizontal-stretch: 0;
+    preferred-width: Theme.status-column-width;
+    min-width: 0;
+    alignment: center;
+
+    HorizontalLayout {
+        alignment: start;
+        StatusChip {
+            chip: root.chip;
+            text: root.text;
         }
     }
 }

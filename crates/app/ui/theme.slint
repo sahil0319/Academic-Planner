@@ -84,7 +84,7 @@ export global Theme {
     out property <length> label-sm-size: 12px;
     out property <int> label-sm-weight: 400;
 
-    // Radii: square everywhere except the pill status chip (DESIGN.md "Shapes").
+    // Radii: square everywhere, including status chips (DESIGN.md "Shapes"); radius-full is unused.
     out property <length> radius-none: 0px;
     out property <length> radius-full: 9999px;
 
@@ -104,6 +104,13 @@ export global Theme {
     out property <length> input-height: 32px;
     // Fixed course-code column in course rows so the names share one left edge (F-07).
     out property <length> code-column-width: 96px;
+    // Fixed columns in session rows so weekday, date, time, room, and status line up from row to
+    // row (R84, DESIGN.md "Status chip"). Rows use them as preferred widths and may shrink.
+    out property <length> weekday-column-width: 96px;
+    out property <length> date-column-width: 144px;
+    out property <length> time-column-width: 144px;
+    out property <length> room-column-width: 128px;
+    out property <length> status-column-width: 240px;
     // Progress bar height and target marker width (used from M13).
     out property <length> progress-height: 8px;
     out property <length> progress-target-width: 2px;

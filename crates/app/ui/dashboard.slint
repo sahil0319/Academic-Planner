@@ -10,6 +10,7 @@ import {
     SectionCard,
     ListRow,
     StatusChip,
+    StatusColumn,
     SecondaryButton,
 } from "components.slint";
 
@@ -84,14 +85,21 @@ component SessionLine inherits ListRow {
     in property <SessionRow> item;
     in property <bool> show-date;
 
+    // Fixed columns (preferred widths that may shrink) keep every row's cells at the same x.
     if root.show-date: RowMeta {
         text: root.item.weekday;
+        preferred-width: Theme.weekday-column-width;
+        min-width: 0;
     }
     if root.show-date: RowMeta {
         text: root.item.date;
+        preferred-width: Theme.date-column-width;
+        min-width: 0;
     }
     RowMeta {
         text: root.item.time;
+        preferred-width: Theme.time-column-width;
+        min-width: 0;
     }
     RowText {
         text: root.item.course;
@@ -99,13 +107,12 @@ component SessionLine inherits ListRow {
     }
     RowMeta {
         text: root.item.room;
+        preferred-width: Theme.room-column-width;
+        min-width: 0;
     }
-    VerticalLayout {
-        alignment: center;
-        StatusChip {
-            chip: root.item.chip;
-            text: root.item.status-label;
-        }
+    StatusColumn {
+        chip: root.item.chip;
+        text: root.item.status-label;
     }
 }
 
@@ -241,6 +248,7 @@ component PanelSessionLine inherits ListRow {
             RowMeta {
                 text: root.item.room;
             }
+            // The panel is narrow, so its chip keeps its own width instead of the fixed column.
             VerticalLayout {
                 alignment: center;
                 StatusChip {

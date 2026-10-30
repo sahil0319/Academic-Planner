@@ -229,25 +229,25 @@ components:
     backgroundColor: "{colors.status-attended-bg}"
     textColor: "{colors.status-attended}"
     typography: "{typography.label-sm}"
-    rounded: "{rounded.full}"
+    rounded: "{rounded.none}"
     padding: "{spacing.sm}"
   status-chip-absent:
     backgroundColor: "{colors.status-absent-bg}"
     textColor: "{colors.status-absent}"
     typography: "{typography.label-sm}"
-    rounded: "{rounded.full}"
+    rounded: "{rounded.none}"
     padding: "{spacing.sm}"
   status-chip-cancelled:
     backgroundColor: "{colors.status-cancelled-bg}"
     textColor: "{colors.status-cancelled}"
     typography: "{typography.label-sm}"
-    rounded: "{rounded.full}"
+    rounded: "{rounded.none}"
     padding: "{spacing.sm}"
   status-chip-pending:
     backgroundColor: "{colors.status-pending-bg}"
     textColor: "{colors.status-pending}"
     typography: "{typography.label-sm}"
-    rounded: "{rounded.full}"
+    rounded: "{rounded.none}"
     padding: "{spacing.sm}"
   banner-below-target:
     backgroundColor: "{colors.below-target-bg}"
@@ -472,7 +472,7 @@ decoration.
 - **Theme:** light by default, with a dark theme derived from Carbon g100 (charcoal `#161616` page,
   `#262626` cards, `#393939` fields, near-white text). The three-way System / Light / Dark switch
   stays in the window's top-right corner on every page.
-- **Square:** everything you click or type into has square corners. Pills only for status chips.
+- **Square:** everything you click or type into has square corners, status chips included.
 - **Meaning is never carried by colour alone.** Every status colour is paired with its text label
   ("Attended", "Absent", "Cancelled", "Pending", "Below target", "On track", "Watch", "At risk",
   "Not enough data", "Holiday", "Mid exam", "Final exam", "Public holiday"), and every bar has its number printed beside it, and every calendar fill is named in the legend.
@@ -564,7 +564,7 @@ shadows anywhere; confirm panels are inline, not overlays.
 ## Shapes
 
 Radius 0 on buttons, fields, nav items, cards, banners, panels, the progress bar, calendar cells,
-and the appearance switch. Fully rounded pills only for status chips.
+the appearance switch, and status chips. There are no rounded or pill shapes.
 
 ## Components
 
@@ -587,8 +587,9 @@ and the appearance switch. Fully rounded pills only for status chips.
 - **Checkbox and switch:** the platform-neutral Slint widgets, recoloured with these tokens.
 - **List row:** 40px, surface fill, 1px bottom border. Primary text left, muted metadata next to
   it, status chip and actions right-aligned.
-- **Status chip:** pill, 12px label text on its tinted fill, 8px horizontal padding. Text always
-  present.
+- **Status chip:** square, 12px label text on its tinted fill, 8px horizontal padding, 4px vertical
+  padding. Text always present. Chips sit in a fixed-width, left-aligned column so the chips of all
+  rows start at the same x; a long "Rescheduled → date" label elides instead of breaking the column.
 - **Below-target banner:** below-target-bg fill, 3px error rule on the left, body text listing each
   course below target, e.g. "CSE101 — 66.7% (target 75%)".
 - **Section card:** surface fill, square, no border, 16px padding, headline title.
@@ -643,7 +644,7 @@ and the appearance switch. Fully rounded pills only for status chips.
 - Do pair every status colour with its text label; never show a coloured dot or bar alone.
 - Do reserve blue for the one primary button per panel, the active nav bar, links, focus, today, and
   the progress target marker.
-- Do keep corners square everywhere except status chips.
+- Do keep corners square everywhere, status chips included.
 - Do keep rows at 40px and body text at 14px so a full week fits on screen.
 - Do show "—" for a missing percentage, never "0%" or "NaN".
 - Don't use weights other than 400 and 600, or all-caps tracked labels.

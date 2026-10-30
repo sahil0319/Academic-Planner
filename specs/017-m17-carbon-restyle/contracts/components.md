@@ -12,7 +12,7 @@ tokens from [theme-tokens.md](theme-tokens.md).
 | `Field`, `TimeField` text box | components.slint | 3 | `field` fill, no side or top border, 1px `border-strong` bottom rule, `input-height`, inline padding `space-lg`; focus 2px inset `focus` ring; invalid 2px inset `error` ring; label above in label-md `on-surface-muted`; error text below in body-sm `error` |
 | `ComboField` | components.slint | 3 | label and error text as `Field`; the fluent `ComboBox` itself stays (research D8) |
 | `AmPmToggle` / `AmPmSegment` | components.slint | 3 | square segments, 1px `border-strong` edge; selected `surface-selected` + weight 600 (research D11) |
-| `StatusChip` | components.slint | 3 | `radius-full` pill, label-sm text, `space-sm` horizontal padding, `status-*` / `status-*-bg` pairs; text always present |
+| `StatusChip` | components.slint | 3 | `radius-none` (square, human decision 2026-10-31), label-sm text, `space-sm` horizontal padding, shown in the fixed-width left-aligned `StatusColumn` in session rows, `status-*` / `status-*-bg` pairs; text always present |
 | `SectionCard` | components.slint | 3 | `surface` fill, `radius-none`, no border, padding `space-lg`, title in headline-md |
 | `ListRow` | components.slint | 3 | min height `row-height` (40px), `surface` fill, 1px `border` bottom divider; vertical inset keeps a 32px button inside 40px |
 | `EmptyState` | components.slint | 3 | body-md `on-surface-muted` inside the card, padding `space-xl` |

@@ -55,8 +55,8 @@ page compared with DESIGN.md.
 2. **Given** any page, **When** text is shown, **Then** it is IBM Plex Sans at weight 400 or 600
    only, embedded in the app (no installed font needed) (R83).
 3. **Given** any page, **When** buttons, fields, nav items, cards, banners, panels, calendar cells,
-   and the appearance switch are shown, **Then** their corners are square; only status chips are
-   pills (R84, DESIGN.md Shapes).
+   and the appearance switch are shown, **Then** their corners are square, and so are status chips
+   (R84, DESIGN.md Shapes; human decision 2026-10-31).
 4. **Given** any list, **When** rows are shown, **Then** each row is 40px tall with a 1px border
    between rows, and every button and field is 32px tall (R84).
 5. **Given** any page, **When** compared with the build before M17, **Then** the same controls,
@@ -115,7 +115,7 @@ Dashboard), the delete confirm, and the restore confirm, in both themes.
 5. **Given** the dashboard below-target banner, **Then** it has the below-target-bg fill, a 3px
    error-colour rule on its left edge, and the existing "Below target" label and lines (R84,
    DESIGN.md Below-target banner).
-6. **Given** a status chip, **Then** it is a pill with 12px label text on its tinted fill, 8px
+6. **Given** a status chip, **Then** it is square with 12px label text on its tinted fill, 8px
    horizontal padding, and its text label always present (DESIGN.md Status chip).
 7. **Given** a section card, **Then** it is surface-filled, square, with no border, 16px padding,
    and a headline (16px / 600) title (DESIGN.md Section card).
@@ -226,7 +226,7 @@ critique has no open high-severity item, and the human's approval is recorded.
   M17 page uses yet (`success*`, `progress-*`, `calendar-midterm`, `calendar-final`,
   `calendar-public-holiday`), so later milestones add no token.
 - **FR-003** (R82): `radius-sm` and `radius-md` MUST be removed and every `.slint` file MUST use
-  `radius-none` (or `radius-full` for status chips). During the milestone they MAY exist as
+  `radius-none` (status chips included; `radius-full` is kept but unused). During the milestone they MAY exist as
   temporary aliases of `radius-none` so every intermediate commit builds; they MUST be gone at the
   end.
 - **FR-004** (R82, §6, §12.3): No `.slint` file other than `theme.slint` contains a raw hex colour

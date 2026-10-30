@@ -24,6 +24,7 @@ import {
     ComboField,
     TimeField,
     StatusChip,
+    StatusColumn,
     SectionCard,
     ListRow,
 } from "components.slint";
@@ -319,7 +320,7 @@ export component CoursesPage inherits VerticalLayout {
             if CoursesState.summary.below-target: VerticalLayout {
                 alignment: center;
                 Rectangle {
-                    border-radius: Theme.radius-full;
+                    border-radius: Theme.radius-none;
                     background: Theme.below-target-bg;
                     HorizontalLayout {
                         padding-left: Theme.space-sm;
@@ -427,32 +428,39 @@ export component CoursesPage inherits VerticalLayout {
                     alignment: start;
                     // DESIGN.md list row: primary text left, muted metadata next to it.
                     for s in CoursesState.sessions: ListRow {
+                        // Fixed columns (preferred widths that may shrink) keep every row's cells at
+                        // the same x.
                         Body {
                             text: s.date;
                             horizontal-stretch: 0;
+                            preferred-width: Theme.date-column-width;
+                            min-width: 0;
                         }
                         Body {
                             text: s.weekday;
                             horizontal-stretch: 0;
+                            preferred-width: Theme.weekday-column-width;
+                            min-width: 0;
                         }
                         Body {
                             text: s.time;
                             horizontal-stretch: 0;
+                            preferred-width: Theme.time-column-width;
+                            min-width: 0;
                         }
                         Meta {
                             text: s.room;
                             horizontal-stretch: 0;
+                            preferred-width: Theme.room-column-width;
+                            min-width: 0;
                         }
                         Meta {
                             text: s.note;
                             horizontal-stretch: 1;
                         }
-                        VerticalLayout {
-                            alignment: center;
-                            StatusChip {
-                                chip: s.chip;
-                                text: s.status-label;
-                            }
+                        StatusColumn {
+                            chip: s.chip;
+                            text: s.status-label;
                         }
                         // R12: Attended / Absent only once the session has started.
                         VerticalLayout {
