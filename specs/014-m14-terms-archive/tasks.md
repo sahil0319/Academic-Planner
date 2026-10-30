@@ -40,7 +40,7 @@ Stories (for labels):
   `let _: fn(&mut Planner, i64, NaiveDate) -> Result<()> = Planner::archive_term;` and
   `let _: fn(&Planner) -> Result<Vec<PastTermSummary>> = Planner::past_terms;`.
   Commit: `M14: core tests T67-T69`.
-- [ ] T002 [P] [US2] [US3] Write app unit tests in `crates/app/src/viewmodel/tests.rs` against the
+- [x] T002 [P] [US2] [US3] Write app unit tests in `crates/app/src/viewmodel/tests.rs` against the
   frozen signatures in plan.md "App view model": `t66_term_line_active_shows_week_of_total`
   (term "Spring 2026" 2026-01-05..2026-05-01, today 01-21 → text
   `"Spring 2026 · January 5, 2026 – May 1, 2026 · Week 3 of 17"`, link `""`),

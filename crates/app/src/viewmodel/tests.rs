@@ -3859,3 +3859,230 @@ fn r61_empty_text() {
         "0 on track · 0 to watch · 0 at risk"
     );
 }
+
+// ---- M14: terms on the dashboard, save feedback, archive, past terms ----
+
+/// "Spring 2026", Monday 2026-01-05 to Friday 2026-05-01: 17 weeks, Monday-Sunday.
+fn spring_term() -> Term {
+    Term {
+        id: 1,
+        name: "Spring 2026".into(),
+        start_date: d(2026, 1, 5),
+        end_date: d(2026, 5, 1),
+        is_active: true,
+        holidays: Vec::new(),
+    }
+}
+
+fn past_summary(courses: u32, attendance_pct: Option<f64>, gpa: Option<f64>) -> PastTermSummary {
+    PastTermSummary {
+        term: Term {
+            is_active: false,
+            ..spring_term()
+        },
+        courses,
+        attendance_pct,
+        gpa,
+    }
+}
+
+/// R66 (T66): inside the term the line shows the dates and "Week n of N", with no link.
+#[test]
+fn t66_term_line_active_shows_week_of_total() {
+    let term = spring_term();
+
+    let line = dashboard_term_line(Some(&term), d(2026, 1, 21));
+    assert_eq!(
+        line.text,
+        "Spring 2026 · January 5, 2026 – May 1, 2026 · Week 3 of 17"
+    );
+    assert_eq!(line.link, "");
+    assert_eq!(line.full(), line.text);
+
+    // The first and last day are still inside the term.
+    assert_eq!(
+        dashboard_term_line(Some(&term), d(2026, 1, 5)).text,
+        "Spring 2026 · January 5, 2026 – May 1, 2026 · Week 1 of 17"
+    );
+    let last = dashboard_term_line(Some(&term), d(2026, 5, 1));
+    assert_eq!(
+        last.text,
+        "Spring 2026 · January 5, 2026 – May 1, 2026 · Week 17 of 17"
+    );
+    assert_eq!(last.link, "");
+}
+
+/// R66 (T66): before the start date the line says when the term starts, with no link.
+#[test]
+fn t66_term_line_before_start() {
+    let line = dashboard_term_line(Some(&spring_term()), d(2026, 1, 1));
+    assert_eq!(line.text, "Spring 2026 · starts January 5, 2026");
+    assert_eq!(line.link, "");
+}
+
+/// R66 (T66): after the end date the line says the term ended and links to Settings.
+#[test]
+fn t66_term_line_after_end() {
+    let line = dashboard_term_line(Some(&spring_term()), d(2026, 5, 2));
+    assert_eq!(line.text, "Spring 2026 ended on May 1, 2026.");
+    assert_eq!(line.link, "Archive it in Settings.");
+    assert_eq!(
+        line.full(),
+        "Spring 2026 ended on May 1, 2026. Archive it in Settings."
+    );
+}
+
+/// R66 (T66): with no active term the line points to Settings, with no link.
+#[test]
+fn t66_term_line_no_term() {
+    let line = dashboard_term_line(None, d(2026, 1, 21));
+    assert_eq!(line.text, "No active term. Set one up in Settings.");
+    assert_eq!(line.link, "");
+    assert_eq!(line.full(), "No active term. Set one up in Settings.");
+}
+
+/// R54, R66: weeks run Monday to Sunday and week 1 is the week that contains the start date,
+/// even when the term starts mid-week.
+#[test]
+fn r54_term_week_number_monday_to_sunday() {
+    let start = d(2026, 1, 7); // a Wednesday
+    assert_eq!(term_week_number(start, start), 1);
+    assert_eq!(term_week_number(start, d(2026, 1, 5)), 1); // Monday of the first week
+    assert_eq!(term_week_number(start, d(2026, 1, 11)), 1); // Sunday of the first week
+    assert_eq!(term_week_number(start, d(2026, 1, 12)), 2); // next Monday
+    assert_eq!(term_week_number(start, d(2026, 1, 18)), 2);
+    assert_eq!(term_week_number(start, d(2026, 1, 19)), 3);
+    assert_eq!(term_week_number(start, d(2026, 5, 1)), 17); // last day of the spring term
+                                                            // Before the term's first week the number is 0 or negative.
+    assert_eq!(term_week_number(start, d(2026, 1, 4)), 0);
+    assert_eq!(term_week_number(start, d(2025, 12, 28)), -1);
+}
+
+/// R66: the date range writes full dates on both sides, joined by an en dash.
+#[test]
+fn r66_term_date_range_full_dates() {
+    assert_eq!(
+        term_date_range(d(2026, 1, 5), d(2026, 5, 1)),
+        "January 5, 2026 – May 1, 2026"
+    );
+    assert_eq!(
+        term_date_range(d(2025, 9, 1), d(2026, 1, 16)),
+        "September 1, 2025 – January 16, 2026"
+    );
+}
+
+/// R67: the read-only Term card shows the name, the dates, and the week line.
+#[test]
+fn r67_term_card_lines() {
+    let term = spring_term();
+
+    let card = term_card(&term, d(2026, 1, 21));
+    assert_eq!(card.title, "Spring 2026");
+    assert_eq!(card.dates, "January 5, 2026 – May 1, 2026");
+    assert_eq!(card.week, "Week 3 of 17");
+
+    assert_eq!(
+        term_card(&term, d(2026, 1, 1)).week,
+        "Starts January 5, 2026"
+    );
+    assert_eq!(term_card(&term, d(2026, 5, 2)).week, "Ended on May 1, 2026");
+    assert_eq!(term_week_text(&term, d(2026, 5, 1)), "Week 17 of 17");
+    assert_eq!(term_week_text(&term, d(2026, 1, 5)), "Week 1 of 17");
+}
+
+/// R67, R69: the term form shows only with no active term or after Edit.
+#[test]
+fn r67_term_form_open() {
+    assert!(term_form_open(false, false));
+    assert!(term_form_open(false, true));
+    assert!(!term_form_open(true, false));
+    assert!(term_form_open(true, true));
+}
+
+/// R68: Archive is enabled only after the end date, not on it.
+#[test]
+fn r68_archive_enabled_only_after_end() {
+    let end = d(2026, 5, 1);
+    assert!(!archive_enabled(end, d(2026, 4, 30)));
+    assert!(!archive_enabled(end, d(2026, 5, 1)));
+    assert!(archive_enabled(end, d(2026, 5, 2)));
+}
+
+/// R68: a disabled Archive has a muted reason line; an enabled one has none.
+#[test]
+fn r68_archive_hint_text() {
+    let end = d(2026, 5, 1);
+    assert_eq!(
+        archive_hint_text(end, d(2026, 4, 30)),
+        "Archive is available after May 1, 2026."
+    );
+    assert_eq!(
+        archive_hint_text(end, d(2026, 5, 1)),
+        "Archive is available after May 1, 2026."
+    );
+    assert_eq!(archive_hint_text(end, d(2026, 5, 2)), "");
+}
+
+/// R68: the confirm panel text is exact, and the archive toast names the action (R88, R89).
+#[test]
+fn r68_archive_confirm_text_exact() {
+    assert_eq!(
+        archive_confirm_text("Spring 2026"),
+        "Archive Spring 2026? Its courses, attendance, assessments, and marks are kept and \
+         shown under Past terms. You can then set up the next term."
+    );
+    assert_eq!(term_archived_text(), "Term archived.");
+}
+
+/// R70: a Past terms row shows the name, dates, course count, attendance, and GPA, with a
+/// dash for a missing figure and "1 course" in the singular.
+#[test]
+fn r70_past_term_row_formats() {
+    let full = past_term_row(&past_summary(3, Some(87.5), Some(3.4)));
+    assert_eq!(full.name, "Spring 2026");
+    assert_eq!(full.dates, "January 5, 2026 – May 1, 2026");
+    assert_eq!(full.courses, "3 courses");
+    assert_eq!(full.attendance, "Attendance 87.5%");
+    assert_eq!(full.gpa, "GPA 3.40");
+
+    let sparse = past_term_row(&past_summary(1, None, None));
+    assert_eq!(sparse.courses, "1 course");
+    assert_eq!(sparse.attendance, "Attendance —");
+    assert_eq!(sparse.gpa, "GPA —");
+
+    assert_eq!(
+        past_term_row(&past_summary(0, None, None)).courses,
+        "0 courses"
+    );
+}
+
+/// R67, R88, T70: a successful term save shows the "Term saved." toast, clears the fields,
+/// closes the form, and leaves no inline error.
+#[test]
+fn t70_term_save_success_toasts_clears_and_closes() {
+    let outcome = term_save_outcome(&Ok(spring_term()));
+    assert_eq!(outcome.toast.as_deref(), Some("Term saved."));
+    assert!(outcome.clear_fields);
+    assert!(outcome.close_form);
+    assert_eq!(outcome.form_error, "");
+}
+
+/// R67, R88, T70: a failed term save shows no toast, keeps the fields and the form open, and
+/// shows the error inline.
+#[test]
+fn t70_term_save_error_stays_inline() {
+    let error =
+        Error::Validation("term end date 2026-01-04 is before its start date 2026-01-05".into());
+    let expected = error_text(&error);
+    let saved = Err(error);
+
+    let outcome = term_save_outcome(&saved);
+    assert_eq!(outcome.toast, None);
+    assert!(!outcome.clear_fields);
+    assert!(!outcome.close_form);
+    assert_eq!(outcome.form_error, expected);
+    assert_eq!(
+        outcome.form_error,
+        "Term end date 2026-01-04 is before its start date 2026-01-05"
+    );
+}
