@@ -203,7 +203,9 @@ component DayCell inherits Rectangle {
         width: Theme.calendar-marker;
         height: Theme.calendar-marker;
         border-radius: Theme.radius-none;
-        background: Theme.error;
+        // F-02: error on the primary today fill is 1.0:1 (light) and 2.1:1 (dark), so the marker
+        // on today uses on-primary (5.0:1). Departs from DESIGN.md "error square" for today only.
+        background: root.item.is-today ? Theme.on-primary : Theme.error;
     }
 
     if root.item.is-selected || focus-scope.has-focus: FocusRing {

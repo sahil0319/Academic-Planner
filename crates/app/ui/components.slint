@@ -520,14 +520,15 @@ export component SectionCard inherits Rectangle {
 
 // R84: one list row: surface background, bottom divider in `border`; children are laid out
 // left to right. The vertical inset keeps a row holding a field-height button at the row height
-// (row-height, DESIGN.md). Inline padding is space-lg (DESIGN.md list-row padding).
+// (row-height, DESIGN.md). Inline padding is space-sm, not the space-lg of DESIGN.md list-row: rows with
+// 3 to 4 buttons would otherwise truncate the course label (design review F-08, F-13).
 export component ListRow inherits Rectangle {
     min-height: Theme.row-height;
     background: Theme.surface;
 
     HorizontalLayout {
-        padding-left: Theme.space-lg;
-        padding-right: Theme.space-lg;
+        padding-left: Theme.space-sm;
+        padding-right: Theme.space-sm;
         padding-top: (Theme.row-height - Theme.input-height) / 2;
         padding-bottom: (Theme.row-height - Theme.input-height) / 2;
         spacing: Theme.space-sm;
