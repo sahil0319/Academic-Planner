@@ -3,7 +3,7 @@
 //! No Slint types, no clock, no database, no file access. Every function here is unit tested
 //! in `viewmodel/tests.rs`. Contract: `specs/004-m4-desktop-ui/contracts/viewmodel.md`.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use chrono::{Datelike, Days, Duration, NaiveDate, NaiveDateTime, NaiveTime, Timelike, Weekday};
@@ -745,6 +745,8 @@ pub struct CourseRow {
     pub room: String,
     pub target: String,
     pub archived: bool,
+    /// R52: ticked for deletion.
+    pub selected: bool,
 }
 
 /// R3: builds a course row; missing optional fields show an em dash.
@@ -757,7 +759,37 @@ pub fn course_row(c: &Course) -> CourseRow {
         room: or_dash(c.room.as_deref()),
         target: format_target(c.min_attendance_pct),
         archived: c.archived,
+        selected: false,
     }
+}
+
+/// R52: the delete button label for `count` selected courses.
+pub fn delete_selected_label(count: usize) -> String {
+    format!("Delete selected ({count})")
+}
+
+/// R52: the confirm text naming the selected course codes, in the given order.
+pub fn delete_confirm_text(codes: &[&str]) -> String {
+    let noun = if codes.len() == 1 {
+        "course"
+    } else {
+        "courses"
+    };
+    format!(
+        "Delete {noun} {}? Their timetable, sessions, attendance, assessments, and marks are \
+         deleted too. This can't be undone; back up in Settings first if you might need them.",
+        codes.join(", ")
+    )
+}
+
+/// R52: keeps only selected ids that are still listed.
+pub fn retain_listed(selected: &mut BTreeSet<i64>, listed: &[i64]) {
+    selected.retain(|id| listed.contains(id));
+}
+
+/// R52: "Select all" is ticked when the list is non-empty and every listed course is selected.
+pub fn all_selected(selected: &BTreeSet<i64>, listed: &[i64]) -> bool {
+    !listed.is_empty() && listed.iter().all(|id| selected.contains(id))
 }
 
 /// `CSE101 · Intro to Programming` for combo boxes.
@@ -1401,6 +1433,13 @@ pub fn version_text(version: &str) -> String {
 /// §13.1 UI: the one-line license statement.
 pub fn license_text() -> String {
     "Free software under the GNU GPL v3 or later.".to_string()
+}
+
+/// R53: the repo path beside the GitHub button, e.g. `sahil0319/Academic-Planner`.
+pub fn repo_label(url: &str) -> String {
+    url.trim_end_matches('/')
+        .trim_start_matches("https://github.com/")
+        .to_string()
 }
 
 /// R29: the update banner, e.g. "Version 0.2.0 is available.".

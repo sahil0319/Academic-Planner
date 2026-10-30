@@ -176,6 +176,7 @@ pub fn course_row(r: &vm::CourseRow) -> Result<CourseRow, String> {
         room: r.room.as_str().into(),
         target: r.target.as_str().into(),
         archived: r.archived,
+        selected: r.selected,
     })
 }
 

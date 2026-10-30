@@ -65,6 +65,7 @@ pub fn refresh(app: &App) {
     page.set_app_name(APP_NAME.into());
     page.set_version_text(vm::version_text(updater::RUNNING_VERSION).into());
     page.set_license_text(vm::license_text().into());
+    page.set_repo_label(vm::repo_label(updater::REPO_URL).into());
     page.set_db_path(vm::db_path_text(app.db_path()).into());
     load_switch(app, &window);
     show_update(&window);

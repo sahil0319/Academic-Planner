@@ -1210,6 +1210,7 @@ fn course_row_dashes_for_missing_fields() {
             room: "—".to_string(),
             target: "—".to_string(),
             archived: true,
+            selected: false,
         }
     );
 }
@@ -1222,6 +1223,36 @@ fn course_row_with_all_fields() {
     assert_eq!(row.room, "B12");
     assert_eq!(row.target, "75%");
     assert!(!row.archived);
+}
+
+/// R52: the delete button counts the selection; the confirm text names the codes (T54).
+#[test]
+fn t54_delete_label_and_confirm_text() {
+    assert_eq!(delete_selected_label(1), "Delete selected (1)");
+    assert_eq!(delete_selected_label(3), "Delete selected (3)");
+    let text = delete_confirm_text(&["CSE101", "MAT102"]);
+    assert!(
+        text.starts_with("Delete courses CSE101, MAT102? "),
+        "{text}"
+    );
+    assert!(text.contains("can't be undone"), "{text}");
+    assert!(delete_confirm_text(&["CSE101"]).starts_with("Delete course CSE101? "));
+}
+
+/// R52: the selection drops courses no longer listed; "Select all" needs every listed course
+/// selected and at least one course (T54).
+#[test]
+fn t54_selection_follows_the_list() {
+    let mut selected: BTreeSet<i64> = [1, 2, 3].into_iter().collect();
+    retain_listed(&mut selected, &[1, 3, 4]);
+    assert_eq!(selected.into_iter().collect::<Vec<_>>(), vec![1, 3]);
+
+    let none = BTreeSet::new();
+    assert!(!all_selected(&none, &[]));
+    assert!(!all_selected(&none, &[1]));
+    let some: BTreeSet<i64> = [1, 2].into_iter().collect();
+    assert!(all_selected(&some, &[1, 2]));
+    assert!(!all_selected(&some, &[1, 2, 5]));
 }
 
 /// Combo label is code, middle dot, name.
@@ -2340,6 +2371,16 @@ fn version_text_prefixes_version() {
 }
 
 /// §13.1 UI: the license line.
+/// R53: the GitHub button shows the owner/repo path of the repo URL.
+#[test]
+fn repo_label_is_owner_and_repo() {
+    assert_eq!(
+        repo_label("https://github.com/sahil0319/Academic-Planner"),
+        "sahil0319/Academic-Planner"
+    );
+    assert_eq!(repo_label("https://github.com/a/b/"), "a/b");
+}
+
 #[test]
 fn license_text_states_gpl() {
     assert_eq!(

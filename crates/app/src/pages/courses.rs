@@ -1,8 +1,10 @@
 //! Courses page: fills `CoursesState` (contracts/ui-bridge.md "CoursesState"). Course list with
-//! the show-archived toggle (R3), create / edit form (R2), archive / unarchive (R3), and the
+//! the show-archived toggle (R3), multi-select delete (R52), create / edit form (R2), archive /
+//! unarchive (R3), and the
 //! course detail: attendance summary (R13–R15), every session with status actions (R11, R12), and
 //! "Add makeup class" (R10). Course changes sync sessions (R6); status and makeup changes do not.
 
+use std::collections::BTreeSet;
 use std::rc::{Rc, Weak};
 
 use slint::{ComponentHandle, SharedString};
@@ -40,8 +42,31 @@ fn fill(
 ) -> Result<(), String> {
     let planner = app.planner();
     let courses = planner.list_courses(show_archived).map_err(err)?;
-    let rows: Vec<_> = courses.iter().map(vm::course_row).collect();
+    // R52: the selection only holds listed courses.
+    let listed: Vec<i64> = courses.iter().map(|c| c.id).collect();
+    let (count, all) = {
+        let mut state = app.state();
+        vm::retain_listed(&mut state.selected_courses, &listed);
+        (
+            state.selected_courses.len(),
+            vm::all_selected(&state.selected_courses, &listed),
+        )
+    };
+    let selected = app.state().selected_courses.clone();
+    let rows: Vec<_> = courses
+        .iter()
+        .map(|c| vm::CourseRow {
+            selected: selected.contains(&c.id),
+            ..vm::course_row(c)
+        })
+        .collect();
     ui.set_courses(bridge::rows(&rows, bridge::course_row)?);
+    ui.set_selected_count(i32::try_from(count).unwrap_or(i32::MAX));
+    ui.set_all_selected(all);
+    ui.set_delete_label(vm::delete_selected_label(count).into());
+    if count == 0 {
+        ui.set_confirm_delete(false);
+    }
     // R40: term GPA in the page header.
     ui.set_gpa_text(vm::gpa_header_text(&planner.term_gpa().map_err(err)?).into());
     // R33: the rule set choice offers "Not graded" and the current rule sets.
@@ -114,6 +139,50 @@ pub fn wire(app: &Rc<App>) {
             app.state().show_archived = show;
             refresh(app);
         })
+    });
+
+    let weak = Rc::downgrade(app);
+    ui.on_toggle_selected(move |id, on| {
+        with(&weak, |app, ui| {
+            {
+                let selected = &mut app.state().selected_courses;
+                if on {
+                    selected.insert(i64::from(id));
+                } else {
+                    selected.remove(&i64::from(id));
+                }
+            }
+            ui.set_confirm_delete(false);
+            refresh(app);
+        })
+    });
+
+    let weak = Rc::downgrade(app);
+    ui.on_select_all(move |on| {
+        with(&weak, |app, ui| {
+            let listed = if on {
+                match app.planner().list_courses(app.state().show_archived) {
+                    Ok(courses) => courses.into_iter().map(|c| c.id).collect(),
+                    Err(e) => return ui.set_message(err(e).into()),
+                }
+            } else {
+                BTreeSet::new()
+            };
+            app.state().selected_courses = listed;
+            ui.set_confirm_delete(false);
+            refresh(app);
+        })
+    });
+
+    let weak = Rc::downgrade(app);
+    ui.on_ask_delete(move || with(&weak, ask_delete));
+
+    let weak = Rc::downgrade(app);
+    ui.on_confirm_delete_selected(move || with(&weak, delete_selected));
+
+    let weak = Rc::downgrade(app);
+    ui.on_cancel_delete(move || {
+        with(&weak, |_, ui| ui.set_confirm_delete(false));
     });
 
     let weak = Rc::downgrade(app);
@@ -224,6 +293,45 @@ fn clear_makeup_form(ui: &CoursesState<'_>) {
     }
     ui.set_mk_start_pm(false);
     ui.set_mk_end_pm(false);
+}
+
+/// R52: opens the confirm panel naming the selected course codes.
+fn ask_delete(app: &App, ui: &CoursesState<'_>) {
+    let selected = app.state().selected_courses.clone();
+    let courses = match app.planner().list_courses(true) {
+        Ok(courses) => courses,
+        Err(e) => return ui.set_message(err(e).into()),
+    };
+    let codes: Vec<&str> = courses
+        .iter()
+        .filter(|c| selected.contains(&c.id))
+        .map(|c| c.code.as_str())
+        .collect();
+    if codes.is_empty() {
+        return;
+    }
+    ui.set_confirm_delete_text(vm::delete_confirm_text(&codes).into());
+    ui.set_confirm_delete(true);
+}
+
+/// R51, R52: deletes the selected courses, clears the selection, closes the detail or form of a
+/// deleted course, and syncs (R6).
+fn delete_selected(app: &App, ui: &CoursesState<'_>) {
+    let ids: Vec<i64> = app.state().selected_courses.iter().copied().collect();
+    let result = app.planner_mut().delete_courses(&ids);
+    ui.set_confirm_delete(false);
+    if result.is_ok() {
+        let mut state = app.state();
+        state.selected_courses.clear();
+        if state.detail_course.is_some_and(|id| ids.contains(&id)) {
+            state.detail_course = None;
+        }
+        drop(state);
+        if ids.contains(&i64::from(ui.get_editing_id())) {
+            ui.set_form_open(false);
+        }
+    }
+    after(app, ui, result, true);
 }
 
 /// Opens an empty form for a new course.

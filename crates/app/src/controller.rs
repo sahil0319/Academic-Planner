@@ -3,6 +3,7 @@
 //! contracts/ui-bridge.md "Controller").
 
 use std::cell::{Ref, RefCell, RefMut};
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -27,6 +28,8 @@ pub struct UiState {
     pub show_archived: bool,
     /// Course whose detail panel is open.
     pub detail_course: Option<i64>,
+    /// R52: courses ticked for deletion on the Courses page.
+    pub selected_courses: BTreeSet<i64>,
     /// Assessments page filter.
     pub filter: FilterChoice,
     /// Session selected in the week view.
@@ -54,6 +57,7 @@ impl UiState {
             week_start: viewmodel::week_start(today),
             show_archived: false,
             detail_course: None,
+            selected_courses: BTreeSet::new(),
             filter: FilterChoice::Upcoming,
             selected_session: None,
             course_ids: Vec::new(),

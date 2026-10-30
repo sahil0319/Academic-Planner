@@ -1,5 +1,5 @@
 // Courses page (docs/spec.md §6, contracts/ui-bridge.md "CoursesState"): course list with the
-// show-archived toggle (R3), course form (R2), and course detail with the attendance summary
+// show-archived toggle (R3), multi-select delete (R52), course form (R2), and course detail with the attendance summary
 // (R13-R15), every session with status actions (R11, R12), and "Add makeup class" (R10).
 // Bindings only; every data-derived string comes from src/viewmodel.rs.
 import { CheckBox, ScrollView } from "std-widgets.slint";
@@ -87,7 +87,20 @@ export global CoursesState {
     in property <string> mk-end-error;
     in property <string> mk-form-error;
 
+    // R52: multi-select delete. `selected-count` > 0 shows `delete-label`; the confirm panel
+    // shows `confirm-delete-text`.
+    in property <int> selected-count;
+    in property <bool> all-selected;
+    in property <string> delete-label;
+    in property <bool> confirm-delete;
+    in property <string> confirm-delete-text;
+
     callback toggle-archived(bool);
+    callback toggle-selected(int, bool);
+    callback select-all(bool);
+    callback ask-delete();
+    callback confirm-delete-selected();
+    callback cancel-delete();
     callback begin-create();
     callback begin-edit(int);
     callback save-course();
@@ -524,8 +537,70 @@ export component CoursesPage inherits VerticalLayout {
             text: "No courses yet. Your courses appear here; add one with New course above.";
         }
 
+        // R52: select courses, then delete them after a confirm.
+        if CoursesState.courses.length > 0: HorizontalLayout {
+            spacing: Theme.space-md;
+            alignment: start;
+            CheckBox {
+                text: "Select all";
+                checked: CoursesState.all-selected;
+                toggled => {
+                    CoursesState.select-all(self.checked);
+                }
+            }
+            if CoursesState.selected-count > 0 && !CoursesState.confirm-delete: SecondaryButton {
+                text: CoursesState.delete-label;
+                clicked => {
+                    CoursesState.ask-delete();
+                }
+            }
+        }
+
+        if CoursesState.confirm-delete: Rectangle {
+            background: Theme.surface-alt;
+            border-radius: Theme.radius-sm;
+
+            VerticalLayout {
+                padding: Theme.space-md;
+                spacing: Theme.space-sm;
+
+                Body {
+                    text: CoursesState.confirm-delete-text;
+                    wrap: word-wrap;
+                    overflow: clip;
+                }
+
+                HorizontalLayout {
+                    spacing: Theme.space-sm;
+                    alignment: start;
+                    PrimaryButton {
+                        text: CoursesState.delete-label;
+                        clicked => {
+                            CoursesState.confirm-delete-selected();
+                        }
+                    }
+
+                    SecondaryButton {
+                        text: "Cancel";
+                        clicked => {
+                            CoursesState.cancel-delete();
+                        }
+                    }
+                }
+            }
+        }
+
         if CoursesState.courses.length > 0: VerticalLayout {
             for c in CoursesState.courses: ListRow {
+                VerticalLayout {
+                    alignment: center;
+                    CheckBox {
+                        checked: c.selected;
+                        toggled => {
+                            CoursesState.toggle-selected(c.id, self.checked);
+                        }
+                    }
+                }
                 VerticalLayout {
                     horizontal-stretch: 1;
                     alignment: center;
