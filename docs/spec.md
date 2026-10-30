@@ -248,7 +248,7 @@ impl Planner {
 }
 ```
 
-M7–M10 add the methods listed in §13.
+M7–M11 add the methods listed in §13.
 
 `SessionView` includes course code/name, `display_status` ("Pending" / "Attended" / "Absent" / "Cancelled" / "Rescheduled → 2026-01-15"), and `is_past` (`now >= session start`, i.e. attendance may be marked per R12; `now` is passed in because core never reads the clock).
 
@@ -286,6 +286,7 @@ Each milestone ends with the **gate**: `cargo fmt --check && cargo clippy --work
 | **M8** | 12-hour time display and `HHMM` + AM/PM input (§13.2) | Gate passes; T34–T35 pass; theme grep check passes |
 | **M9** | Credits, rule sets, marks, needed-in-final, grade scale, term GPA (§13.3) | Gate passes; T36–T43 pass |
 | **M10** | Courses + timetable JSON import with preview, template, AI prompt (§13.4) | Gate passes; T44–T50 pass |
+| **M11** | Delete courses (multi-select) and the GitHub button on About (§13.6) | Gate passes; T51–T54 pass |
 
 **Parallelism:** after M1 the API is frozen as stubs, so one agent can do M2–M3 (core) while another builds M4 (UI) against the stubs. Merge before the M4 smoke test.
 
@@ -326,7 +327,7 @@ Fixture unless stated: active term **2026-01-05 (Mon) → 2026-01-25 (Sun)**; co
 | T29 | two courses, dashboard on 01-05 | today's classes sorted by start time |
 | T30 | export → restore into empty DB → export | JSON equal except `exported_at`; bad format / newer version → error and DB unchanged |
 
-T31–T50 (M7–M10) are in §13.5.
+T31–T50 (M7–M10) are in §13.5; T51–T54 (M11) in §13.6.
 
 ## 9. M4 manual smoke checklist (human, ~5 minutes)
 
@@ -425,7 +426,7 @@ Never run Spec Kit on the whole app at once. Per-milestone features keep `tasks.
 - `progress.json`: `{"milestone": "M2", "phase": "implement", "tasks": {"T001": "done", ...}}`, using Spec Kit task IDs. The agent updates it after each task, not at the end.
 - `checkpoint.md`, at most 15 lines: current milestone, last green gate (commit hash), next task, open questions. A new session reads **only** `AGENTS.md` + `checkpoint.md` + the current `specs/<milestone>/tasks.md`. This replaces re-reading chat history and is the cheapest way to resume after `/clear` or an expired prompt cache.
 
-## 13. After v0.1.1: M7–M10 (human decisions 2026-10-29)
+## 13. After v0.1.1: M7–M11 (human decisions 2026-10-29, M11 2026-10-30)
 
 Build in order: **M7 → M8 → M9 → M10**. The updater ships first so every later feature reaches installed copies with one click. Rules continue the R-numbering (R26–R50) and tests continue the T-numbering (§13.5). Everything in §1–§12 still applies.
 
@@ -592,3 +593,27 @@ Core integration tests unless marked (app) = `viewmodel.rs`/updater unit tests.
 | T48 | bad day, end ≤ start, duplicate code, unknown rule set | all errors returned with JSON paths; DB unchanged |
 | T49 | course in DB, absent from file | unchanged |
 | T50 | preview, then apply | preview writes nothing; apply result matches the preview |
+
+### 13.6 M11: delete courses, GitHub button (human decisions 2026-10-30)
+
+Light flow: no Spec Kit plan/checklist/analyze artifacts; T-tests first, then the gate. No schema change.
+
+**Rules**
+- **R51** `delete_courses(ids)` permanently deletes the given courses and everything that belongs to them, in one transaction: their slots, all their sessions (regular and makeup), their assessments (with scores), and the `reminder_log` rows of those sessions and assessments. A `replaces_session_id` that points at a deleted session is cleared. The term, holidays, rule sets, grade scale, settings, and every other course are untouched. Archived courses can be deleted. If any id does not exist, the result is `Error::NotFound` and nothing is deleted. An empty list does nothing. Duplicate ids are allowed.
+- **R52** Courses page: every course row has a checkbox; a "Select all" checkbox selects every listed course. While at least one course is selected, a "Delete selected (N)" button shows. It opens an inline confirm panel that names the selected course codes and says their timetable, sessions, attendance, assessments, and marks are deleted too, cannot be undone, and suggests a backup (Settings) first. Confirm deletes (R51), clears the selection, closes the detail or form of a deleted course, and syncs (R6). Cancel keeps the selection. The selection only holds courses currently listed (hiding archived courses drops them from it). Labels and the confirm text come from `viewmodel.rs`.
+- **R53** About page: the "Source code" button becomes a GitHub button: the GitHub mark and "View on GitHub", with the repo path `sahil0319/Academic-Planner` beside it; it opens the repo page as before. Colors and sizes come from `Theme.*`.
+
+**API addition**
+
+```rust
+pub fn delete_courses(&mut self, ids: &[i64]) -> Result<()>;   // R51
+```
+
+**Tests**
+
+| ID | Given | Then |
+|---|---|---|
+| T51 | 3 synced courses with assessments and a makeup; delete 2 | those courses, slots, sessions, assessments gone; the third course and its data unchanged; rule sets and holidays unchanged; sync recreates nothing for the deleted |
+| T52 | delete [existing, 999] | `Error::NotFound`; nothing deleted |
+| T53 | deleted course had reminder_log rows and a makeup replacing its session | those log rows gone; no dangling `replaces_session_id`; `[]` and duplicate ids are fine |
+| T54 (app) | 0 / 1 / 3 selected; codes CSE101, MAT102 | button "Delete selected (1)" / "(3)"; confirm text names "CSE101, MAT102" |
