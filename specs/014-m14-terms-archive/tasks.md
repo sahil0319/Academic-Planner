@@ -83,7 +83,7 @@ Stories (for labels):
 
 ## Phase 3: View model (builder) — US2, US3
 
-- [ ] T005 [US2] [US3] Add to `crates/app/src/viewmodel.rs` exactly the plan.md "App view model"
+- [x] T005 [US2] [US3] Add to `crates/app/src/viewmodel.rs` exactly the plan.md "App view model"
   items: `term_week_number`, `term_date_range`, `TermLine` (+ `full`), `dashboard_term_line`,
   `TermCard`, `term_card`, `term_week_text`, `term_form_open`, `archive_enabled`,
   `archive_hint_text`, `archive_confirm_text`, `term_archived_text`, `PastTermRow`,

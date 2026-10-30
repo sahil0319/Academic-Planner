@@ -1075,20 +1075,21 @@ pub fn show_next_card(next: Option<&SessionRow>, today: &[SessionRow]) -> bool {
 }
 
 // ---- M14 terms: dashboard line, Settings term card, archive, past terms ----
-//
-// Stubs until task T005; the `dead_code` allows go away when the pages use them.
 
 /// R54 numbering (own helper; M12 is not on this branch): weeks run Monday-Sunday, week 1 is the
 /// week containing `start`; 0 or negative before the term's first week.
 #[allow(dead_code)]
-pub fn term_week_number(_start: NaiveDate, _date: NaiveDate) -> i64 {
-    todo!("M14 T005: term_week_number")
+pub fn term_week_number(start: NaiveDate, date: NaiveDate) -> i64 {
+    (week_start(date) - week_start(start))
+        .num_days()
+        .div_euclid(7)
+        + 1
 }
 
 /// R66: `"January 5, 2026 – May 1, 2026"` (full dates both sides).
 #[allow(dead_code)]
-pub fn term_date_range(_start: NaiveDate, _end: NaiveDate) -> String {
-    todo!("M14 T005: term_date_range")
+pub fn term_date_range(start: NaiveDate, end: NaiveDate) -> String {
+    format!("{} \u{2013} {}", format_date(start), format_date(end))
 }
 
 /// R66: the dashboard term line, split so the trailing sentence can be a link.
@@ -1105,14 +1106,48 @@ impl TermLine {
     /// `text`, then a space and `link` when `link` is not empty (the R66 sentence).
     #[allow(dead_code)]
     pub fn full(&self) -> String {
-        todo!("M14 T005: TermLine::full")
+        if self.link.is_empty() {
+            self.text.clone()
+        } else {
+            format!("{} {}", self.text, self.link)
+        }
     }
 }
 
 /// R66: `term` is the active term (None = no active term).
 #[allow(dead_code)]
-pub fn dashboard_term_line(_term: Option<&Term>, _today: NaiveDate) -> TermLine {
-    todo!("M14 T005: dashboard_term_line")
+pub fn dashboard_term_line(term: Option<&Term>, today: NaiveDate) -> TermLine {
+    let Some(term) = term else {
+        return TermLine {
+            text: "No active term. Set one up in Settings.".to_string(),
+            link: String::new(),
+        };
+    };
+    if today < term.start_date {
+        TermLine {
+            text: format!(
+                "{} \u{b7} starts {}",
+                term.name,
+                format_date(term.start_date)
+            ),
+            link: String::new(),
+        }
+    } else if today > term.end_date {
+        TermLine {
+            text: format!("{} ended on {}.", term.name, format_date(term.end_date)),
+            link: "Archive it in Settings.".to_string(),
+        }
+    } else {
+        TermLine {
+            text: format!(
+                "{} \u{b7} {} \u{b7} {}",
+                term.name,
+                term_date_range(term.start_date, term.end_date),
+                term_week_text(term, today)
+            ),
+            link: String::new(),
+        }
+    }
 }
 
 /// R67: read-only Term card lines of the active term.
@@ -1126,45 +1161,66 @@ pub struct TermCard {
 
 /// R67: the read-only Term card of the active term.
 #[allow(dead_code)]
-pub fn term_card(_term: &Term, _today: NaiveDate) -> TermCard {
-    todo!("M14 T005: term_card")
+pub fn term_card(term: &Term, today: NaiveDate) -> TermCard {
+    TermCard {
+        title: term.name.clone(),
+        dates: term_date_range(term.start_date, term.end_date),
+        week: term_week_text(term, today),
+    }
 }
 
 /// R67 week line: `"Week {n} of {N}"` within the term, `"Starts {start}"` before it,
-/// `"Ended on {end}"` after it.
+/// `"Ended on {end}"` after it. The dashboard line (R66) reuses the in-term form.
 #[allow(dead_code)]
-pub fn term_week_text(_term: &Term, _today: NaiveDate) -> String {
-    todo!("M14 T005: term_week_text")
+pub fn term_week_text(term: &Term, today: NaiveDate) -> String {
+    if today < term.start_date {
+        format!("Starts {}", format_date(term.start_date))
+    } else if today > term.end_date {
+        format!("Ended on {}", format_date(term.end_date))
+    } else {
+        format!(
+            "Week {} of {}",
+            term_week_number(term.start_date, today),
+            term_week_number(term.start_date, term.end_date)
+        )
+    }
 }
 
 /// R67, R69: the term form shows only when there is no active term or after Edit.
 #[allow(dead_code)]
-pub fn term_form_open(_has_term: bool, _editing: bool) -> bool {
-    todo!("M14 T005: term_form_open")
+pub fn term_form_open(has_term: bool, editing: bool) -> bool {
+    !has_term || editing
 }
 
 /// R68: Archive is enabled only when `today > end`.
 #[allow(dead_code)]
-pub fn archive_enabled(_end: NaiveDate, _today: NaiveDate) -> bool {
-    todo!("M14 T005: archive_enabled")
+pub fn archive_enabled(end: NaiveDate, today: NaiveDate) -> bool {
+    today > end
 }
 
 /// R68: muted line under a disabled Archive; `""` when enabled.
 #[allow(dead_code)]
-pub fn archive_hint_text(_end: NaiveDate, _today: NaiveDate) -> String {
-    todo!("M14 T005: archive_hint_text")
+pub fn archive_hint_text(end: NaiveDate, today: NaiveDate) -> String {
+    if archive_enabled(end, today) {
+        String::new()
+    } else {
+        format!("Archive is available after {}.", format_date(end))
+    }
 }
 
 /// R68: the inline archive confirmation text.
 #[allow(dead_code)]
-pub fn archive_confirm_text(_name: &str) -> String {
-    todo!("M14 T005: archive_confirm_text")
+pub fn archive_confirm_text(name: &str) -> String {
+    format!(
+        "Archive {name}? Its courses, attendance, assessments, and marks are kept and shown \
+         under Past terms. You can then set up the next term."
+    )
 }
 
 /// R88, R89: toast after a successful archive.
 #[allow(dead_code)]
 pub fn term_archived_text() -> String {
-    todo!("M14 T005: term_archived_text")
+    "Term archived.".to_string()
 }
 
 /// R70: one read-only Past terms row.
@@ -1178,10 +1234,19 @@ pub struct PastTermRow {
     pub gpa: String,
 }
 
-/// R70: the Past terms row of one summary.
+/// R70: the Past terms row of one summary (R13 attendance, R40 GPA with two decimals).
 #[allow(dead_code)]
-pub fn past_term_row(_s: &PastTermSummary) -> PastTermRow {
-    todo!("M14 T005: past_term_row")
+pub fn past_term_row(s: &PastTermSummary) -> PastTermRow {
+    PastTermRow {
+        name: s.term.name.clone(),
+        dates: term_date_range(s.term.start_date, s.term.end_date),
+        courses: count_text(s.courses as usize, "course", "courses"),
+        attendance: format!("Attendance {}", format_pct(s.attendance_pct)),
+        gpa: format!(
+            "GPA {}",
+            s.gpa.map_or_else(|| DASH.to_string(), |g| fixed(g, 2))
+        ),
+    }
 }
 
 /// R67, R88, T70: what the Settings page does after `save_term` returned `saved`.
@@ -1194,10 +1259,24 @@ pub struct TermSaveOutcome {
     pub form_error: String,
 }
 
-/// R67, R88, T70: the outcome of a term save.
+/// R67, R88, T70: the outcome of a term save. Success toasts, clears the fields, and closes
+/// the form; an error keeps both and shows the message inline (R89: no toast on error).
 #[allow(dead_code)]
-pub fn term_save_outcome(_saved: &planner_core::Result<Term>) -> TermSaveOutcome {
-    todo!("M14 T005: term_save_outcome")
+pub fn term_save_outcome(saved: &planner_core::Result<Term>) -> TermSaveOutcome {
+    match saved {
+        Ok(_) => TermSaveOutcome {
+            toast: Some(term_saved_text()),
+            clear_fields: true,
+            close_form: true,
+            form_error: String::new(),
+        },
+        Err(e) => TermSaveOutcome {
+            toast: None,
+            clear_fields: false,
+            close_form: false,
+            form_error: error_text(e),
+        },
+    }
 }
 
 // ---- Errors, files, timer ----
