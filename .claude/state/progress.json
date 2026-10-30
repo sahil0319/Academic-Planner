@@ -9,7 +9,7 @@
     "M15 spec": "done",
     "M16 spec": "done",
     "M17 spec + DESIGN.md v2": "done",
-    "DESIGN.md lint": "pending (npx blocked; human to run)",
+    "DESIGN.md lint": "done (0 errors, 0 warnings)",
     "M12-M17 build": "not started (human decision: spec only)"
   }
 }
