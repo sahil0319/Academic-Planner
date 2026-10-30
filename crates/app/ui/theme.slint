@@ -1,6 +1,6 @@
 // Design tokens from DESIGN.md v2 (IBM Carbon, R82). The only place colors and sizes are defined.
-// Values are copied exactly from the DESIGN.md front matter. Dark is very dark navy (human
-// decision 2026-10-31).
+// Values are copied exactly from the DESIGN.md front matter. Dark uses the GitHub Dark Dimmed
+// palette of VS Code (human decision 2026-10-31).
 import { Palette } from "std-widgets.slint";
 
 export global Theme {
@@ -19,20 +19,20 @@ export global Theme {
     out property <color> primary-hover: dark ? #0050E6 : #0050E6;
     out property <color> primary-active: dark ? #002D9C : #002D9C;
     out property <color> on-primary: dark ? #FFFFFF : #FFFFFF;
-    out property <color> neutral: dark ? #0B1220 : #FFFFFF;
-    out property <color> surface: dark ? #111A2E : #F4F4F4;
-    out property <color> surface-alt: dark ? #0B1220 : #FFFFFF;
-    out property <color> surface-hover: dark ? #212D4F : #E8E8E8;
-    out property <color> surface-selected: dark ? #2B3C6E : #E0E0E0;
+    out property <color> neutral: dark ? #22272E : #FFFFFF;
+    out property <color> surface: dark ? #2D333B : #F4F4F4;
+    out property <color> surface-alt: dark ? #1C2128 : #FFFFFF;
+    out property <color> surface-hover: dark ? #373E47 : #E8E8E8;
+    out property <color> surface-selected: dark ? #444C56 : #E0E0E0;
     out property <color> surface-inverse: dark ? #F4F4F4 : #161616;
     out property <color> on-surface-inverse: dark ? #161616 : #FFFFFF;
-    out property <color> field: dark ? #1A2542 : #FFFFFF;
-    out property <color> border: dark ? #26324D : #E0E0E0;
-    out property <color> border-strong: dark ? #6B7A99 : #8D8D8D;
-    out property <color> on-surface: dark ? #E8EDF7 : #161616;
-    out property <color> on-surface-muted: dark ? #A9B4CC : #525252;
-    out property <color> on-surface-subtle: dark ? #8C98B3 : #6F6F6F;
-    out property <color> link: dark ? #78A9FF : #0F62FE;
+    out property <color> field: dark ? #22272E : #FFFFFF;
+    out property <color> border: dark ? #444C56 : #E0E0E0;
+    out property <color> border-strong: dark ? #768390 : #8D8D8D;
+    out property <color> on-surface: dark ? #CDD9E5 : #161616;
+    out property <color> on-surface-muted: dark ? #B4C1CE : #525252;
+    out property <color> on-surface-subtle: dark ? #9CA9B7 : #6F6F6F;
+    out property <color> link: dark ? #5FA3F7 : #0F62FE;
     out property <color> focus: dark ? #FFFFFF : #0F62FE;
     out property <color> error: dark ? #FF8389 : #DA1E28;
     out property <color> status-attended: dark ? #6FDC8C : #0E6027;
@@ -45,9 +45,9 @@ export global Theme {
     out property <color> status-pending-bg: dark ? #483700 : #FCF4D6;
     out property <color> below-target: dark ? #FFB3B8 : #A2191F;
     out property <color> below-target-bg: dark ? #4A0C10 : #FFF1F1;
-    out property <color> progress-track: dark ? #26324D : #E0E0E0;
-    out property <color> progress-fill: dark ? #E8EDF7 : #161616;
-    out property <color> progress-target: dark ? #78A9FF : #0F62FE;
+    out property <color> progress-track: dark ? #444C56 : #E0E0E0;
+    out property <color> progress-fill: dark ? #CDD9E5 : #161616;
+    out property <color> progress-target: dark ? #5FA3F7 : #0F62FE;
     out property <color> calendar-holiday: dark ? #002D9C : #D0E2FF;
     out property <color> calendar-midterm: dark ? #6929C4 : #D4BBFF;
     out property <color> calendar-final: dark ? #9F1853 : #FFAFD2;

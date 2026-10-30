@@ -65,7 +65,7 @@ page compared with DESIGN.md.
 
 ---
 
-### User Story 2 - Dark theme in very dark navy (Priority: P1)
+### User Story 2 - Dark theme in the GitHub Dark Dimmed palette (Priority: P1)
 
 The user switches the appearance to Dark (or System on a dark OS). Every page uses the `dark-*`
 values of DESIGN.md v2.
@@ -78,9 +78,10 @@ dark value or dark mode breaks.
 
 **Acceptance Scenarios**:
 
-1. **Given** Dark appearance, **When** any page is shown, **Then** the page is `#0B1220`, cards
-   `#111A2E`, fields `#1A2542`, text `#E8EDF7` / `#A9B4CC` / `#8C98B3`, links `#78A9FF`, focus
-   `#FFFFFF` (R82; navy values are a human decision of 2026-10-31, replacing the Carbon g100 greys).
+1. **Given** Dark appearance, **When** any page is shown, **Then** the page is `#22272E`, cards
+   `#2D333B`, fields `#22272E`, text `#CDD9E5` / `#B4C1CE` / `#9CA9B7`, links `#5FA3F7`, focus
+   `#FFFFFF` (R82; the values follow the VS Code theme GitHub Dark Dimmed, a human decision of
+   2026-10-31, replacing the Carbon g100 greys).
 2. **Given** System appearance, **When** the OS switches between light and dark, **Then** the app
    follows as it does today (§6 Appearance; detection logic unchanged).
 3. **Given** Dark appearance, **When** status chips, the below-target banner, and calendar fills are

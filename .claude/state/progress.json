@@ -17,6 +17,7 @@
     "M17 human fix 1 (appearance switch gap)": "done",
     "M17 human fix 2 (Rules form row columns)": "done",
     "M17 human fix 3 (square status chips, aligned columns)": "done",
-    "M17 human fix 4 (dark theme very dark navy)": "done (human decision 2026-10-31; dark-* tokens in DESIGN.md, theme.slint, contract; light unchanged)"
+    "M17 human fix 4 (dark theme very dark navy)": "done (human decision 2026-10-31; dark-* tokens in DESIGN.md, theme.slint, contract; light unchanged)",
+    "M17 human fix 5 (dark theme GitHub Dark Dimmed palette)": "done (human decision 2026-10-31; replaces navy; dark-* tokens in DESIGN.md, theme.slint, contract, spec wording; light unchanged)"
   }
 }
