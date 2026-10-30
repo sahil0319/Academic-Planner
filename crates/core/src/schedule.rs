@@ -191,6 +191,10 @@ impl Planner {
 /// existing row for that `(slot, date)` is left untouched, whatever its status (R8). The
 /// session copies start, end, and room (slot room, else course room) at creation time.
 ///
+/// R55: a slot with `week_parity` only produces sessions on dates whose term-week parity
+/// (R54, from the active term's start) equals it; a holiday skips its week but never shifts
+/// the pattern.
+///
 /// R5: sync never deletes past or non-pending sessions; it deletes a session only when it
 /// is regular, pending, dated on or after `today`, no longer produced by R4, and not
 /// referenced by any makeup's `replaces_session_id` (R9, R12; research R-D13).
@@ -227,7 +231,10 @@ pub(crate) fn sync_in(conn: &Connection, today: NaiveDate) -> Result<SyncReport>
         let last = term.end_date.min(slot.valid_to.unwrap_or(term.end_date));
         let mut day = first_weekday_on_or_after(first, slot.weekday);
         while let Some(date) = day.filter(|d| *d <= last) {
-            if !holidays.contains(&date) {
+            let parity_ok = slot
+                .week_parity
+                .is_none_or(|p| p == term_week_parity(term.start_date, date));
+            if parity_ok && !holidays.contains(&date) {
                 expected.insert((slot.id, date));
                 report.created += insert.execute(params![
                     slot.course_id,

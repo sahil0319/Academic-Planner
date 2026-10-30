@@ -14,7 +14,7 @@ Tests (tester) come before implementation (builder). Decisions are in `decisions
 
 ## Phase 3: core (builder)
 - [x] T006 R54 `term_week_parity` (T55)
-- [ ] T007 R55 sync and slot persistence with parity (T56)
+- [x] T007 R55 sync and slot persistence with parity (T56)
 - [ ] T008 R57 `shift_biweekly` (T57, T58)
 - [ ] T009 R60 backup and migration (T60)
 - [ ] T010 R59 import `biweekly` key, R45 comparison, template and AI prompt (T59)
