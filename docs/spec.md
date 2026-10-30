@@ -294,6 +294,7 @@ Each milestone ends with the **gate**: `cargo fmt --check && cargo clippy --work
 | **M16** | Public holidays of the user's country from Google's public holiday calendar (§13.11) | Gate passes; T75–T79 pass; human sees their country's holidays on the dashboard |
 | **M17** | Carbon restyle from DESIGN.md v2, light and dark, IBM Plex Sans (§13.12) | Gate passes; theme grep check and DESIGN.md lint pass; `impeccable` critique of every page in both themes has no open high-severity items; human approves screenshots |
 | **M18** | Toast notifications system-wide (5 s timer bar, cross button); Rules page save confirmation; build first (§13.13) | Gate passes; T80–T85 (incl. T84b) pass; DESIGN.md lint passes; human sees the toasts in the app |
+| **M19** | Default attendance bands: the human's table for rule sets not configured yet (§13.14) | Gate passes; T86–T90 pass; human sees the new defaults in the app |
 
 **Parallelism:** after M1 the API is frozen as stubs, so one agent can do M2–M3 (core) while another builds M4 (UI) against the stubs. Merge before the M4 smoke test.
 
@@ -433,7 +434,7 @@ Never run Spec Kit on the whole app at once. Per-milestone features keep `tasks.
 - `progress.json`: `{"milestone": "M2", "phase": "implement", "tasks": {"T001": "done", ...}}`, using Spec Kit task IDs. The agent updates it after each task, not at the end.
 - `checkpoint.md`, at most 15 lines: current milestone, last green gate (commit hash), next task, open questions. A new session reads **only** `AGENTS.md` + `checkpoint.md` + the current `specs/<milestone>/tasks.md`. This replaces re-reading chat history and is the cheapest way to resume after `/clear` or an expired prompt cache.
 
-## 13. After v0.1.1: M7–M18 (human decisions 2026-10-29; M11–M18 2026-10-30)
+## 13. After v0.1.1: M7–M19 (human decisions 2026-10-29; M11–M19 2026-10-30)
 
 Build in order: **M7 → M8 → M9 → M10**. The updater ships first so every later feature reaches installed copies with one click. Rules continue the R-numbering (R26–R50) and tests continue the T-numbering (§13.5). Everything in §1–§12 still applies.
 
@@ -501,7 +502,7 @@ ALTER TABLE assessment ADD COLUMN score REAL CHECK (score IS NULL OR score >= 0)
 Seeded defaults (all editable on the Rules page; the band and Lab values are placeholders until the user enters their university's rules):
 - **Theory:** Attendance 10% (attendance); Quizzes 15% (items, best 3 of 4, each out of 15); Mid 25% (items, 1 of 1, out of NULL); Final 50% (items, 1 of 1, out of NULL, `is_final`).
 - **Lab:** Attendance 30% (attendance); Lab work 40% (items, 1 of 1, out of NULL); Lab final 30% (items, 1 of 1, out of NULL, `is_final`).
-- **Attendance bands** (both sets): ≥90 → 100, ≥85 → 90, ≥80 → 80, ≥75 → 70, ≥70 → 60, ≥0 → 0.
+- **Attendance bands** (both sets): ≥90 → 100, ≥85 → 90, ≥80 → 80, ≥75 → 70, ≥70 → 60, ≥0 → 0. M19 (§13.14) replaces these values with the human's own table.
 - **Grade scale** (UGC Bangladesh): A+ 80 4.00, A 75 3.75, A- 70 3.50, B+ 65 3.25, B 60 3.00, B- 55 2.75, C+ 50 2.50, C 45 2.25, D 40 2.00, F 0 0.00.
 
 **Rules**
@@ -587,7 +588,7 @@ Core integration tests unless marked (app) = `viewmodel.rs`/updater unit tests.
 | T35 (app) | 00:00, 09:05, 12:00, 13:30 | "12:00 AM", "9:05 AM", "12:00 PM", "1:30 PM" |
 | T36 | rule set weights 95; two finals; best 5 of 4; no 0 band | each `Error::Validation` |
 | T37 | 3-credit Theory, quiz scores 12, 11, 13, 14 | Quizzes 39.0 of 45 |
-| T38 | 3-credit Theory, attendance 87% (default bands) | Attendance 27.0 of 30 |
+| T38 | 3-credit Theory, attendance 87% (default bands) | Attendance 27.0 of 30 (M19: 18.0 of 30, because the default bands change) |
 | T39 | 3-credit Theory: attendance 92%, quizzes 12/11/13/14, mid 60/75, no final | needed final: A+ 111.0, A 96.0 (of 150); a quiz missing → listed as assumed 0 |
 | T40 | projected 79.9 / 80.0 | A / A+ |
 | T41 | 3-credit A+ (4.00) + 1.5-credit B (3.00) | GPA 3.67, projected |
@@ -828,3 +829,31 @@ Light flow like M11: no Spec Kit plan/checklist/analyze artifacts; T-tests first
 | T84 (app) | queue: add "A" at t=0s, "B" at t=3s, "A" again at t=4s | one "A" (timer restarted at 4s) and one "B"; at t=6s both show; at t=8s only "A" shows; at t=9s none |
 | T84b (app) | add "C", "D", "E", "F" in a row; then close "E" | after F: "D", "E", "F" (oldest dropped, cap three); after close: "D", "F" |
 | T85 (app) | each confirmation of R89 (backup saved, backup restored, CSV exported, template copied, prompt copied, term saved) | one toast with the text from `viewmodel.rs`; the page `message` stays empty; an error case still sets `message` and shows no toast |
+
+### 13.14 M19: default attendance bands (human decision 2026-10-30; spec only until the human starts it)
+
+Light flow like M11: T-tests first, then the gate. One data-only migration (no table changes). Independent of M12–M18; the migration takes the next free number at build time, as M15's does.
+
+The human's table, taken from the Theory rule set on the Rules page, becomes the default attendance rule: **≥95 → 100, ≥90 → 80, ≥85 → 60, ≥75 → 20, ≥70 → 10, ≥0 → 0** (from attendance %, this % of the attendance marks is earned). The old placeholder table (≥90 → 100, ≥85 → 90, ≥80 → 80, ≥75 → 70, ≥70 → 60, ≥0 → 0) is retired.
+
+**Rules**
+- **R92** One source of truth: core exposes `default_attendance_bands()` returning the six bands above, in descending `min_pct` order. It is pure (no I/O) and satisfies R34 (at least one band, one with `min_pct` 0). Every place below uses it.
+- **R93** A rule set's attendance component is "not configured" when its bands are exactly the old placeholder table. A new data migration replaces such bands with the new defaults. A component with any other bands (the human edited it, including to the new table) is never touched, and neither are weights, names, or other components. The migration runs on existing databases (R26 pre-migration backup applies) and on a fresh database, so a new install ends with the new table in the seeded Theory and Lab sets. Restoring a version-1 backup (R41), which seeds the default rule sets, also ends with the new table.
+- **R94** Rules page: when the user adds an attendance component to a rule set form that has no band rows (new rule set, or an attendance component added after removing the old one), the band rows are filled from `default_attendance_bands()`. They are ordinary editable rows; nothing is stored until Save (R34, R88). Existing band rows are never replaced by this.
+- **R95** The marks, needed-in-final, and GPA rules (R35–R40) are unchanged; they read whatever bands the rule set has. Existing tests that depend on the old seeded bands are updated to the new table (T38: attendance 87% now earns the ≥85 band, so 18.0 of 30).
+
+**API addition**
+
+```rust
+pub fn default_attendance_bands() -> Vec<AttendanceBand>;   // R92
+```
+
+**Tests**
+
+| ID | Given | Then |
+|---|---|---|
+| T86 | `default_attendance_bands()` | exactly (95,100), (90,80), (85,60), (75,20), (70,10), (0,0); passes R34 validation inside a rule set |
+| T87 | a v2 database whose Theory bands are the old placeholder table, Lab bands edited to (90,100), (0,0) | after migrating: Theory has the new table; Lab keeps its edited bands; weights and component names unchanged; the pre-migration backup (R26) exists |
+| T88 | fresh database; restore of a version-1 backup | Theory and Lab attendance bands equal the new table in both cases |
+| T89 | 3-credit Theory with the seeded bands, attendance 87% and 95% | Attendance 18.0 of 30 and 30.0 of 30 |
+| T90 (app) | New rule set form, add an attendance component; then edit a band and add another attendance-less component | six band rows from `default_attendance_bands()`; edited rows are kept; no stored change before Save |

@@ -1,5 +1,5 @@
 {
-  "milestone": "M12-M18 (spec only)",
+  "milestone": "M12-M19 (spec only)",
   "phase": "specified-awaiting-human-start",
   "tasks": {
     "M11": "done (v0.2.1 tagged)",
@@ -11,6 +11,7 @@
     "M17 spec + DESIGN.md v2": "done",
     "DESIGN.md lint": "done (0 errors, 0 warnings)",
     "M18 spec (Rules save confirmation)": "done",
-    "M12-M18 build": "not started (human decision: spec only)"
+    "M19 spec (default attendance bands)": "done",
+    "M12-M19 build": "not started (human decision: spec only)"
   }
 }
