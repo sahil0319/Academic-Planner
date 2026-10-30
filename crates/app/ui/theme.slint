@@ -87,9 +87,6 @@ export global Theme {
     // Radii: square everywhere except the pill status chip (DESIGN.md "Shapes").
     out property <length> radius-none: 0px;
     out property <length> radius-full: 9999px;
-    // Temporary aliases of radius-none, removed in M17 T011.
-    out property <length> radius-sm: radius-none;
-    out property <length> radius-md: radius-none;
 
     // Spacing (4px grid)
     out property <length> space-xs: 4px;
@@ -127,11 +124,7 @@ export global Theme {
     out property <length> swatch-size: 12px;
     // DESIGN.md "Mini calendar": 36px day cells and the 4px due square.
     out property <length> calendar-cell: 36px;
-    // Removed in M17 T011 if unused (the v1 today circle).
-    out property <length> calendar-today: 22px;
     out property <length> calendar-marker: 4px;
-    // Removed in M17 T011 (replaced by calendar-holiday): v1 holiday highlight.
-    out property <color> calendar-holiday-highlight: dark ? #D9774F38 : #B4532F26;
 
     // DESIGN.md "Appearance switch": 28px icon segments.
     out property <length> appearance-segment: 28px;
