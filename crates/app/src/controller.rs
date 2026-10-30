@@ -16,7 +16,8 @@ use crate::toast::ToastQueue;
 use crate::viewmodel::{self, FilterChoice};
 use crate::{
     bridge, notify, pages, AboutState, AppState, AppWindow, AssessmentsState, CoursesState,
-    DashboardState, RulesState, SettingsState, TimetableState, ToastState, ToastView,
+    DashboardState, ProgressState, RulesState, SettingsState, TimetableState, ToastState,
+    ToastView,
 };
 
 /// R88: how often the toast timer expires toasts and moves the timer bars.
@@ -330,6 +331,7 @@ impl App {
     /// Reloads every page from the database with a fresh `now` (research R-D14).
     pub fn refresh_all(&self) {
         pages::dashboard::refresh(self);
+        pages::progress::refresh(self);
         pages::timetable::refresh(self);
         pages::courses::refresh(self);
         pages::assessments::refresh(self);
@@ -352,6 +354,7 @@ impl App {
             4 => window.global::<SettingsState>().set_message(text),
             5 => window.global::<AboutState>().set_message(text),
             6 => window.global::<RulesState>().set_message(text),
+            7 => window.global::<ProgressState>().set_message(text),
             _ => window.global::<DashboardState>().set_message(text),
         }
     }

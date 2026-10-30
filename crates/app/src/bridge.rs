@@ -11,7 +11,7 @@ use crate::viewmodel::{self as vm, ChipKind};
 use crate::{
     AppWindow, AssessmentRow, BandRow, CalendarDay, CalendarWeek, Chip, ComponentRow, CourseRow,
     DayGroup, GradeRowView, HolidayRow, ImportLine, ImportLineKind, MarkRow, NeededRowView,
-    Palette, RuleSetRow, SessionRow, SlotRow, StatusAction, SummaryView, Theme,
+    Palette, ProgressCardRow, RuleSetRow, SessionRow, SlotRow, StatusAction, SummaryView, Theme,
 };
 
 /// R-D18: Slint `int` is `i32`; an id that does not fit is reported, never truncated.
@@ -271,6 +271,26 @@ pub fn grade_row((letter, min, points): &(String, String, String)) -> GradeRowVi
         min: min.as_str().into(),
         points: points.as_str().into(),
         error: SharedString::new(),
+    }
+}
+
+/// R61–R65: Progress card row; every field is already formatted text or a bar fraction.
+pub fn progress_card(c: &vm::ProgressCardView) -> ProgressCardRow {
+    ProgressCardRow {
+        code: c.code.as_str().into(),
+        name: c.name.as_str().into(),
+        status_label: c.status_label.as_str().into(),
+        chip: chip(c.chip),
+        attendance_figure: c.attendance_figure.as_str().into(),
+        attendance_line: c.attendance_line.as_str().into(),
+        target_text: c.target_text.as_str().into(),
+        bar_fill: c.bar_fill,
+        has_marker: c.has_marker,
+        marker_at: c.marker_at,
+        miss_line: c.miss_line.as_str().into(),
+        marks_figure: c.marks_figure.as_str().into(),
+        marks_line: c.marks_line.as_str().into(),
+        best_grade_line: c.best_grade_line.as_str().into(),
     }
 }
 
