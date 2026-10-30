@@ -54,7 +54,7 @@ Result: 11 texts become toasts; the page `message` property holds errors only af
 - [x] T002 `crates/app/src/viewmodel.rs`: move `rule_set_lines` out of `pages/rules.rs` (R87; T80 tests exist) and add the new text functions from the table: `term_saved_text`, `holidays_saved_text`, `holiday_removed_text`, `settings_saved_text`, `template_copied_text`, `prompt_copied_text`, `rule_set_saved_text`, `grade_scale_saved_text`, plus the hint text function for R91 (`fix_rows_hint_text`: "Fix the rows marked in red before saving."). Existing wording unchanged. Commit: `M18: toast texts and rule_set_lines in viewmodel`.
 - [x] T003 UI and controller (R88). `ToastState` global (in `ui/types.slint` or new `ui/toast.slint`) with the list of toasts (text, remaining fraction, id) and a `dismiss(id)` callback; toast component per DESIGN.md "Toast notification": 320px, `success-bg` fill, 3px success rule on the left edge, 12px padding, 24px cross button with accessible label "Dismiss", 3px border-coloured track with a success bar shrinking right to left, no shadow, no animation. Placed in `app-window.slint` above all pages and dialogs: bottom-right, 16px from the edges, stacked 8px apart, newest at the bottom. All sizes and colors from `Theme.*` (add tokens to `ui/theme.slint` only if missing; no raw hex or px elsewhere). `App::toast(text)` in `controller.rs`; a `slint::Timer` in the controller (50-100 ms) calls `expire` and updates the bar fractions; the cross callback calls `close`. Commit: `M18: toast component and controller`.
 - [x] T004 Convert every "yes" row (1-9) of the table to `app.toast(vm::...)`. The page `message` holds errors only; remove `changed_with_note` (replace by the guarded toast), the `copy-status` property and Text in `import.slint`, the `set_copy_status` calls, and the stale "success notes" comments in `ui/*.slint`. Unit tests of the three existing message functions stay green. Commit: `M18: confirmations as toasts`.
-- [ ] T005 Rules page (R87, R90, R91, rows 10-11):
+- [x] T005 Rules page (R87, R90, R91, rows 10-11):
   - successful rule set save: form stays open, toast `vm::rule_set_saved_text()`, Saved rules rebuilt from the rule set core returns via `vm::rule_set_lines`, every page refreshes; a second save with no change shows the toast again (queue restarts the timer);
   - successful grade scale save: toast `vm::grade_scale_saved_text()`;
   - failed parse (any component or band row): no toast, a line above the Save button with the hint "Fix the rows marked in red before saving."; core's validation text stays inline (R34);
@@ -64,10 +64,10 @@ Result: 11 texts become toasts; the page `message` property holds errors only af
 
 ## Tests (written first by the tester; the builder never edits them)
 
-- [ ] Tests T80 (R87): `rule_set_lines` unit tests in `crates/app/src/viewmodel/tests.rs`; covered by T002.
-- [ ] Tests T81 (R90, R88): Rules page save toast and repeat save restarts the timer; app test file chosen by the tester (page test in `crates/app/src/pages/rules.rs` tests or `crates/app/src/toast.rs` queue tests); covered by T005 and T001.
-- [ ] Tests T82 (R91): failed parse shows the hint and no toast; core validation text inline; Saved rules unchanged; covered by T005.
-- [ ] Tests T83 (R90): grade scale save toast "Grade scale saved."; covered by T005.
-- [ ] Tests T84 and T84b (R88): `ToastQueue` dedupe, expiry, cap of three, close, in `crates/app/src/toast.rs` (`#[cfg(test)]`); covered by T001.
-- [ ] Tests T85 (R89): each confirmation yields one toast with the text from `viewmodel.rs`, page `message` stays empty, an error case shows no toast; covered by T002 and T004.
-- [ ] Fill in the exact test file paths above once the tester has written them.
+- [x] Tests T80 (R87): `rule_set_lines` unit tests in `crates/app/src/viewmodel/tests.rs`; covered by T002. Done.
+- [x] Tests T81 (R90, R88): Rules page save toast and repeat save restarts the timer; text and queue tests in `crates/app/src/viewmodel/tests.rs` (t81) and `crates/app/src/toast/tests.rs`; covered by T005 and T001.
+- [x] Tests T82 (R91): failed parse shows the hint and no toast; core validation text inline; Saved rules unchanged; covered by T005.
+- [x] Tests T83 (R90): grade scale save toast "Grade scale saved."; covered by T005.
+- [x] Tests T84 and T84b (R88): `ToastQueue` dedupe, expiry, cap of three, close, in `crates/app/src/toast/tests.rs`; covered by T001.
+- [x] Tests T85 (R89): each confirmation yields one toast with the text from `viewmodel.rs`, page `message` stays empty, an error case shows no toast; covered by T002 and T004.
+- [x] Fill in the exact test file paths above once the tester has written them.

@@ -37,7 +37,7 @@ fn fill(app: &App, ui: &RulesState<'_>) -> Result<(), String> {
         && selected != NEW_SET
         && !sets.iter().any(|s| i64::from(selected) == s.id)
     {
-        ui.set_form_open(false);
+        close_form(ui);
     }
     if !ui.get_scale_dirty() {
         load_scale(app, ui)?;
@@ -65,7 +65,7 @@ pub fn wire(app: &Rc<App>) {
     ui.on_save_set(move || with(&weak, save_set));
 
     let weak = Rc::downgrade(app);
-    ui.on_cancel_form(move || with(&weak, |_, ui| ui.set_form_open(false)));
+    ui.on_cancel_form(move || with(&weak, |_, ui| close_form(ui)));
 
     let weak = Rc::downgrade(app);
     ui.on_add_component(move |is_items| {
@@ -226,6 +226,12 @@ fn set_components(ui: &RulesState<'_>, rows: Vec<ComponentRow>) {
     ui.set_components(bridge::model(rows));
 }
 
+/// Closes the rule set form and clears its parse hint (R91).
+fn close_form(ui: &RulesState<'_>) {
+    ui.set_fix_rows_hint(SharedString::new());
+    ui.set_form_open(false);
+}
+
 /// Opens an empty form for a new rule set.
 fn begin_new(_app: &App, ui: &RulesState<'_>) {
     ui.set_set_name(SharedString::new());
@@ -233,6 +239,7 @@ fn begin_new(_app: &App, ui: &RulesState<'_>) {
     ui.set_bands(bridge::model(Vec::new()));
     ui.set_saved_lines(bridge::strings(&[]));
     ui.set_form_error(SharedString::new());
+    ui.set_fix_rows_hint(SharedString::new());
     ui.set_selected_id(NEW_SET);
     ui.set_form_open(true);
 }
@@ -258,6 +265,7 @@ fn load_form(ui: &RulesState<'_>, set: &RuleSet) -> Result<(), String> {
     set_components(ui, rows);
     ui.set_bands(bridge::model(bands.iter().map(bridge::band_row).collect()));
     ui.set_form_error(SharedString::new());
+    ui.set_fix_rows_hint(SharedString::new());
     ui.set_selected_id(bridge::id(set.id)?);
     ui.set_form_open(true);
     Ok(())
@@ -286,7 +294,7 @@ fn delete_set(app: &App, ui: &RulesState<'_>, id: i32) {
     match result {
         Ok(()) => {
             if ui.get_selected_id() == id {
-                ui.set_form_open(false);
+                close_form(ui);
             }
             ui.set_message(SharedString::new());
             app.changed(false);
@@ -295,7 +303,9 @@ fn delete_set(app: &App, ui: &RulesState<'_>, id: i32) {
     }
 }
 
-/// R34, R35: parses every row, then saves; core's validation error is shown under the form.
+/// R34, R35, R90, R91: parses every row, then saves. A row that fails to parse gets its own error
+/// text, a hint shows above Save, and nothing is saved or toasted. Core's validation error is shown
+/// under the form. A saved rule set keeps the form open (rebuilt from the stored set) and toasts.
 fn save_set(app: &App, ui: &RulesState<'_>) {
     let mut bands = Vec::new();
     let mut band_rows = rows_of(&ui.get_bands());
@@ -350,8 +360,10 @@ fn save_set(app: &App, ui: &RulesState<'_>) {
         write_errors(&ui.get_components(), component_rows);
         write_errors(&ui.get_bands(), band_rows);
         ui.set_form_error(SharedString::new());
+        ui.set_fix_rows_hint(vm::fix_rows_hint_text().into());
         return;
     }
+    ui.set_fix_rows_hint(SharedString::new());
     write_errors(&ui.get_components(), component_rows);
     write_errors(&ui.get_bands(), band_rows);
 
@@ -364,11 +376,13 @@ fn save_set(app: &App, ui: &RulesState<'_>) {
     let result = app.planner_mut().save_rule_set(input);
     match result {
         Ok(saved) => {
+            // R91: a reload error is shown and stays; nothing clears it after this point.
+            ui.set_message(SharedString::new());
             if let Err(text) = load_form(ui, &saved) {
                 ui.set_message(text.into());
             }
-            ui.set_message(SharedString::new());
             app.changed(false);
+            app.toast(&vm::rule_set_saved_text());
         }
         Err(e) => ui.set_form_error(err(e).into()),
     }
@@ -422,6 +436,7 @@ fn save_scale(app: &App, ui: &RulesState<'_>) {
             ui.set_scale_dirty(false);
             ui.set_scale_error(SharedString::new());
             app.changed(false);
+            app.toast(&vm::grade_scale_saved_text());
         }
         Err(e) => ui.set_scale_error(err(e).into()),
     }

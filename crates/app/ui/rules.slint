@@ -32,6 +32,9 @@ export global RulesState {
     in-out property <[BandRow]> bands;
     // R34 errors from core.
     in property <string> form-error;
+    // R91: "Fix the rows marked in red before saving." while a component or band row fails to
+    // parse; "" otherwise.
+    in property <string> fix-rows-hint;
 
     // R39: grade scale rows; `scale-dirty` keeps unsaved edits across page refreshes.
     in-out property <[GradeRowView]> scale;
@@ -375,6 +378,10 @@ export component RulesPage inherits VerticalLayout {
 
         if RulesState.form-error != "": FormError {
             text: RulesState.form-error;
+        }
+
+        if RulesState.fix-rows-hint != "": FormError {
+            text: RulesState.fix-rows-hint;
         }
 
         HorizontalLayout {
