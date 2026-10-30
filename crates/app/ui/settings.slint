@@ -5,7 +5,7 @@ import { Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { HolidayRow } from "types.slint";
 import {
-    PageTitle, EmptyState, SectionCard, ListRow, Field, PrimaryButton, SecondaryButton,
+    PageTitle, EmptyState, SectionCard, ListRow, Field, PrimaryButton, SecondaryButton, DangerButton,
 } from "components.slint";
 
 export global SettingsState {
@@ -74,7 +74,7 @@ component BodyText inherits Text {
 }
 
 export component SettingsPage inherits VerticalLayout {
-    spacing: Theme.space-xl;
+    spacing: Theme.space-xxl;
     alignment: start;
 
     PageTitle {
@@ -265,12 +265,15 @@ export component SettingsPage inherits VerticalLayout {
             }
         }
 
+        // R84: square surface panel with a divider-width edge so it stands out inside its card.
         if SettingsState.confirm-restore: Rectangle {
-            background: Theme.surface-alt;
-            border-radius: Theme.radius-sm;
+            background: Theme.surface;
+            border-radius: Theme.radius-none;
+            border-width: Theme.divider-width;
+            border-color: Theme.border;
 
             VerticalLayout {
-                padding: Theme.space-md;
+                padding: Theme.space-lg;
                 spacing: Theme.space-sm;
 
                 BodyText {
@@ -280,7 +283,8 @@ export component SettingsPage inherits VerticalLayout {
                 HorizontalLayout {
                     spacing: Theme.space-sm;
                     alignment: start;
-                    PrimaryButton {
+                    // R84: replacing all data is destructive, so it uses the danger style.
+                    DangerButton {
                         text: "Replace all data";
                         clicked => {
                             SettingsState.restore-confirm();

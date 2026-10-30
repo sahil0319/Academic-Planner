@@ -172,7 +172,7 @@ T011 screenshots listed per task.
   field (field fill, bottom rule, 2px inset focus ring instead of the primary border), result lines
   on v2 roles; replace every `radius-sm`/`radius-md`. Done-check: Gate, Grep, Same behaviour;
   screens 08, 10. Commit `M17: rules and import restyle`. Needs T004
-- [ ] T010 [P] [US3] (builder) Restyle crates/app/ui/settings.slint and crates/app/ui/about.slint:
+- [x] T010 [P] [US3] (builder) Restyle crates/app/ui/settings.slint and crates/app/ui/about.slint:
   Settings cards and forms with Carbon fields; restore confirm "Replace all data" becomes
   `DangerButton` (research D10), confirm panel square `surface`; About `GitHubButton` with
   `surface-inverse` fill, `on-surface-inverse` label and `link-icon` mark, square, 2px inset focus
