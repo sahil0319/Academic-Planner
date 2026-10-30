@@ -248,7 +248,7 @@ impl Planner {
 }
 ```
 
-M7–M11 add the methods listed in §13.
+M7–M12 add the methods listed in §13.
 
 `SessionView` includes course code/name, `display_status` ("Pending" / "Attended" / "Absent" / "Cancelled" / "Rescheduled → 2026-01-15"), and `is_past` (`now >= session start`, i.e. attendance may be marked per R12; `now` is passed in because core never reads the clock).
 
@@ -287,6 +287,9 @@ Each milestone ends with the **gate**: `cargo fmt --check && cargo clippy --work
 | **M9** | Credits, rule sets, marks, needed-in-final, grade scale, term GPA (§13.3) | Gate passes; T36–T43 pass |
 | **M10** | Courses + timetable JSON import with preview, template, AI prompt (§13.4) | Gate passes; T44–T50 pass |
 | **M11** | Delete courses (multi-select) and the GitHub button on About (§13.6) | Gate passes; T51–T54 pass |
+| **M12** | Bi-weekly slots, "Move to next week", import and backup support (§13.7) | Gate passes; T55–T61 pass |
+| **M13** | Progress page (§13.8) | Gate passes; T62–T65 pass |
+| **M14** | Carbon restyle from DESIGN.md v2, light and dark, IBM Plex Sans (§13.9) | Gate passes; theme grep check and DESIGN.md lint pass; `impeccable` critique of every page in both themes has no open high-severity items; human approves screenshots |
 
 **Parallelism:** after M1 the API is frozen as stubs, so one agent can do M2–M3 (core) while another builds M4 (UI) against the stubs. Merge before the M4 smoke test.
 
@@ -327,7 +330,7 @@ Fixture unless stated: active term **2026-01-05 (Mon) → 2026-01-25 (Sun)**; co
 | T29 | two courses, dashboard on 01-05 | today's classes sorted by start time |
 | T30 | export → restore into empty DB → export | JSON equal except `exported_at`; bad format / newer version → error and DB unchanged |
 
-T31–T50 (M7–M10) are in §13.5; T51–T54 (M11) in §13.6.
+T31–T50 (M7–M10) are in §13.5; T51–T54 (M11) in §13.6; T55–T65 (M12–M13) in §13.7–§13.8.
 
 ## 9. M4 manual smoke checklist (human, ~5 minutes)
 
@@ -426,7 +429,7 @@ Never run Spec Kit on the whole app at once. Per-milestone features keep `tasks.
 - `progress.json`: `{"milestone": "M2", "phase": "implement", "tasks": {"T001": "done", ...}}`, using Spec Kit task IDs. The agent updates it after each task, not at the end.
 - `checkpoint.md`, at most 15 lines: current milestone, last green gate (commit hash), next task, open questions. A new session reads **only** `AGENTS.md` + `checkpoint.md` + the current `specs/<milestone>/tasks.md`. This replaces re-reading chat history and is the cheapest way to resume after `/clear` or an expired prompt cache.
 
-## 13. After v0.1.1: M7–M11 (human decisions 2026-10-29, M11 2026-10-30)
+## 13. After v0.1.1: M7–M14 (human decisions 2026-10-29; M11–M14 2026-10-30)
 
 Build in order: **M7 → M8 → M9 → M10**. The updater ships first so every later feature reaches installed copies with one click. Rules continue the R-numbering (R26–R50) and tests continue the T-numbering (§13.5). Everything in §1–§12 still applies.
 
@@ -617,3 +620,76 @@ pub fn delete_courses(&mut self, ids: &[i64]) -> Result<()>;   // R51
 | T52 | delete [existing, 999] | `Error::NotFound`; nothing deleted |
 | T53 | deleted course had reminder_log rows and a makeup replacing its session | those log rows gone; no dangling `replaces_session_id`; `[]` and duplicate ids are fine |
 | T54 (app) | 0 / 1 / 3 selected; codes CSE101, MAT102 | button "Delete selected (1)" / "(3)"; confirm text names "CSE101, MAT102" |
+
+### 13.7 M12: bi-weekly slots (human decisions 2026-10-30)
+
+Some lab courses meet every other week. Light flow, like M11.
+
+**Migration 003**
+
+```sql
+ALTER TABLE slot ADD COLUMN week_parity TEXT CHECK (week_parity IN ('odd','even'));  -- NULL = every week
+```
+
+**Rules**
+- **R54** Term weeks run Monday to Sunday; week 1 is the week that contains `term.start_date`. `term_week_parity(term_start, date)` is `Odd` when the number of whole weeks between the Monday of `term_start`'s week and the Monday of `date`'s week is even (weeks 1, 3, 5, …), else `Even`. Dates before the term follow the same alternation.
+- **R55** (amends R4) A slot with `week_parity` set produces a session only on dates whose term-week parity equals it. A holiday skips that week's session but never shifts the pattern. Slots with `week_parity` NULL behave as before.
+- **R56** Slot form (Timetable → Rules): a "Bi-weekly" checkbox; when ticked, a "Class this week" checkbox (ticked by default) says whether the slot meets in the current week (the week of today). The stored parity is `term_week_parity(term.start, today)` when ticked, else the other one. Editing a bi-weekly slot pre-fills both from the stored parity and today. Saving keeps R7 semantics (effective date). The conversion is a pure function in `viewmodel.rs`.
+- **R57** `shift_biweekly(course_id, from)` ("Move to next week"): every bi-weekly slot of the course that is valid on `from` flips its parity from `from` on. A slot that starts before `from` ends at `from − 1` and a copy with the other parity starts at `from` (R7); a slot that starts on or after `from` is flipped in place. Then, in the same transaction, sync runs with today = `from`: pending regular sessions on or after `from` that the old pattern produced are deleted (R5) and the new pattern's sessions are created. Past and non-pending sessions are never touched. A course with no bi-weekly slot valid on `from` is `Error::Validation`.
+- **R58** Dashboard: every pending session of a bi-weekly slot dated today or later (day panel, next class) shows a "Move to next week" button that calls `shift_biweekly(course, session.date)`, then refreshes. Sessions and slots of bi-weekly slots show "Every other week" next to their time on the Dashboard, Timetable (week view and Rules list), and course detail. `SessionView` gains `biweekly: bool`.
+- **R59** Import (amends R42, R45): a slot may have `"biweekly": "this_week"` or `"next_week"`, meaning the slot meets in the week of the effective date (R49) or in the week after it; absent or `null` = every week; any other value is a validation error with its JSON path. The value becomes a parity through R54 before planning, and R45 compares slots including parity. The template and AI prompt (R50) document the key.
+- **R60** Backup (amends R21, R41): slot rows carry `week_parity`; `schema_version` becomes 3. Restoring a version-1 or version-2 backup makes every slot weekly. CSV formats (R23) are unchanged. Opening a version-2 DB applies migration 003 with the R26 pre-migration copy; existing slots stay weekly.
+
+**API additions**
+
+```rust
+pub enum WeekParity { Odd, Even }
+// SlotInput and Slot gain: week_parity: Option<WeekParity>
+// SessionView gains: biweekly: bool
+pub fn term_week_parity(term_start: NaiveDate, date: NaiveDate) -> WeekParity;   // R54, free function
+pub fn shift_biweekly(&mut self, course_id: i64, from: NaiveDate) -> Result<()>; // R57
+```
+
+**Tests**
+
+| ID | Given | Then |
+|---|---|---|
+| T55 | term starts Mon 2026-01-05 | parity of 01-05, 01-11, 01-12, 01-21, 01-04 = odd, odd, even, odd, even; a Wednesday start counts its own week as week 1 |
+| T56 | term 01-05..02-01, odd Mon slot, sync; then holiday 01-19, sync | sessions 01-05, 01-19; after the holiday only 01-05 (no session moves to 01-26) |
+| T57 | as T56 without the holiday, 01-05 attended; `shift_biweekly(course, 01-19)` | 01-05 kept; 01-19 deleted; 01-26 created; old slot ends 01-18, new slot even from 01-19 |
+| T58 | `shift_biweekly` on a course whose slots are all weekly; on an unknown course | `Error::Validation`; `Error::NotFound` |
+| T59 | import with effective 01-12: `"biweekly": "this_week"`, then the same file again; `"biweekly": "monthly"` | slot even; second preview empty; error at `courses[0].slots[0].biweekly` |
+| T60 | backup with a bi-weekly slot → restore; restore a version-2 backup; open a version-2 DB | parity kept; v2 slots weekly; migration copy written and slots weekly |
+| T61 (app) | today 01-12 (even week), "Class this week" ticked / not ticked; edit an odd slot on 01-12 | even / odd; pre-filled not ticked; labels read "Every other week" |
+
+### 13.8 M13: Progress page (human decisions 2026-10-30)
+
+A second dashboard that shows how each course is going so far. It reads existing data only: no schema change and no new core API (it uses `all_summaries`, `course_marks`, `grade_scale`, and `term_gpa`). Every computation below is a pure function in `viewmodel.rs` with unit tests.
+
+**Rules**
+- **R61** A new sidebar page **Progress**, between Dashboard and Timetable. The top line shows the term GPA (R40) and the counts "N on track · N to watch · N at risk". Below it, one card per non-archived course of the active term, ordered At risk, Watch, On track, Not enough data, then by code. No active term or no courses → an empty state.
+- **R62** Attendance on a card: the R13 percentage with "attended of marked" counts ("87.5% · 14 of 16 classes"), the target, and a bar from 0 to 100% with a marker at the target (no marker without a target). No marked class yet → "No classes marked yet" and an empty bar.
+- **R63** Classes you can still miss: with target `t`, attended `a`, absent `b`, and `r` = the course's pending sessions (R15, past and future), `k = floor((100 × (a + r) − t × (a + b + r)) / 100)` in integer arithmetic. No target → no line. `r = 0` → "No classes left to mark". `k ≥ r` → "You can miss all {r} remaining classes and stay at or above {t}%". `0 < k < r` → "You can miss {k} of the {r} remaining classes and stay at or above {t}%". `k = 0` → "Attend all {r} remaining classes to stay at or above {t}%". `k < 0` → "{t}% is out of reach, even attending all {r} remaining classes".
+- **R64** Marks on a card (graded courses, R33): "Secured {secured} of {assessed} assessed marks" and the projected percentage with its letter (R37), e.g. "86.7% · A+". Not graded → "Not graded"; nothing assessed → "No marks entered yet". Best grade still reachable, from R38: the first grade row (highest first) that is not "Not reachable": "Secured" → "{letter} is already secured"; a score → "{letter} needs {score} of {final item max} in the final". If the final already has a score (R38 actual), "Final grade: {letter}".
+- **R65** Status chip per course: **At risk** when below target (R14) or the projected letter's grade points are 0; otherwise **Watch** when the attendance percentage is less than 5 points above the target, or the projected letter's grade points are below 3.00; otherwise **On track** when there is an attendance percentage or a projected percentage; otherwise **Not enough data**. Chip colours: On track = attended, Watch = pending, At risk = absent, Not enough data = cancelled.
+
+**UI:** the card layout is the "Progress card" in DESIGN.md. Until M14, it uses the existing `Theme.*` tokens, with one new token pair for the bar.
+
+**Tests** (app, `viewmodel.rs`)
+
+| ID | Given | Then |
+|---|---|---|
+| T62 | (a, b, r, t) = (10, 2, 8, 75), (10, 4, 4, 75), (5, 5, 2, 75), (20, 0, 2, 75), (3, 1, 0, 75), no target | miss 3 of 8; attend all 4; out of reach; miss all 2; no classes left; no line |
+| T63 | below target; 78% vs 75; 90% vs 75 with B (3.00); 90% with B− (2.75); projected F; no data | At risk; Watch; On track; Watch; At risk; Not enough data |
+| T64 | needed rows A+ not reachable, A 96.0 of 150; first row secured; final scored A | "A needs 96.0 of 150 in the final"; "A+ is already secured"; "Final grade: A" |
+| T65 | four courses with each status | ordered At risk, Watch, On track, Not enough data; header "1 on track · 1 to watch · 1 at risk" |
+
+### 13.9 M14: Carbon restyle (human decisions 2026-10-30; spec only until the human starts it)
+
+The whole UI takes the look of DESIGN.md version 2: IBM Carbon, as in agentic-paper-search's Paper-Triage-Carbon design, with a dark theme derived from Carbon g100. Behaviour, layout structure, and the left sidebar stay; only the visual layer changes.
+
+- **R66** `ui/theme.slint` takes every value from DESIGN.md v2, light and dark (`dark-*` tokens). Token names follow DESIGN.md: new tokens (`surface-hover`, `surface-inverse`, `on-surface-inverse`, `field`, `border-strong`, `on-surface-subtle`, `link`, `focus`, `progress-*`, `calendar-holiday`, `nav-item-height`, `space-xxxl`) are added, `radius-sm`/`radius-md` are replaced by `radius-none`, and every `.slint` file is updated to match. The theme grep check (§12) still passes.
+- **R67** Fonts: IBM Plex Sans Regular (400) and SemiBold (600) TTF from IBM's official release are vendored under `crates/app/ui/fonts/` and embedded with Slint font imports; `font-heading` and `font-body` both name "IBM Plex Sans". The SIL OFL 1.1 text ships in `THIRD-PARTY-NOTICES.html`. No other weights.
+- **R68** Components follow DESIGN.md v2: square corners everywhere except status chips; 32px buttons and fields; 40px rows; Carbon fields (field fill, bottom rule, inset focus ring); nav items with a 3px primary bar on the active item; danger button style for destructive confirms (course delete, restore); GitHub button in surface-inverse; square appearance switch; square calendar cells with the calendar-holiday fill; the below-target banner with a 3px left rule.
+- **R69** Sidebar width 240px, nav order Dashboard, Progress, Timetable, Courses, Assessments, Rules, Settings, About. Window default size unchanged.
+- **R70** Workflow: full Spec Kit flow (§12). The design skills (`impeccable`) are allowed in M14 as in M4 (human decision). Screenshots of every page in light and dark go to `specs/<m14>/screenshots/` for the critique and the human's approval.

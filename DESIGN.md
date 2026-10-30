@@ -1,85 +1,119 @@
 ---
-version: alpha
+version: "2.0"
 name: Academic Planner
-description: Warm, quiet, dense light-theme desktop UI for tracking courses, timetables, assessments, and attendance.
+description: Light, square, dense desktop UI for tracking courses, timetables, assessments, attendance, and marks. Derived from IBM Carbon (the same family as the Paper-Triage-Carbon design of agentic-paper-search), with a matching Carbon g100 dark theme. IBM Plex Sans at 400 and 600.
 colors:
-  primary: "#B4532F"
-  primary-hover: "#9C4526"
+  primary: "#0F62FE"
+  primary-hover: "#0050E6"
+  primary-active: "#002D9C"
   on-primary: "#FFFFFF"
-  neutral: "#F5F4ED"
-  surface: "#FDFCF9"
-  surface-alt: "#EFEDE5"
-  surface-selected: "#E4E1D6"
-  border: "#E3E0D5"
-  on-surface: "#1F1E1B"
-  on-surface-muted: "#68645B"
-  error: "#A8321F"
-  status-attended: "#2F6B3F"
-  status-attended-bg: "#E4EEE1"
-  status-absent: "#A8321F"
-  status-absent-bg: "#F8E4DE"
-  status-cancelled: "#68645B"
-  status-cancelled-bg: "#ECEAE2"
-  status-pending: "#7F5610"
-  status-pending-bg: "#F6ECD2"
-  below-target: "#8A3A1A"
-  below-target-bg: "#F6E3D6"
-  dark-primary: "#D9774F"
-  dark-primary-hover: "#E48A63"
-  dark-on-primary: "#1C1B18"
-  dark-neutral: "#1C1B18"
-  dark-surface: "#24221E"
-  dark-surface-alt: "#2B2924"
-  dark-surface-selected: "#38352E"
-  dark-border: "#3A372F"
-  dark-on-surface: "#EDEAE0"
-  dark-on-surface-muted: "#A8A396"
-  dark-error: "#EF8A72"
-  dark-status-attended: "#93CBA2"
-  dark-status-attended-bg: "#22362A"
-  dark-status-absent: "#F29B87"
-  dark-status-absent-bg: "#43261F"
-  dark-status-cancelled: "#B9B4A8"
-  dark-status-cancelled-bg: "#302E29"
-  dark-status-pending: "#E6BD6A"
-  dark-status-pending-bg: "#3B3121"
-  dark-below-target: "#F2A985"
-  dark-below-target-bg: "#40291D"
+  neutral: "#FFFFFF"
+  surface: "#F4F4F4"
+  surface-alt: "#FFFFFF"
+  surface-hover: "#E8E8E8"
+  surface-selected: "#E0E0E0"
+  surface-inverse: "#161616"
+  on-surface-inverse: "#FFFFFF"
+  field: "#FFFFFF"
+  border: "#E0E0E0"
+  border-strong: "#8D8D8D"
+  on-surface: "#161616"
+  on-surface-muted: "#525252"
+  on-surface-subtle: "#6F6F6F"
+  link: "#0F62FE"
+  focus: "#0F62FE"
+  error: "#DA1E28"
+  status-attended: "#0E6027"
+  status-attended-bg: "#A7F0BA"
+  status-absent: "#A2191F"
+  status-absent-bg: "#FFD7D9"
+  status-cancelled: "#393939"
+  status-cancelled-bg: "#E0E0E0"
+  status-pending: "#8E6A00"
+  status-pending-bg: "#FCF4D6"
+  below-target: "#A2191F"
+  below-target-bg: "#FFF1F1"
+  progress-track: "#E0E0E0"
+  progress-fill: "#161616"
+  progress-target: "#0F62FE"
+  calendar-holiday: "#D0E2FF"
+  dark-primary: "#0F62FE"
+  dark-primary-hover: "#0050E6"
+  dark-primary-active: "#002D9C"
+  dark-on-primary: "#FFFFFF"
+  dark-neutral: "#161616"
+  dark-surface: "#262626"
+  dark-surface-alt: "#161616"
+  dark-surface-hover: "#333333"
+  dark-surface-selected: "#393939"
+  dark-surface-inverse: "#F4F4F4"
+  dark-on-surface-inverse: "#161616"
+  dark-field: "#393939"
+  dark-border: "#393939"
+  dark-border-strong: "#8D8D8D"
+  dark-on-surface: "#F4F4F4"
+  dark-on-surface-muted: "#C6C6C6"
+  dark-on-surface-subtle: "#A8A8A8"
+  dark-link: "#78A9FF"
+  dark-focus: "#FFFFFF"
+  dark-error: "#FF8389"
+  dark-status-attended: "#6FDC8C"
+  dark-status-attended-bg: "#044317"
+  dark-status-absent: "#FFB3B8"
+  dark-status-absent-bg: "#750E13"
+  dark-status-cancelled: "#E0E0E0"
+  dark-status-cancelled-bg: "#525252"
+  dark-status-pending: "#F1C21B"
+  dark-status-pending-bg: "#483700"
+  dark-below-target: "#FFB3B8"
+  dark-below-target-bg: "#4A0C10"
+  dark-progress-track: "#393939"
+  dark-progress-fill: "#F4F4F4"
+  dark-progress-target: "#78A9FF"
+  dark-calendar-holiday: "#002D9C"
 typography:
   title-lg:
-    fontFamily: Georgia
-    fontSize: 22px
+    fontFamily: IBM Plex Sans
+    fontSize: 24px
     fontWeight: 400
-    lineHeight: 1.25
+    lineHeight: 32px
   headline-md:
-    fontFamily: Georgia
+    fontFamily: IBM Plex Sans
     fontSize: 16px
+    fontWeight: 600
+    lineHeight: 22px
+  numeral-md:
+    fontFamily: IBM Plex Sans
+    fontSize: 24px
     fontWeight: 400
-    lineHeight: 1.3
+    lineHeight: 32px
   body-md:
-    fontFamily: system-ui
-    fontSize: 13px
+    fontFamily: IBM Plex Sans
+    fontSize: 14px
     fontWeight: 400
-    lineHeight: 1.45
+    lineHeight: 20px
+  body-emphasis:
+    fontFamily: IBM Plex Sans
+    fontSize: 14px
+    fontWeight: 600
+    lineHeight: 18px
   body-sm:
-    fontFamily: system-ui
+    fontFamily: IBM Plex Sans
     fontSize: 12px
     fontWeight: 400
-    lineHeight: 1.4
+    lineHeight: 16px
   label-md:
-    fontFamily: system-ui
+    fontFamily: IBM Plex Sans
     fontSize: 12px
-    fontWeight: 600
-    lineHeight: 1.2
+    fontWeight: 400
+    lineHeight: 16px
   label-sm:
-    fontFamily: system-ui
-    fontSize: 11px
-    fontWeight: 600
-    lineHeight: 1.2
+    fontFamily: IBM Plex Sans
+    fontSize: 12px
+    fontWeight: 400
+    lineHeight: 16px
 rounded:
   none: 0px
-  sm: 6px
-  md: 10px
   full: 9999px
 spacing:
   xs: 4px
@@ -88,47 +122,77 @@ spacing:
   lg: 16px
   xl: 24px
   xxl: 32px
-  nav-width: 208px
-  row-height: 34px
-  input-height: 30px
+  xxxl: 48px
+  nav-width: 240px
+  nav-item-height: 32px
+  row-height: 40px
+  input-height: 32px
+  progress-height: 8px
   window-width: 1100px
   window-height: 720px
 components:
   nav-item:
     backgroundColor: "{colors.surface-alt}"
-    textColor: "{colors.on-surface}"
+    textColor: "{colors.on-surface-muted}"
     typography: "{typography.body-md}"
-    rounded: "{rounded.sm}"
-    height: "{spacing.row-height}"
-    padding: "{spacing.sm}"
+    rounded: "{rounded.none}"
+    height: "{spacing.nav-item-height}"
+    padding: "{spacing.lg}"
+  nav-item-hover:
+    backgroundColor: "{colors.surface-hover}"
+    textColor: "{colors.on-surface}"
   nav-item-active:
     backgroundColor: "{colors.surface-selected}"
     textColor: "{colors.on-surface}"
-    typography: "{typography.label-md}"
+    typography: "{typography.body-emphasis}"
   button-primary:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.on-primary}"
-    typography: "{typography.label-md}"
-    rounded: "{rounded.sm}"
+    typography: "{typography.body-md}"
+    rounded: "{rounded.none}"
     height: "{spacing.input-height}"
-    padding: "{spacing.md}"
+    padding: "{spacing.lg}"
   button-primary-hover:
     backgroundColor: "{colors.primary-hover}"
     textColor: "{colors.on-primary}"
+  button-primary-active:
+    backgroundColor: "{colors.primary-active}"
+    textColor: "{colors.on-primary}"
   button-secondary:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.on-surface}"
-    typography: "{typography.label-md}"
-    rounded: "{rounded.sm}"
-    height: "{spacing.input-height}"
-    padding: "{spacing.md}"
-  input-field:
-    backgroundColor: "{colors.surface}"
+    backgroundColor: "{colors.field}"
     textColor: "{colors.on-surface}"
     typography: "{typography.body-md}"
-    rounded: "{rounded.sm}"
+    rounded: "{rounded.none}"
     height: "{spacing.input-height}"
-    padding: "{spacing.sm}"
+    padding: "{spacing.lg}"
+  button-secondary-hover:
+    backgroundColor: "{colors.surface-hover}"
+    textColor: "{colors.on-surface}"
+  button-danger:
+    backgroundColor: "{colors.field}"
+    textColor: "{colors.error}"
+    typography: "{typography.body-md}"
+    rounded: "{rounded.none}"
+    height: "{spacing.input-height}"
+    padding: "{spacing.lg}"
+  button-github:
+    backgroundColor: "{colors.surface-inverse}"
+    textColor: "{colors.on-surface-inverse}"
+    typography: "{typography.body-md}"
+    rounded: "{rounded.none}"
+    height: "{spacing.input-height}"
+    padding: "{spacing.lg}"
+  input-field:
+    backgroundColor: "{colors.field}"
+    textColor: "{colors.on-surface}"
+    typography: "{typography.body-md}"
+    rounded: "{rounded.none}"
+    height: "{spacing.input-height}"
+    padding: "{spacing.lg}"
+  input-label:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.on-surface-muted}"
+    typography: "{typography.label-md}"
   input-error-text:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.error}"
@@ -138,18 +202,18 @@ components:
     textColor: "{colors.on-surface}"
     typography: "{typography.body-md}"
     height: "{spacing.row-height}"
-    padding: "{spacing.sm}"
+    padding: "{spacing.lg}"
   divider:
     backgroundColor: "{colors.border}"
     height: 1px
   section-card:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.on-surface}"
-    rounded: "{rounded.md}"
+    rounded: "{rounded.none}"
     padding: "{spacing.lg}"
   section-meta:
     backgroundColor: "{colors.surface}"
-    textColor: "{colors.on-surface-muted}"
+    textColor: "{colors.on-surface-subtle}"
     typography: "{typography.body-sm}"
   status-chip-attended:
     backgroundColor: "{colors.status-attended-bg}"
@@ -179,38 +243,76 @@ components:
     backgroundColor: "{colors.below-target-bg}"
     textColor: "{colors.below-target}"
     typography: "{typography.body-md}"
-    rounded: "{rounded.md}"
-    padding: "{spacing.md}"
+    rounded: "{rounded.none}"
+    padding: "{spacing.lg}"
+  progress-bar:
+    backgroundColor: "{colors.progress-track}"
+    textColor: "{colors.progress-fill}"
+    rounded: "{rounded.none}"
+    height: "{spacing.progress-height}"
   empty-state:
-    backgroundColor: "{colors.neutral}"
+    backgroundColor: "{colors.surface}"
     textColor: "{colors.on-surface-muted}"
     typography: "{typography.body-md}"
     padding: "{spacing.xl}"
   dark-nav-item:
     backgroundColor: "{colors.dark-surface-alt}"
-    textColor: "{colors.dark-on-surface}"
+    textColor: "{colors.dark-on-surface-muted}"
     typography: "{typography.body-md}"
+  dark-nav-item-hover:
+    backgroundColor: "{colors.dark-surface-hover}"
+    textColor: "{colors.dark-on-surface}"
   dark-nav-item-active:
     backgroundColor: "{colors.dark-surface-selected}"
     textColor: "{colors.dark-on-surface}"
-    typography: "{typography.label-md}"
+    typography: "{typography.body-emphasis}"
   dark-button-primary:
     backgroundColor: "{colors.dark-primary}"
     textColor: "{colors.dark-on-primary}"
-    typography: "{typography.label-md}"
+    typography: "{typography.body-md}"
   dark-button-primary-hover:
     backgroundColor: "{colors.dark-primary-hover}"
     textColor: "{colors.dark-on-primary}"
+  dark-button-secondary:
+    backgroundColor: "{colors.dark-field}"
+    textColor: "{colors.dark-on-surface}"
+    typography: "{typography.body-md}"
+  dark-button-secondary-hover:
+    backgroundColor: "{colors.dark-surface-hover}"
+    textColor: "{colors.dark-on-surface}"
+  dark-button-danger:
+    backgroundColor: "{colors.dark-field}"
+    textColor: "{colors.dark-error}"
+    typography: "{typography.body-md}"
+  dark-button-github:
+    backgroundColor: "{colors.dark-surface-inverse}"
+    textColor: "{colors.dark-on-surface-inverse}"
+    typography: "{typography.body-md}"
+  dark-input-field:
+    backgroundColor: "{colors.dark-field}"
+    textColor: "{colors.dark-on-surface}"
+    typography: "{typography.body-md}"
+  dark-input-label:
+    backgroundColor: "{colors.dark-surface}"
+    textColor: "{colors.dark-on-surface-muted}"
+    typography: "{typography.label-md}"
   dark-input-error-text:
     backgroundColor: "{colors.dark-surface}"
     textColor: "{colors.dark-error}"
     typography: "{typography.body-sm}"
+  dark-list-row:
+    backgroundColor: "{colors.dark-surface}"
+    textColor: "{colors.dark-on-surface}"
+    typography: "{typography.body-md}"
   dark-divider:
     backgroundColor: "{colors.dark-border}"
     height: 1px
+  dark-section-card:
+    backgroundColor: "{colors.dark-surface}"
+    textColor: "{colors.dark-on-surface}"
   dark-section-meta:
     backgroundColor: "{colors.dark-surface}"
-    textColor: "{colors.dark-on-surface-muted}"
+    textColor: "{colors.dark-on-surface-subtle}"
     typography: "{typography.body-sm}"
   dark-status-chip-attended:
     backgroundColor: "{colors.dark-status-attended-bg}"
@@ -232,140 +334,174 @@ components:
     backgroundColor: "{colors.dark-below-target-bg}"
     textColor: "{colors.dark-below-target}"
     typography: "{typography.body-md}"
+  dark-progress-bar:
+    backgroundColor: "{colors.dark-progress-track}"
+    textColor: "{colors.dark-progress-fill}"
   dark-empty-state:
-    backgroundColor: "{colors.dark-neutral}"
+    backgroundColor: "{colors.dark-surface}"
     textColor: "{colors.dark-on-surface-muted}"
     typography: "{typography.body-md}"
 ---
 
 # Academic Planner Design System
 
+Version 2 (human decision 2026-10-30). This is the target of milestone M14 (docs/spec.md §13.9).
+Until M14 is built, `ui/theme.slint` still holds the version 1 values (warm cream, terracotta,
+Georgia; see this file at tag `v0.2.1`). Code written before M14 keeps using `Theme.*` tokens only,
+so M14 is a token swap plus the component changes described here.
+
 ## Overview
 
-A warm, quiet, dense productivity tool for university students. It should feel like a good paper
-notebook on a desk: cream pages, ink-dark text, a single terracotta accent, and serif headings that
-give it a literary, calm character. Information density matters more than decoration. A student
-opens it between classes, marks attendance in two clicks, checks what is due, and closes it.
+A quiet, square, dense tool for one student who checks it between classes. The look comes from IBM
+Carbon, the same family as the Paper-Triage-Carbon design of agentic-paper-search: white page, light
+grey `#F4F4F4` cards, charcoal ink, and one IBM Blue accent. Information density matters more than
+decoration.
 
-- **Personality:** warm, calm, thoughtful, unobtrusive. No illustrations, gradients, or animation
-  beyond basic hover feedback.
-- **Density:** compact rows (34px), small body text (13px), tight spacing on a 4px grid.
-- **Theme:** light by default, with a matching warm dark theme (human decision 2026-10-29). Light is
-  a cream page with slightly lighter, near-white content cards; dark is a warm charcoal page with
-  slightly lighter cards, cream text, and a lighter terracotta accent. A three-way System / Light /
-  Dark switch sits in the window's top-right corner on every page.
-- **Meaning is never carried by color alone.** Every status color is always paired with its text
-  label ("Attended", "Absent", "Cancelled", "Pending", "Below target").
+- **Personality:** calm, precise, unobtrusive. No illustrations, gradients, glass, glow, or
+  animation beyond short colour changes on hover and press.
+- **Density:** 40px list rows, 32px controls, 14px body text, a 4px grid.
+- **Theme:** light by default, with a dark theme derived from Carbon g100 (charcoal `#161616` page,
+  `#262626` cards, `#393939` fields, near-white text). The three-way System / Light / Dark switch
+  stays in the window's top-right corner on every page.
+- **Square:** everything you click or type into has square corners. Pills only for status chips.
+- **Meaning is never carried by colour alone.** Every status colour is paired with its text label
+  ("Attended", "Absent", "Cancelled", "Pending", "Below target", "On track", "Watch", "At risk",
+  "Not enough data"), and every bar has its number printed beside it.
 
 ## Colors
 
-Warm, paper-like neutrals with one terracotta accent. Status colors are earthy and muted and only
-appear inside chips and banners, always next to a text label.
+Neutral greys with one blue accent. Colour appears only on actions, focus, links, errors, status
+chips, the below-target banner, and the progress-bar target marker.
 
-- **Primary (#B4532F) "Terracotta":** the only accent color. Used for the one primary button per
-  panel and for focus rings. Hover deepens to #9C4526.
-- **Neutral (#F5F4ED) "Cream":** the page background behind cards.
-- **Surface (#FDFCF9) "Paper":** cards, list rows, inputs.
-- **Surface Alt (#EFEDE5) "Oat":** the left nav background and list header rows.
-- **Surface Selected (#E4E1D6):** the active nav item and selected rows. Selection is shown by a
-  tonal fill, not by the accent color.
-- **Border (#E3E0D5):** 1px dividers between rows and around inputs and cards.
-- **On Surface (#1F1E1B) "Ink" / On Surface Muted (#68645B) "Graphite":** primary text and
-  secondary text (metadata, times, rooms, empty states).
-- **Error (#A8321F):** inline validation messages under text fields.
-- **Attended (#2F6B3F on #E4EEE1):** sage-green status chip.
-- **Absent (#A8321F on #F8E4DE):** brick-red status chip.
-- **Cancelled (#68645B on #ECEAE2):** warm-grey status chip for cancelled and rescheduled sessions.
-- **Pending (#7F5610 on #F6ECD2):** ochre status chip for sessions awaiting attendance.
-- **Below target (#8A3A1A on #F6E3D6):** the dashboard banner and course badge when attendance is
-  below the course's minimum.
+- **Primary (#0F62FE) "IBM Blue":** the one primary button per panel, the active nav bar, focus
+  rings, links, today in the calendar. Hover #0050E6, press #002D9C. The same blue stays the primary
+  fill in dark; dark links and the dark target marker use #78A9FF.
+- **Neutral (#FFFFFF) / dark (#161616):** the page behind cards, and the nav column
+  (surface-alt).
+- **Surface (#F4F4F4) / dark (#262626):** section cards, list rows, panels.
+- **Field (#FFFFFF) / dark (#393939):** text fields and secondary buttons on a card. Fields
+  alternate against their layer, as in Carbon.
+- **Surface Hover (#E8E8E8) / dark (#333333)** and **Surface Selected (#E0E0E0) / dark
+  (#393939):** hover fills and the active nav item or selected row. Selection is a tonal fill plus
+  weight 600 and a 3px blue bar, not colour alone.
+- **Surface Inverse (#161616) / dark (#F4F4F4):** the GitHub button and the selected segment of the
+  appearance switch, with on-surface-inverse text.
+- **Border (#E0E0E0) / dark (#393939):** 1px dividers between rows and around cards. Decorative.
+- **Border Strong (#8D8D8D):** edges of controls (field bottom rule, secondary buttons, checkbox).
+  3.0:1 on the light card, 4.6:1 on the dark card.
+- **On Surface (#161616) / dark (#F4F4F4), On Surface Muted (#525252) / dark (#C6C6C6), On Surface
+  Subtle (#6F6F6F) / dark (#A8A8A8):** the whole text ladder. Do not add greys. Subtle text is never
+  placed on surface-selected.
+- **Error (#DA1E28) / dark (#FF8389):** inline validation messages, danger buttons.
+- **Attended (#0E6027 on #A7F0BA; dark #6FDC8C on #044317):** green chip, also "On track".
+- **Absent (#A2191F on #FFD7D9; dark #FFB3B8 on #750E13):** red chip, also "At risk".
+- **Cancelled (#393939 on #E0E0E0; dark #E0E0E0 on #525252):** grey chip for cancelled,
+  rescheduled, and "Not enough data".
+- **Pending (#8E6A00 on #FCF4D6; dark #F1C21B on #483700):** yellow chip for sessions awaiting
+  attendance, also "Watch".
+- **Below target (#A2191F on #FFF1F1; dark #FFB3B8 on #4A0C10):** the dashboard banner, with a 3px
+  error-colour rule on its left edge (Carbon notification).
+- **Progress track (#E0E0E0 / dark #393939), fill (#161616 / dark #F4F4F4), target marker
+  (#0F62FE / dark #78A9FF):** the attendance bar on the Progress page.
+- **Calendar holiday (#D0E2FF / dark #002D9C):** the highlight behind holiday and exam-period days.
 
-All text/background pairs meet WCAG AA (4.5:1) for normal text.
+Every text/background pair above was checked: all meet WCAG AA (4.5:1) for normal text; the lowest
+are pending (4.52:1) and the light link and error on the card (4.55:1).
 
 ## Typography
 
-Two families: a serif for page and section headings, and the platform system font for everything
-else so controls feel native on macOS, Windows, and Linux.
+One family, **IBM Plex Sans**, at weights 400 (Regular) and 600 (SemiBold) only. The two TTF files
+come from IBM's official release (github.com/IBM/plex, SIL Open Font License 1.1) and are embedded in
+the app, so every platform looks the same. Glyphs missing from Plex fall back to the platform font.
+The licence goes into `THIRD-PARTY-NOTICES.html`.
 
-- **Title (Georgia, 22px / 400):** page titles ("Dashboard", "Timetable"). One per page.
-- **Headline (Georgia, 16px / 400):** section headings inside a page ("Today's classes", "Overdue").
-- **Body (system, 13px / 400):** list rows, form fields, banner text.
-- **Body small (system, 12px / 400):** metadata lines, inline validation errors.
-- **Label (system, 12px / 600):** button text, form field labels, active nav item.
-- **Label small (system, 11px / 600):** status chip text.
+- **Title (24px / 400):** page titles. One per page.
+- **Headline (16px / 600):** section card titles ("Today's classes", "Marks").
+- **Numeral (24px / 400):** big figures on the Progress page (attendance %, projected %).
+- **Body (14px / 400):** list rows, field text, button labels, banner text.
+- **Body emphasis (14px / 600):** course codes in rows, the active nav item.
+- **Body small (12px / 400):** metadata lines, inline validation errors.
+- **Label (12px / 400):** field labels, figure captions, status chip text. Labels are sentence
+  case, never all caps.
 
-Headings use regular weight; the serif carries the hierarchy on its own. Percentages and times are
-plain text; the missing-value placeholder is an em dash "—". If Georgia is unavailable, headings
-fall back to the platform default font.
+Hierarchy comes from size and the 400/600 pair, never from colour. The missing-value placeholder is
+an em dash "—".
 
 ## Layout
 
-One window, default 1100 × 720. A fixed 208px left navigation column on the oat background with five
-items (Dashboard, Timetable, Courses, Assessments, Settings), and a scrollable cream content area on
-the right.
+One window, default 1100 × 720. A fixed 240px left navigation column (Dashboard, Progress,
+Timetable, Courses, Assessments, Rules, Settings, About) on the page colour with a 1px border on its
+right edge, and a scrollable content area on the right. The sidebar stays (human decision
+2026-10-30); there is no top bar.
 
-- A strict 4px spacing scale: 4, 8, 12, 16, 24, 32.
-- Content area padding: 24px. Gap between sections: 24px. Gap inside a section: 8px.
-- Lists are single-column rows, 34px tall, separated by 1px borders. No visual time grid; the
-  timetable is a list grouped by weekday.
-- Forms are inline panels or dialogs: label above field, 30px fields, error text directly below
-  the field.
-- Every list has an empty state: one muted sentence explaining what will appear and how to add it.
+- 4px grid: 4, 8, 12, 16, 24, 32, 48.
+- Content area padding 24px; 32px above a section card, 16px inside it.
+- Lists are single-column rows, 40px tall, separated by 1px borders. The timetable stays a list
+  grouped by weekday.
+- Forms are inline panels: label above field, 32px fields, error text directly below.
+- Every list has an empty state: one muted sentence saying what will appear and how to add it.
 
 ## Elevation & Depth
 
-Flat. Hierarchy comes from tonal layers (cream page, paper cards, oat nav) and 1px warm borders, not
-shadows. Dialogs are the only elevated surface and use a single soft shadow over a dimmed backdrop.
+Flat. Depth comes from layers (page, then card, then field or selected fill) and 1px rules. No
+shadows anywhere; confirm panels are inline, not overlays.
 
 ## Shapes
 
-Soft, consistent radii: 6px for buttons, inputs, and nav items; 10px for cards and banners; fully
-rounded pills for status chips.
+Radius 0 on buttons, fields, nav items, cards, banners, panels, the progress bar, calendar cells,
+and the appearance switch. Fully rounded pills only for status chips.
 
 ## Components
 
-- **Nav item:** 34px tall, 8px padding, body text on the oat background. The active item uses the
-  surface-selected fill with label-weight text; the accent color is not used for navigation.
-- **Primary button:** terracotta background, white label, 30px tall, 12px horizontal padding. At
-  most one per panel (e.g. "Save").
-- **Secondary button:** paper background, 1px border, ink label. Used for row actions such as
-  Attended / Absent / Cancelled.
-- **Input field:** paper background, 1px border, 30px tall; the border turns terracotta on focus.
-  On invalid input the border and helper text switch to the error color, and the message states
-  the expected format (`DD-MM-YYYY`, `HH:MM`). Dates shown as text read like "October 26, 2026".
-- **List row:** 34px, paper background, 1px bottom border. Primary text left, muted metadata next
-  to it, status chip and actions right-aligned.
-- **Status chip:** pill with the status text label in label-small type on its tinted background.
-  The text is always present.
-- **Below-target banner:** tinted card at the top of the dashboard listing each course below its
-  attendance target, e.g. "CSE101 — 66.7% (target 75%)".
-- **Section card:** paper card, 10px radius, 1px border, 16px padding, with a serif headline title.
-- **Empty state:** muted body text centered in the section, e.g. "No classes today."
-- **Mini calendar:** a section card with the month name in the headline serif and prev/next
-  secondary buttons; a 7-column grid of 36px day cells starting Monday, weekday initials in label-sm
-  muted. Day numbers in body text; days outside the month muted. Today: a filled terracotta circle
-  with white number. Selected day: surface-selected fill. Holidays and exam
-  periods get a light terracotta highlight (primary at about 15% opacity); weekends get a fainter oat
-  (surface-alt) highlight; a day with an assessment due shows a 4px error-red dot under the number.
-  Class days carry no marker. A one-line legend under the grid names all three, so meaning never
-  rests on color alone.
-
-- **Appearance switch:** a segmented control fixed 16px from the top-right corner of the content
-  area on every page: three 28px icon segments (monitor = System, sun = Light, moon = Dark) on a
-  surface-alt pill with radius-full; the active segment is a surface-colored pill with a 1px border.
-  Icons are drawn in on-surface-muted, the active one in on-surface. Each segment has a tooltip-style
-  accessible label ("Use system appearance", "Light", "Dark").
-- **Dark theme tokens:** every `dark-*` color mirrors the light token of the same role; all text
-  pairs meet WCAG AA (4.5:1). The calendar holiday highlight uses dark-primary at about 22% opacity.
+- **Nav item:** 32px tall, 16px left padding, body text in on-surface-muted. Hover: surface-hover
+  fill and on-surface text. Active: surface-selected fill, body-emphasis on-surface text, and a 3px
+  primary bar on the left edge.
+- **Primary button:** primary fill, white body label, 32px tall, 16px padding, square. At most one
+  per panel. Hover primary-hover, press primary-active. Disabled: surface-selected fill,
+  on-surface-subtle text.
+- **Secondary button:** field fill, 1px border-strong edge, on-surface label. Hover surface-hover.
+  Row actions such as Attended / Absent / Cancelled.
+- **Danger button:** field fill, 1px error edge, error label. Used for "Delete selected" and the
+  confirm of a destructive action; never more than one per panel.
+- **GitHub button:** surface-inverse fill, on-surface-inverse label and 16px GitHub mark, square.
+- **Focus:** a 2px focus-colour ring inset on every focusable control (Carbon). Filled buttons add a
+  1px inner ring in on-primary.
+- **Input field:** field fill, no side or top border, a 1px border-strong bottom rule, 32px tall,
+  16px inline padding. Focus: 2px inset focus ring. Invalid: 2px inset error ring and the message in
+  body-small error below, stating the expected format (`DD-MM-YYYY`, digits for time).
+- **Checkbox and switch:** the platform-neutral Slint widgets, recoloured with these tokens.
+- **List row:** 40px, surface fill, 1px bottom border. Primary text left, muted metadata next to
+  it, status chip and actions right-aligned.
+- **Status chip:** pill, 12px label text on its tinted fill, 8px horizontal padding. Text always
+  present.
+- **Below-target banner:** below-target-bg fill, 3px error rule on the left, body text listing each
+  course below target, e.g. "CSE101 — 66.7% (target 75%)".
+- **Section card:** surface fill, square, no border, 16px padding, headline title.
+- **Progress card (Progress page):** a section card per course: code and name in body-emphasis,
+  the status chip on the right; two columns of figures (Attendance, Marks) in numeral type with
+  label captions; the attendance bar (8px, square, progress-track with a progress-fill segment and a
+  2px progress-target marker at the target, the percentage printed beside it); then one body line
+  each for "classes you can still miss" and the best reachable grade.
+- **Empty state:** muted body text in the card, e.g. "No classes today."
+- **Mini calendar:** square 36px day cells, Monday first, weekday initials in label text. Today: a
+  primary-filled square with white number. Selected day: surface-selected fill. Holidays and exam
+  periods: calendar-holiday fill; weekends: surface-hover fill; a day with an assessment due shows
+  a 4px error-colour square under the number. A one-line legend names all three.
+- **Appearance switch:** a square segmented control (Carbon content switcher) 16px from the
+  top-right corner: three 28px icon segments (monitor, sun, moon) with a 1px border-strong edge;
+  the selected segment is surface-inverse with on-surface-inverse icon. Accessible labels "Use
+  system appearance", "Light", "Dark".
+- **Bi-weekly marker:** sessions and slots of a bi-weekly slot carry the text "Every other week" in
+  body-small muted next to the time. Text only, no icon.
 
 ## Do's and Don'ts
 
-- Do pair every status color with its text label; never show a colored dot or bar alone.
-- Do reserve terracotta for one primary button per panel and focus rings.
-- Do use the serif only for page titles and section headings; everything else uses the system font.
-- Do keep rows at 34px and text at 13px so a full week fits on screen without scrolling.
+- Do pair every status colour with its text label; never show a coloured dot or bar alone.
+- Do reserve blue for the one primary button per panel, the active nav bar, links, focus, today, and
+  the progress target marker.
+- Do keep corners square everywhere except status chips.
+- Do keep rows at 40px and body text at 14px so a full week fits on screen.
 - Do show "—" for a missing percentage, never "0%" or "NaN".
-- Don't use pure white (#FFFFFF) as a background or pure black for text; stay on the warm neutrals.
-- Don't hardcode colors or sizes in `.slint` files; reference `Theme.*` from `ui/theme.slint`.
-- Don't add shadows, gradients, or decorative icons.
-- Don't use more than two font weights on a single screen.
+- Don't use weights other than 400 and 600, or all-caps tracked labels.
+- Don't hardcode colours or sizes in `.slint` files; reference `Theme.*` from `ui/theme.slint`.
+- Don't add shadows, gradients, rounded buttons, or a second accent colour.
