@@ -40,8 +40,61 @@ impl Planner {
     /// transaction. No bi-weekly slot valid on `from` is `Error::Validation`; an unknown
     /// course is `Error::NotFound`.
     pub fn shift_biweekly(&mut self, course_id: i64, from: NaiveDate) -> Result<()> {
-        let _ = (course_id, from);
-        todo!("R57: shift_biweekly")
+        let tx = self.conn.transaction()?;
+        load_course(&tx, course_id)?;
+        let before = from
+            .pred_opt()
+            .ok_or_else(|| Error::Validation(format!("date {from} has no previous day")))?;
+        let slots: Vec<Slot> = {
+            let mut stmt = tx.prepare(&format!(
+                "SELECT {SLOT_COLS} FROM slot s
+                 WHERE s.course_id = ?1 AND s.week_parity IS NOT NULL
+                   AND s.valid_from <= ?2 AND (s.valid_to IS NULL OR s.valid_to >= ?2)
+                 ORDER BY s.id"
+            ))?;
+            let rows = stmt
+                .query_map(params![course_id, fmt_date(from)], slot_from_row)?
+                .collect::<rusqlite::Result<_>>()?;
+            rows
+        };
+        if slots.is_empty() {
+            return Err(Error::Validation(format!(
+                "course {course_id} has no bi-weekly slot valid on {from}; nothing to move"
+            )));
+        }
+        for slot in slots {
+            let flipped = match slot.week_parity {
+                Some(WeekParity::Odd) => WeekParity::Even,
+                _ => WeekParity::Odd,
+            };
+            if slot.valid_from >= from {
+                tx.execute(
+                    "UPDATE slot SET week_parity = ?1 WHERE id = ?2",
+                    params![flipped.as_db(), slot.id],
+                )?;
+            } else {
+                tx.execute(
+                    "UPDATE slot SET valid_to = ?1 WHERE id = ?2",
+                    params![fmt_date(before), slot.id],
+                )?;
+                insert_slot(
+                    &tx,
+                    &SlotInput {
+                        course_id: slot.course_id,
+                        weekday: slot.weekday,
+                        start_time: slot.start_time,
+                        end_time: slot.end_time,
+                        room: slot.room,
+                        valid_from: from,
+                        valid_to: slot.valid_to,
+                        week_parity: Some(flipped),
+                    },
+                )?;
+            }
+        }
+        sync_in(&tx, from)?;
+        tx.commit()?;
+        Ok(())
     }
 
     /// R7: ends the old slot the day before `effective_from`, inserts the changed slot from
