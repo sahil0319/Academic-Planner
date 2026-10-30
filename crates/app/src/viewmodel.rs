@@ -472,6 +472,17 @@ pub fn biweekly_label(biweekly: bool) -> &'static str {
     }
 }
 
+/// R58: true when the session shows "Move to next week": it comes from a bi-weekly slot, is
+/// still pending, and is dated today or later.
+pub fn can_shift_biweekly(view: &SessionView, today: NaiveDate) -> bool {
+    view.biweekly && view.session.status == Status::Pending && view.session.date >= today
+}
+
+/// R58, R89: toast text after "Move to next week".
+pub fn moved_next_week_text() -> String {
+    "Moved to next week.".to_string()
+}
+
 /// R54: the other week parity.
 fn other_parity(parity: WeekParity) -> WeekParity {
     match parity {

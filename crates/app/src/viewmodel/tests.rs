@@ -4036,3 +4036,35 @@ fn biweekly_label_follows_the_flag() {
     assert_eq!(biweekly_label(true), EVERY_OTHER_WEEK);
     assert_eq!(biweekly_label(false), "");
 }
+
+/// R58: "Move to next week" shows for a pending bi-weekly session dated today or later.
+#[test]
+fn can_shift_biweekly_needs_biweekly_pending_and_not_past_date() {
+    let today = d(2026, 1, 12);
+    let mut view = pending_view(1, today);
+    view.biweekly = true;
+    assert!(can_shift_biweekly(&view, today));
+    view.session.date = d(2026, 1, 20);
+    assert!(can_shift_biweekly(&view, today));
+    view.session.date = d(2026, 1, 11);
+    assert!(!can_shift_biweekly(&view, today));
+}
+
+/// R58: a weekly session, or one that is not pending, never offers the button.
+#[test]
+fn can_shift_biweekly_false_for_weekly_and_marked_sessions() {
+    let today = d(2026, 1, 12);
+    let weekly = pending_view(1, today);
+    assert!(!can_shift_biweekly(&weekly, today));
+    for status in [Status::Attended, Status::Absent, Status::Cancelled] {
+        let mut view = session_view(2, today, status, "Marked", true);
+        view.biweekly = true;
+        assert!(!can_shift_biweekly(&view, today));
+    }
+}
+
+/// R58, R89: the toast text after a move.
+#[test]
+fn moved_next_week_text_is_the_toast() {
+    assert_eq!(moved_next_week_text(), "Moved to next week.");
+}

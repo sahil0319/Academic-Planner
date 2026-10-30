@@ -21,7 +21,7 @@ Tests (tester) come before implementation (builder). Decisions are in `decisions
 
 ## Phase 4: app (builder)
 - [x] T011 Slot form, parity conversion in `viewmodel.rs` (R56, T61)
-- [ ] T012 `SessionView.biweekly`, "Every other week" label, "Move to next week" button, controller wiring (R58)
+- [x] T012 `SessionView.biweekly`, "Every other week" label, "Move to next week" button, controller wiring (R58)
 
 ## Phase 5: gate
 - [ ] T013 Gate, theme grep, rebase onto main, gate again

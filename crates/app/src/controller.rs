@@ -53,6 +53,9 @@ pub struct UiState {
     pub calendar_month: NaiveDate,
     /// Day shown in the dashboard day panel; today on start (§6 mini calendar change).
     pub calendar_selected: NaiveDate,
+    /// R58: sessions on the dashboard that offer "Move to next week": session id, course id, and
+    /// date. Rebuilt on each dashboard refresh.
+    pub shiftable: Vec<(i64, i64, NaiveDate)>,
 }
 
 impl UiState {
@@ -72,6 +75,7 @@ impl UiState {
             pending_restore: None,
             calendar_month: viewmodel::month_start(today),
             calendar_selected: today,
+            shiftable: Vec::new(),
         }
     }
 
