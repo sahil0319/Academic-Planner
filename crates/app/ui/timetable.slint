@@ -201,6 +201,16 @@ component TabButton inherits Rectangle {
         font-weight: root.active ? Theme.body-emphasis-weight : Theme.body-md-weight;
     }
 
+    // F-05: the selected tab carries a rule-width primary bar on its bottom edge (the active-nav
+    // device), so selection does not rest on weight alone when surface-selected equals field.
+    if root.active: Rectangle {
+        x: 0;
+        y: parent.height - self.height;
+        width: parent.width;
+        height: Theme.rule-width;
+        background: Theme.primary;
+    }
+
     if focus-scope.has-focus: FocusRing {}
 }
 
@@ -266,10 +276,11 @@ component SessionPanel inherits Rectangle {
         // R9: reschedule creates a makeup and cancels this session.
         Text {
             text: "Reschedule";
+            // F-09: sub-heading in body-emphasis, not a field label.
             color: Theme.on-surface;
             font-family: Theme.font-body;
-            font-size: Theme.label-md-size;
-            font-weight: Theme.label-md-weight;
+            font-size: Theme.body-emphasis-size;
+            font-weight: Theme.body-emphasis-weight;
         }
         HorizontalLayout {
             spacing: Theme.space-sm;

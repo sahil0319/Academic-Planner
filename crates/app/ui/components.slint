@@ -386,6 +386,16 @@ component AmPmSegment inherits Rectangle {
         }
     }
 
+    // F-05: the selected tab carries a rule-width primary bar on its bottom edge (the active-nav
+    // device), so selection does not rest on weight alone when surface-selected equals field.
+    if root.active: Rectangle {
+        x: 0;
+        y: parent.height - self.height;
+        width: parent.width;
+        height: Theme.rule-width;
+        background: Theme.primary;
+    }
+
     if focus-scope.has-focus: FocusRing {}
 }
 
