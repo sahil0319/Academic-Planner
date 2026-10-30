@@ -13,11 +13,6 @@ use crate::controller::App;
 use crate::viewmodel as vm;
 use crate::{bridge, restore, SettingsState};
 
-const TERM_SAVED: &str = "Term saved.";
-const HOLIDAYS_SAVED: &str = "Holidays saved.";
-const HOLIDAY_REMOVED: &str = "Holiday removed.";
-const SETTINGS_SAVED: &str = "Settings saved.";
-
 /// Reloads the holiday list, the term flag, and the database path. Form text is not touched here
 /// (see [`load_forms`]) so the minute timer does not wipe what the student is typing.
 pub fn refresh(app: &App) {
@@ -113,14 +108,13 @@ fn message(app: &App, text: &str) {
     }
 }
 
-/// R6: runs the controller's changed path, then shows `note` unless the refresh or sync already
-/// put an error in the page message.
-fn changed_with_note(app: &App, sync: bool, note: &str) {
+/// R6, R89: runs the controller's changed path, then shows `text` as a toast unless the refresh
+/// or sync already put an error in the page message (errors stay inline, never toasts).
+fn changed_then_toast(app: &App, sync: bool, text: &str) {
     app.changed(sync);
     if let Some(window) = app.window() {
-        let page = window.global::<SettingsState>();
-        if page.get_message().is_empty() {
-            page.set_message(note.into());
+        if window.global::<SettingsState>().get_message().is_empty() {
+            app.toast(text);
         }
     }
 }
@@ -162,7 +156,7 @@ fn save_term(app: &App) {
         Ok(_) => {
             page.set_term_form_error(SharedString::new());
             // R6: a term change re-syncs sessions.
-            changed_with_note(app, true, TERM_SAVED);
+            changed_then_toast(app, true, &vm::term_saved_text());
             load_forms(app);
         }
     }
@@ -211,7 +205,7 @@ fn add_holiday(app: &App) {
             page.set_hol_start(SharedString::new());
             page.set_hol_end(SharedString::new());
             page.set_hol_label(SharedString::new());
-            changed_with_note(app, true, HOLIDAYS_SAVED);
+            changed_then_toast(app, true, &vm::holidays_saved_text());
         }
     }
 }
@@ -237,7 +231,7 @@ fn remove_holiday(app: &App, key: &str) {
     match saved {
         Err(e) => message(app, &vm::error_text(&e)),
         Ok(()) => {
-            changed_with_note(app, true, HOLIDAY_REMOVED);
+            changed_then_toast(app, true, &vm::holiday_removed_text());
         }
     }
 }
@@ -278,7 +272,7 @@ fn save_settings(app: &App) {
         Err(e) => page.set_settings_form_error(vm::error_text(&e).into()),
         Ok(()) => {
             page.set_settings_form_error(SharedString::new());
-            changed_with_note(app, false, SETTINGS_SAVED);
+            changed_then_toast(app, false, &vm::settings_saved_text());
             load_forms(app);
         }
     }
@@ -295,14 +289,19 @@ fn backup(app: &App) {
         return;
     };
     let json = app.planner().export_json(now);
-    let text = match json {
-        Ok(json) => match std::fs::write(&path, json) {
-            Ok(()) => vm::backup_saved_message(&path),
-            Err(e) => vm::file_error_message(&path, &e.to_string()),
-        },
-        Err(e) => vm::error_text(&e),
+    let saved = match json {
+        Ok(json) => {
+            std::fs::write(&path, json).map_err(|e| vm::file_error_message(&path, &e.to_string()))
+        }
+        Err(e) => Err(vm::error_text(&e)),
     };
-    message(app, &text);
+    match saved {
+        Ok(()) => {
+            message(app, "");
+            app.toast(&vm::backup_saved_message(&path));
+        }
+        Err(text) => message(app, &text),
+    }
 }
 
 /// Shows or hides the inline restore confirm panel.
@@ -359,7 +358,7 @@ fn restore_confirm(app: &App) {
         state.detail_course = None;
         state.selected_session = None;
     }
-    changed_with_note(app, true, &vm::restored_message(&copy));
+    changed_then_toast(app, true, &vm::restored_message(&copy));
     load_forms(app);
     // §5 Settings theme: the restored backup carries its own theme.
     app.load_theme();
@@ -382,7 +381,10 @@ fn export_csv(app: &App) {
     });
     drop(planner);
     match result {
-        Ok(()) => message(app, &vm::csv_exported_message(&folder)),
+        Ok(()) => {
+            message(app, "");
+            app.toast(&vm::csv_exported_message(&folder));
+        }
         Err(text) => message(app, &text),
     }
 }

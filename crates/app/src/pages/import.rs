@@ -61,9 +61,9 @@ pub fn wire(app: &Rc<App>) {
     ui.on_apply(move || with(&weak, |app, ui| run_apply(app, ui, &shared)));
 
     let weak = Rc::downgrade(app);
-    ui.on_template_copied(move || with(&weak, |_, ui| ui.set_copy_status(TEMPLATE_COPIED.into())));
+    ui.on_template_copied(move || with(&weak, |app, _| app.toast(&vm::template_copied_text())));
     let weak = Rc::downgrade(app);
-    ui.on_prompt_copied(move || with(&weak, |_, ui| ui.set_copy_status(PROMPT_COPIED.into())));
+    ui.on_prompt_copied(move || with(&weak, |app, _| app.toast(&vm::prompt_copied_text())));
 }
 
 /// R49: while the panel is closed the date field follows today (also after a date rollover).
@@ -84,14 +84,8 @@ fn reset(app: &App, ui: &ImportState<'_>) {
     ui.set_date_error(SharedString::new());
     ui.set_lines(bridge::model(Vec::new()));
     ui.set_message(SharedString::new());
-    ui.set_copy_status(SharedString::new());
     update_gates(ui, None);
 }
-
-/// Status line after Copy template.
-const TEMPLATE_COPIED: &str = "Template copied";
-/// Status line after Copy AI prompt.
-const PROMPT_COPIED: &str = "AI prompt copied";
 
 /// Runs `f` with the app and the page global if both are still alive.
 fn with(weak: &Weak<App>, f: impl FnOnce(&App, &ImportState<'_>)) {
@@ -118,7 +112,6 @@ fn edited(ui: &ImportState<'_>, preview: &Shared) {
     *preview.borrow_mut() = None;
     ui.set_lines(bridge::model(Vec::new()));
     ui.set_message(SharedString::new());
-    ui.set_copy_status(SharedString::new());
     let error = vm::parse_date(&ui.get_date_text())
         .err()
         .unwrap_or_default();
@@ -133,7 +126,6 @@ fn run_preview(app: &App, ui: &ImportState<'_>, preview: &Shared) {
         return;
     };
     ui.set_message(SharedString::new());
-    ui.set_copy_status(SharedString::new());
     let result = app.planner().preview_import(&text, date);
     match result {
         Ok(plan) => {

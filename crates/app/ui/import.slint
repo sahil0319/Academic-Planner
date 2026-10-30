@@ -22,8 +22,6 @@ export global ImportState {
     in property <[ImportLine]> lines;
     // Core or date error shown under the buttons.
     in property <string> message;
-    // "Template copied" / "AI prompt copied".
-    in property <string> copy-status;
     // Embedded texts the Copy buttons put on the clipboard.
     in property <string> template-text;
     in property <string> prompt-text;
@@ -162,15 +160,6 @@ export component ImportPanel inherits Rectangle {
                     prompt-source.copy();
                     prompt-source.clear-selection();
                     ImportState.prompt-copied();
-                }
-            }
-            VerticalLayout {
-                alignment: center;
-                Text {
-                    text: ImportState.copy-status;
-                    color: Theme.on-surface-muted;
-                    font-family: Theme.font-body;
-                    font-size: Theme.body-md-size;
                 }
             }
         }
