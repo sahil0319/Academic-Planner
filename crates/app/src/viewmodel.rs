@@ -2051,16 +2051,49 @@ pub fn target_fraction(target: Option<i64>) -> Option<f32> {
 }
 
 /// R64: "Not graded" | "No marks entered yet" | "Secured 129.0 of 150 assessed marks".
-#[allow(dead_code, unused_variables)]
+#[allow(dead_code)]
 pub fn progress_marks_line(marks: &CourseMarks) -> String {
-    todo!("M13: R64")
+    if !marks.graded {
+        return "Not graded".to_string();
+    }
+    if marks.projected_pct.is_none() {
+        return "No marks entered yet".to_string();
+    }
+    format!(
+        "Secured {} of {} assessed marks",
+        fixed(marks.secured, 1),
+        format_mark(marks.assessed)
+    )
 }
 
 /// R64, R38: "A needs 96.0 of 150 in the final" | "A+ is already secured" | "Final grade: A";
 /// "" when there is no outlook (not graded) or every row is Not reachable.
-#[allow(dead_code, unused_variables)]
+///
+/// The rows run from the highest letter down, so the first row that is not `Not reachable` is the
+/// best reachable grade (D10: no such row means no line).
+#[allow(dead_code)]
 pub fn best_grade_line(outlook: Option<&FinalOutlook>) -> String {
-    todo!("M13: R64")
+    match outlook {
+        Some(FinalOutlook::Needed {
+            rows,
+            final_item_max,
+            ..
+        }) => rows
+            .iter()
+            .find(|row| row.needed != Needed::NotReachable)
+            .map(|row| match &row.needed {
+                Needed::Secured => format!("{} is already secured", row.letter),
+                needed => format!(
+                    "{} needs {} of {} in the final",
+                    row.letter,
+                    needed_text(needed),
+                    format_mark(*final_item_max)
+                ),
+            })
+            .unwrap_or_default(),
+        Some(FinalOutlook::Actual { letter }) => actual_grade_text(letter.as_deref()),
+        None => String::new(),
+    }
 }
 
 /// R61: "1 on track · 1 to watch · 1 at risk" (Not enough data is not counted).
