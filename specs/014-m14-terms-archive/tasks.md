@@ -123,7 +123,7 @@ Stories (for labels):
 
 ## Phase 5: Gate (builder)
 
-- [ ] T009 Run `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo
+- [x] T009 Run `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo
   test --workspace` and paste the summary; run the theme scan
   `grep -nE '#[0-9a-fA-F]{3,8}\b|[0-9]+(\.[0-9]+)?px' crates/app/ui/*.slint | grep -v '^crates/app/ui/theme.slint'`
   (must print nothing; comments count) and fix any hit by using `Theme.*` (add a token to

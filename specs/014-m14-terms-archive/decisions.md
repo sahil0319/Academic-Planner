@@ -20,3 +20,4 @@ Taken unattended with the recommended option (router instruction). One line each
 - D16 T68 needs no core change: sync, dashboard, and reminders already read only the active term (checked in code); the T68 test is the guard.
 - D17 Analysis remediation applied: removed the [P] marker from T006 (it needs T005) and corrected the coverage table in plan.md.
 - D18 TEST BUG, not fixed (builder may not edit tests): t69 in m14_terms_archive.rs scores the Spring B course 23.25 on Mid, but Mid is 25% of 300 marks = 75 (R36/R37/R40, item_max = marks), so 23.25 is 31% = F (0.00), not 62% = B (3.00); 46.5 is the intended score. With 46.5 all six core tests pass (checked on a scratch copy). Tester must fix the number.
+- D19 (router): T69 fixture score corrected 23.25 -> 46.5 (Mid is 75 marks; 62% = 46.5), test data bug, assertions unchanged.
