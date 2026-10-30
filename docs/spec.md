@@ -589,7 +589,7 @@ Core integration tests unless marked (app) = `viewmodel.rs`/updater unit tests.
 | T36 | rule set weights 95; two finals; best 5 of 4; no 0 band | each `Error::Validation` |
 | T37 | 3-credit Theory, quiz scores 12, 11, 13, 14 | Quizzes 39.0 of 45 |
 | T38 | 3-credit Theory, attendance 87% (default bands) | Attendance 27.0 of 30 (M19: 18.0 of 30, because the default bands change) |
-| T39 | 3-credit Theory: attendance 92%, quizzes 12/11/13/14, mid 60/75, no final | needed final: A+ 111.0, A 96.0 (of 150); a quiz missing → listed as assumed 0 |
+| T39 | 3-credit Theory: attendance 92%, quizzes 12/11/13/14, mid 60/75, no final | needed final: A+ 117.0, A 102.0 (of 150) with the M19 default bands (92% earns 24.0 of 30; before M19: A+ 111.0, A 96.0); a quiz missing → listed as assumed 0 |
 | T40 | projected 79.9 / 80.0 | A / A+ |
 | T41 | 3-credit A+ (4.00) + 1.5-credit B (3.00) | GPA 3.67, projected |
 | T42 | v2 export → restore → export; restore a v1 backup | equal except `exported_at`; v1 → ungraded courses, default rule sets and grade scale |
