@@ -229,6 +229,38 @@ impl Planner {
         Ok(())
     }
 
+    /// R51: permanently deletes the courses with their slots, sessions, assessments, and the
+    /// `reminder_log` rows of those sessions and assessments, in one transaction. A makeup that
+    /// replaced a deleted session keeps its row but loses the link. Any unknown id is
+    /// `NotFound` and nothing is deleted; duplicate ids are allowed.
+    pub fn delete_courses(&mut self, ids: &[i64]) -> Result<()> {
+        let tx = self.conn.transaction()?;
+        for &id in ids {
+            load_course(&tx, id)?;
+        }
+        for &id in ids {
+            tx.execute(
+                "DELETE FROM reminder_log
+                 WHERE (kind = 'session'
+                        AND ref_id IN (SELECT id FROM session WHERE course_id = ?1))
+                    OR (kind = 'assessment'
+                        AND ref_id IN (SELECT id FROM assessment WHERE course_id = ?1))",
+                [id],
+            )?;
+            tx.execute(
+                "UPDATE session SET replaces_session_id = NULL
+                 WHERE replaces_session_id IN (SELECT id FROM session WHERE course_id = ?1)",
+                [id],
+            )?;
+            tx.execute("DELETE FROM session WHERE course_id = ?1", [id])?;
+            tx.execute("DELETE FROM slot WHERE course_id = ?1", [id])?;
+            tx.execute("DELETE FROM assessment WHERE course_id = ?1", [id])?;
+            tx.execute("DELETE FROM course WHERE id = ?1", [id])?;
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
     /// R1, R3: courses of the active term, ordered by code. Archived courses are included
     /// only when `include_archived` is set.
     pub fn list_courses(&self, include_archived: bool) -> Result<Vec<Course>> {
