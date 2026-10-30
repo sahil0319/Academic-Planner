@@ -155,7 +155,7 @@ T011 screenshots listed per task.
   fields, page-local `ComboField`/text components on v2 roles; replace every `radius-sm`/
   `radius-md`. Done-check: Gate, Grep, Same behaviour; screens 03, 04. Commit `M17: timetable
   restyle`. Needs T004
-- [ ] T007 [P] [US3] (builder) Restyle crates/app/ui/courses.slint: list rows, course detail
+- [x] T007 [P] [US3] (builder) Restyle crates/app/ui/courses.slint: list rows, course detail
   figures and session list, makeup and course forms with Carbon fields; the delete button shown
   when courses are selected and the delete button in the confirm panel become `DangerButton`
   (today `SecondaryButton` and `PrimaryButton`; research D10); confirm panel square `surface`;

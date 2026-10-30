@@ -19,6 +19,7 @@ import {
     EmptyState,
     PrimaryButton,
     SecondaryButton,
+    DangerButton,
     Field,
     ComboField,
     TimeField,
@@ -157,7 +158,7 @@ component Figure inherits VerticalLayout {
 }
 
 export component CoursesPage inherits VerticalLayout {
-    spacing: Theme.space-xl;
+    spacing: Theme.space-xxl;
     alignment: start;
 
     PageTitle {
@@ -168,8 +169,8 @@ export component CoursesPage inherits VerticalLayout {
         text: CoursesState.gpa-text;
         color: Theme.on-surface;
         font-family: Theme.font-body;
-        font-size: Theme.body-md-size;
-        font-weight: Theme.label-md-weight;
+        font-size: Theme.body-emphasis-size;
+        font-weight: Theme.body-emphasis-weight;
     }
 
     if CoursesState.message != "": FormError {
@@ -548,7 +549,8 @@ export component CoursesPage inherits VerticalLayout {
                     CoursesState.select-all(self.checked);
                 }
             }
-            if CoursesState.selected-count > 0 && !CoursesState.confirm-delete: SecondaryButton {
+            // R84: delete is a destructive action, so it uses the danger style.
+            if CoursesState.selected-count > 0 && !CoursesState.confirm-delete: DangerButton {
                 text: CoursesState.delete-label;
                 clicked => {
                     CoursesState.ask-delete();
@@ -556,12 +558,15 @@ export component CoursesPage inherits VerticalLayout {
             }
         }
 
+        // R84: square surface panel with a divider-width edge so it stands out inside its card.
         if CoursesState.confirm-delete: Rectangle {
-            background: Theme.surface-alt;
-            border-radius: Theme.radius-sm;
+            background: Theme.surface;
+            border-radius: Theme.radius-none;
+            border-width: Theme.divider-width;
+            border-color: Theme.border;
 
             VerticalLayout {
-                padding: Theme.space-md;
+                padding: Theme.space-lg;
                 spacing: Theme.space-sm;
 
                 Body {
@@ -573,7 +578,7 @@ export component CoursesPage inherits VerticalLayout {
                 HorizontalLayout {
                     spacing: Theme.space-sm;
                     alignment: start;
-                    PrimaryButton {
+                    DangerButton {
                         text: CoursesState.delete-label;
                         clicked => {
                             CoursesState.confirm-delete-selected();
@@ -609,7 +614,8 @@ export component CoursesPage inherits VerticalLayout {
                         Body {
                             text: c.code;
                             horizontal-stretch: 0;
-                            font-weight: Theme.label-md-weight;
+                            font-size: Theme.body-emphasis-size;
+                            font-weight: Theme.body-emphasis-weight;
                         }
                         Body {
                             text: c.name;
