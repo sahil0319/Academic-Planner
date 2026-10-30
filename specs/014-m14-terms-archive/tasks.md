@@ -98,7 +98,7 @@ Stories (for labels):
   PastTermRow` to `crates/app/src/bridge.rs`; add `LinkButton` (text in `Theme.link`, body type,
   `TouchArea`, `accessible-role: button`, Return/Space through `FocusScope`, `FocusRing` on focus;
   `Theme.*` only) to `crates/app/ui/components.slint`. Commit: `M14: past term row and link button`.
-- [ ] T007 [US2] Dashboard term line (R66): add `term-line` and `term-link` to `DashboardState` in
+- [x] T007 [US2] Dashboard term line (R66): add `term-line` and `term-link` to `DashboardState` in
   `crates/app/ui/dashboard.slint`; a muted body `Text` bound to `term-line` directly under
   `PageTitle`, followed on the same row by `if term-link != "": LinkButton` whose click sets
   `AppState.current-page = 4`. In `crates/app/src/pages/dashboard.rs` `refresh`, set both from

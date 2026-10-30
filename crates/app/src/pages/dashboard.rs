@@ -20,9 +20,15 @@ pub fn refresh(app: &App) {
     };
     let state = window.global::<DashboardState>();
     let now = app.now();
+    // R66: the term line shows with and without an active term.
     // T028: without an active term the page shows one "No term yet" card instead of the sections.
     match app.planner().active_term() {
-        Ok(term) => state.set_has_term(term.is_some()),
+        Ok(term) => {
+            let line = viewmodel::dashboard_term_line(term.as_ref(), app.today());
+            state.set_term_line(line.text.into());
+            state.set_term_link(line.link.into());
+            state.set_has_term(term.is_some());
+        }
         Err(e) => {
             state.set_message(viewmodel::error_text(&e).into());
             return;

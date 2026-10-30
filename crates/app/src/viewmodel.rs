@@ -1078,7 +1078,6 @@ pub fn show_next_card(next: Option<&SessionRow>, today: &[SessionRow]) -> bool {
 
 /// R54 numbering (own helper; M12 is not on this branch): weeks run Monday-Sunday, week 1 is the
 /// week containing `start`; 0 or negative before the term's first week.
-#[allow(dead_code)]
 pub fn term_week_number(start: NaiveDate, date: NaiveDate) -> i64 {
     (week_start(date) - week_start(start))
         .num_days()
@@ -1087,13 +1086,11 @@ pub fn term_week_number(start: NaiveDate, date: NaiveDate) -> i64 {
 }
 
 /// R66: `"January 5, 2026 – May 1, 2026"` (full dates both sides).
-#[allow(dead_code)]
 pub fn term_date_range(start: NaiveDate, end: NaiveDate) -> String {
     format!("{} \u{2013} {}", format_date(start), format_date(end))
 }
 
 /// R66: the dashboard term line, split so the trailing sentence can be a link.
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct TermLine {
     /// Plain text part.
@@ -1115,7 +1112,6 @@ impl TermLine {
 }
 
 /// R66: `term` is the active term (None = no active term).
-#[allow(dead_code)]
 pub fn dashboard_term_line(term: Option<&Term>, today: NaiveDate) -> TermLine {
     let Some(term) = term else {
         return TermLine {
@@ -1171,7 +1167,6 @@ pub fn term_card(term: &Term, today: NaiveDate) -> TermCard {
 
 /// R67 week line: `"Week {n} of {N}"` within the term, `"Starts {start}"` before it,
 /// `"Ended on {end}"` after it. The dashboard line (R66) reuses the in-term form.
-#[allow(dead_code)]
 pub fn term_week_text(term: &Term, today: NaiveDate) -> String {
     if today < term.start_date {
         format!("Starts {}", format_date(term.start_date))

@@ -1,7 +1,14 @@
 // Dashboard page (docs/spec.md §6, contracts/ui-bridge.md "DashboardState").
 // R14 banner, R16-R20 sections. Every string is formatted in src/viewmodel.rs; bindings only.
 import { Theme } from "theme.slint";
-import { SessionRow, AssessmentRow, StatusAction, CalendarDay, CalendarWeek } from "types.slint";
+import {
+    SessionRow,
+    AssessmentRow,
+    StatusAction,
+    CalendarDay,
+    CalendarWeek,
+    AppState,
+} from "types.slint";
 import {
     FocusRing,
     PageTitle,
@@ -12,9 +19,13 @@ import {
     StatusChip,
     StatusColumn,
     SecondaryButton,
+    LinkButton,
 } from "components.slint";
 
 export global DashboardState {
+    // R66: the term line under the page title, and its trailing link ("" = none).
+    in property <string> term-line;
+    in property <string> term-link;
     // Row-action errors.
     in property <string> message;
     // False when there is no active term: the page shows only the "No term yet" card.
@@ -498,6 +509,26 @@ export component DashboardPage inherits VerticalLayout {
 
     PageTitle {
         text: "Dashboard";
+    }
+
+    // R66: term name, dates, and week; after the end date a link to Settings follows.
+    HorizontalLayout {
+        spacing: Theme.space-xs;
+        alignment: start;
+        Text {
+            text: DashboardState.term-line;
+            vertical-alignment: center;
+            color: Theme.on-surface-muted;
+            font-family: Theme.font-body;
+            font-size: Theme.body-md-size;
+            font-weight: Theme.body-md-weight;
+        }
+        if DashboardState.term-link != "": LinkButton {
+            text: DashboardState.term-link;
+            clicked => {
+                AppState.current-page = 4;
+            }
+        }
     }
 
     if DashboardState.message != "": Text {
