@@ -4,8 +4,8 @@ mod common;
 
 use common::*;
 use planner_core::{
-    AssessmentFilter, AssessmentInput, AssessmentKind, Error, Holiday, Planner, Settings, Status,
-    TermInput, ThemeMode, SCHEMA_VERSION,
+    AssessmentFilter, AssessmentInput, AssessmentKind, DayOffKind, Error, Holiday, Planner,
+    Settings, Status, TermInput, ThemeMode, SCHEMA_VERSION,
 };
 use serde_json::{json, Value};
 
@@ -29,6 +29,7 @@ fn populated() -> Populated {
         &[Holiday {
             date: d("2026-01-19"),
             label: Some("Break".into()),
+            kind: DayOffKind::Holiday,
         }],
     )
     .unwrap();

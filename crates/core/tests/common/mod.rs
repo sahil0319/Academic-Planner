@@ -7,8 +7,8 @@
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Weekday};
 use planner_core::{
-    Assessment, AssessmentInput, AssessmentKind, Course, CourseInput, Holiday, MakeupInput,
-    Planner, Session, SessionKind, Slot, SlotInput, Status, Term, TermInput,
+    Assessment, AssessmentInput, AssessmentKind, Course, CourseInput, DayOffKind, Holiday,
+    MakeupInput, Planner, Session, SessionKind, Slot, SlotInput, Status, Term, TermInput,
 };
 
 pub fn d(s: &str) -> NaiveDate {
@@ -142,6 +142,7 @@ pub fn holidays(days: &[&str]) -> Vec<Holiday> {
         .map(|day| Holiday {
             date: d(day),
             label: None,
+            kind: DayOffKind::Holiday,
         })
         .collect()
 }
@@ -154,6 +155,7 @@ pub fn holiday_range(from: &str, to: &str, label: &str) -> Vec<Holiday> {
         out.push(Holiday {
             date: day,
             label: Some(label.into()),
+            kind: DayOffKind::Holiday,
         });
         day = day.succ_opt().unwrap();
     }

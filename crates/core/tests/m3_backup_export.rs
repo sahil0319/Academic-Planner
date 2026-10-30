@@ -7,8 +7,8 @@ use std::collections::BTreeSet;
 use chrono::NaiveTime;
 use common::*;
 use planner_core::{
-    AssessmentInput, AssessmentKind, Holiday, Planner, Session, SessionKind, Settings, Status,
-    TermInput, ThemeMode, SCHEMA_VERSION,
+    AssessmentInput, AssessmentKind, DayOffKind, Holiday, Planner, Session, SessionKind, Settings,
+    Status, TermInput, ThemeMode, SCHEMA_VERSION,
 };
 use serde_json::{json, Value};
 
@@ -35,6 +35,7 @@ fn populated() -> Populated {
         &[Holiday {
             date: d("2026-01-19"),
             label: Some("Break".into()),
+            kind: DayOffKind::Holiday,
         }],
     )
     .unwrap();
@@ -200,7 +201,7 @@ fn r21_export_rows_keep_ids_and_value_types() {
     );
     assert_eq!(
         doc["holidays"],
-        json!([{"term_id": pop.term_id, "date": "2026-01-19", "label": "Break"}])
+        json!([{"term_id": pop.term_id, "date": "2026-01-19", "label": "Break", "kind": "holiday"}])
     );
     assert_eq!(
         doc["courses"],
@@ -381,10 +382,12 @@ fn r21_export_collections_ordered() {
             Holiday {
                 date: d("2026-01-21"),
                 label: None,
+                kind: DayOffKind::Holiday,
             },
             Holiday {
                 date: d("2026-01-07"),
                 label: Some("Mid".into()),
+                kind: DayOffKind::Holiday,
             },
         ],
     )
@@ -421,10 +424,12 @@ fn r21_export_collections_ordered() {
             Holiday {
                 date: d("2026-02-10"),
                 label: None,
+                kind: DayOffKind::Holiday,
             },
             Holiday {
                 date: d("2026-02-03"),
                 label: None,
+                kind: DayOffKind::Holiday,
             },
         ],
     )

@@ -4,7 +4,7 @@
 mod common;
 
 use common::*;
-use planner_core::{Error, Holiday, Planner, TermInput};
+use planner_core::{DayOffKind, Error, Holiday, Planner, TermInput};
 
 #[test]
 fn r01_no_term_means_no_active_term() {
@@ -87,6 +87,7 @@ fn set_holidays_replaces_set() {
     let h = |date: &str, label: Option<&str>| Holiday {
         date: d(date),
         label: label.map(Into::into),
+        kind: DayOffKind::Holiday,
     };
 
     p.set_holidays(

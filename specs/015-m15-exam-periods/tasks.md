@@ -24,7 +24,7 @@ Stories (for labels):
 
 ## Phase 1: Tests first (tester)
 
-- [ ] T001 [P] [US1] [US2] Write core tests in new `crates/core/tests/m15_exam_periods.rs`
+- [x] T001 [P] [US1] [US2] Write core tests in new `crates/core/tests/m15_exam_periods.rs`
   (`mod common;`, in-memory SQLite; the migration test uses `tempfile::TempDir` as
   `m9_migration.rs` does) exactly as plan.md "Test plan" core list:
   `t71_exam_days_skip_classes` (midterm 2026-01-12, final 2026-01-19 on the fixture's Monday slot:

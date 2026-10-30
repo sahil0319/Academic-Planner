@@ -86,4 +86,12 @@ fn api_signatures_match_spec_section_5() {
     // M14 (§13.9)
     let _: fn(&mut Planner, i64, NaiveDate) -> Result<()> = Planner::archive_term;
     let _: fn(&Planner) -> Result<Vec<PastTermSummary>> = Planner::past_terms;
+
+    // M15 (§13.10)
+    let _kinds = [DayOffKind::Holiday, DayOffKind::Midterm, DayOffKind::Final];
+    let _ = Holiday {
+        date: NaiveDate::default(),
+        label: None,
+        kind: DayOffKind::Midterm,
+    };
 }
