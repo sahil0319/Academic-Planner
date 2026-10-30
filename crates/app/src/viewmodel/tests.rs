@@ -3375,3 +3375,83 @@ fn t80_rule_set_lines_follow_the_stored_set() {
     assert_eq!(after[0], "Attendance: Attendance \u{b7} 15%");
     assert_eq!(after[2], "  \u{2265} 90% \u{2192} 70%");
 }
+
+// ---- M18 toast texts (R88-R91) ----
+//
+// Page wiring (toast shown, page message left empty, hint above the Save button) has no headless
+// test: there is no headless Slint backend. It is covered by the manual smoke in the final report.
+
+/// R89: each confirmation text, exact; the three older messages keep their wording.
+#[test]
+fn t85_confirmation_texts_are_exact() {
+    assert_eq!(term_saved_text(), "Term saved.");
+    assert_eq!(holidays_saved_text(), "Holidays saved.");
+    assert_eq!(holiday_removed_text(), "Holiday removed.");
+    assert_eq!(settings_saved_text(), "Settings saved.");
+    assert_eq!(template_copied_text(), "Template copied");
+    assert_eq!(prompt_copied_text(), "AI prompt copied");
+    assert_eq!(rule_set_saved_text(), "Rule set saved.");
+    assert_eq!(grade_scale_saved_text(), "Grade scale saved.");
+    // The existing message functions are unchanged (their own tests cover the paths).
+    assert_eq!(
+        backup_saved_message(&PathBuf::from("/b/x.json")),
+        "Backup saved to /b/x.json"
+    );
+    assert_eq!(
+        restored_message(&PathBuf::from("/b/pre.sqlite")),
+        "Backup restored. Previous data saved to /b/pre.sqlite"
+    );
+    assert_eq!(
+        csv_exported_message(&PathBuf::from("/e")),
+        "Exported attendance.csv and assessments.csv to /e"
+    );
+}
+
+/// R88, R90: saving a rule set twice (2 s apart) gives one toast; the second save restarts the
+/// 5 s timer, so it is still visible at 6 s and gone at 7 s.
+#[test]
+fn t81_repeat_rule_set_save_restarts_timer() {
+    use crate::toast::ToastQueue;
+    use std::time::Duration;
+
+    let mut queue = ToastQueue::new();
+    let first = queue.add(&rule_set_saved_text(), Duration::from_secs(0));
+    let second = queue.add(&rule_set_saved_text(), Duration::from_secs(2));
+    assert_eq!(first, second);
+
+    let at_6 = queue.visible(Duration::from_secs(6));
+    assert_eq!(at_6.len(), 1);
+    assert_eq!(at_6[0].text, "Rule set saved.");
+    assert!(queue.visible(Duration::from_secs(7)).is_empty());
+}
+
+/// R91: the hint above the Save button when a row fails to parse.
+#[test]
+fn t82_fix_rows_hint_text() {
+    assert_eq!(
+        fix_rows_hint_text(),
+        "Fix the rows marked in red before saving."
+    );
+}
+
+/// R90: the grade scale save text, and it shows as its own toast beside "Rule set saved.".
+#[test]
+fn t83_grade_scale_saved_is_its_own_toast() {
+    use crate::toast::ToastQueue;
+    use std::time::Duration;
+
+    assert_eq!(grade_scale_saved_text(), "Grade scale saved.");
+
+    let mut queue = ToastQueue::new();
+    let now = Duration::from_secs(1);
+    let rules = queue.add(&rule_set_saved_text(), now);
+    let scale = queue.add(&grade_scale_saved_text(), now);
+    assert_ne!(rules, scale);
+
+    let texts: Vec<&str> = queue
+        .visible(now)
+        .iter()
+        .map(|toast| toast.text.as_str())
+        .collect();
+    assert_eq!(texts, ["Rule set saved.", "Grade scale saved."]);
+}

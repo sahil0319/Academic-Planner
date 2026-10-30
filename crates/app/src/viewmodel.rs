@@ -1154,6 +1154,52 @@ pub fn csv_exported_message(folder: &Path) -> String {
     )
 }
 
+// M18 stubs (R89-R91): the builder replaces these with the real texts and removes the allow.
+#[allow(dead_code)]
+pub fn term_saved_text() -> String {
+    String::new()
+}
+
+#[allow(dead_code)]
+pub fn holidays_saved_text() -> String {
+    String::new()
+}
+
+#[allow(dead_code)]
+pub fn holiday_removed_text() -> String {
+    String::new()
+}
+
+#[allow(dead_code)]
+pub fn settings_saved_text() -> String {
+    String::new()
+}
+
+#[allow(dead_code)]
+pub fn template_copied_text() -> String {
+    String::new()
+}
+
+#[allow(dead_code)]
+pub fn prompt_copied_text() -> String {
+    String::new()
+}
+
+#[allow(dead_code)]
+pub fn rule_set_saved_text() -> String {
+    String::new()
+}
+
+#[allow(dead_code)]
+pub fn grade_scale_saved_text() -> String {
+    String::new()
+}
+
+#[allow(dead_code)]
+pub fn fix_rows_hint_text() -> String {
+    String::new()
+}
+
 /// Message for a file that could not be read or written.
 pub fn file_error_message(path: &Path, cause: &str) -> String {
     format!("Could not access {}: {cause}", path.display())
