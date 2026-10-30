@@ -1976,34 +1976,78 @@ pub fn letter_points(letter: Option<&str>, scale: &[GradeRow]) -> Option<f64> {
     todo!("M13: R65")
 }
 
+/// Noun for a class count: "class" when `n` is 1, else "classes" (D6).
+fn class_noun(n: u32) -> &'static str {
+    if n == 1 {
+        "class"
+    } else {
+        "classes"
+    }
+}
+
 /// R63: k = floor((100(a + r) - t(a + b + r)) / 100) in i64 (`div_euclid`); "" = no line.
-#[allow(dead_code, unused_variables)]
+///
+/// Checks run in the D5 order: no target gives no line; no remaining classes gives "No classes
+/// left to mark"; then `k >= r` (miss all), `0 < k < r` (miss k), `k = 0` (attend all), and
+/// `k < 0` (out of reach). A negative numerator floors, so -25 / 100 is -1 (D4).
+#[allow(dead_code)]
 pub fn miss_line(attended: u32, absent: u32, remaining: u32, target: Option<i64>) -> String {
-    todo!("M13: R63")
+    let Some(t) = target else {
+        return String::new();
+    };
+    if remaining == 0 {
+        return "No classes left to mark".to_string();
+    }
+    let (a, b, r) = (i64::from(attended), i64::from(absent), i64::from(remaining));
+    let k = (100 * (a + r) - t * (a + b + r)).div_euclid(100);
+    let noun = class_noun(remaining);
+    if k >= r {
+        format!("You can miss all {remaining} remaining {noun} and stay at or above {t}%")
+    } else if k > 0 {
+        format!("You can miss {k} of the {remaining} remaining {noun} and stay at or above {t}%")
+    } else if k == 0 {
+        format!("Attend all {remaining} remaining {noun} to stay at or above {t}%")
+    } else {
+        format!("{t}% is out of reach, even attending all {remaining} remaining {noun}")
+    }
 }
 
 /// R62: "87.5% · 14 of 16 classes", or "No classes marked yet" when attended + absent = 0.
-#[allow(dead_code, unused_variables)]
+#[allow(dead_code)]
 pub fn attendance_line(attended: u32, absent: u32, pct: Option<f64>) -> String {
-    todo!("M13: R62")
+    let marked = attended + absent;
+    if marked == 0 {
+        return "No classes marked yet".to_string();
+    }
+    format!(
+        "{} \u{b7} {attended} of {marked} {}",
+        format_pct(pct),
+        class_noun(marked)
+    )
 }
 
-/// R62: "Target 75%", or "No target".
-#[allow(dead_code, unused_variables)]
+/// R62: "Target 75%", or "No target" (D7).
+#[allow(dead_code)]
 pub fn progress_target_text(target: Option<i64>) -> String {
-    todo!("M13: R62")
+    match target {
+        Some(t) => format!("Target {t}%"),
+        None => "No target".to_string(),
+    }
 }
 
 /// R62: bar fill 0.0..=1.0 = pct / 100, clamped; 0.0 when pct is None (empty bar).
-#[allow(dead_code, unused_variables)]
+#[allow(dead_code)]
 pub fn bar_fraction(pct: Option<f64>) -> f32 {
-    todo!("M13: R62")
+    match pct {
+        Some(p) if p.is_finite() => (p / 100.0).clamp(0.0, 1.0) as f32,
+        _ => 0.0,
+    }
 }
 
 /// R62: marker position 0.0..=1.0 = target / 100, clamped; None = no marker.
-#[allow(dead_code, unused_variables)]
+#[allow(dead_code)]
 pub fn target_fraction(target: Option<i64>) -> Option<f32> {
-    todo!("M13: R62")
+    target.map(|t| (t as f64 / 100.0).clamp(0.0, 1.0) as f32)
 }
 
 /// R64: "Not graded" | "No marks entered yet" | "Secured 129.0 of 150 assessed marks".
