@@ -1933,3 +1933,159 @@ pub fn field_errors_text(errors: &FormErrors) -> String {
         .collect::<Vec<_>>()
         .join("; ")
 }
+
+// ---- M13: Progress page ----
+
+/// R65: card status; declaration order is the R61 card order.
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ProgressStatus {
+    AtRisk,
+    Watch,
+    OnTrack,
+    NotEnoughData,
+}
+
+/// R65: "At risk", "Watch", "On track", "Not enough data".
+#[allow(dead_code, unused_variables)]
+pub fn progress_status_label(status: ProgressStatus) -> &'static str {
+    todo!("M13: R65")
+}
+
+/// R65: On track = Attended, Watch = Pending, At risk = Absent, Not enough data = Cancelled.
+#[allow(dead_code, unused_variables)]
+pub fn progress_chip(status: ProgressStatus) -> ChipKind {
+    todo!("M13: R65")
+}
+
+/// R65: `points` is the grade points of the projected letter (None when no projected letter).
+#[allow(dead_code, unused_variables)]
+pub fn progress_status(
+    below_target: bool,
+    pct: Option<f64>,
+    target: Option<i64>,
+    projected_pct: Option<f64>,
+    points: Option<f64>,
+) -> ProgressStatus {
+    todo!("M13: R65")
+}
+
+/// R65: points of `letter` in the grade scale; None when the letter is None or not in the scale.
+#[allow(dead_code, unused_variables)]
+pub fn letter_points(letter: Option<&str>, scale: &[GradeRow]) -> Option<f64> {
+    todo!("M13: R65")
+}
+
+/// R63: k = floor((100(a + r) - t(a + b + r)) / 100) in i64 (`div_euclid`); "" = no line.
+#[allow(dead_code, unused_variables)]
+pub fn miss_line(attended: u32, absent: u32, remaining: u32, target: Option<i64>) -> String {
+    todo!("M13: R63")
+}
+
+/// R62: "87.5% · 14 of 16 classes", or "No classes marked yet" when attended + absent = 0.
+#[allow(dead_code, unused_variables)]
+pub fn attendance_line(attended: u32, absent: u32, pct: Option<f64>) -> String {
+    todo!("M13: R62")
+}
+
+/// R62: "Target 75%", or "No target".
+#[allow(dead_code, unused_variables)]
+pub fn progress_target_text(target: Option<i64>) -> String {
+    todo!("M13: R62")
+}
+
+/// R62: bar fill 0.0..=1.0 = pct / 100, clamped; 0.0 when pct is None (empty bar).
+#[allow(dead_code, unused_variables)]
+pub fn bar_fraction(pct: Option<f64>) -> f32 {
+    todo!("M13: R62")
+}
+
+/// R62: marker position 0.0..=1.0 = target / 100, clamped; None = no marker.
+#[allow(dead_code, unused_variables)]
+pub fn target_fraction(target: Option<i64>) -> Option<f32> {
+    todo!("M13: R62")
+}
+
+/// R64: "Not graded" | "No marks entered yet" | "Secured 129.0 of 150 assessed marks".
+#[allow(dead_code, unused_variables)]
+pub fn progress_marks_line(marks: &CourseMarks) -> String {
+    todo!("M13: R64")
+}
+
+/// R64, R38: "A needs 96.0 of 150 in the final" | "A+ is already secured" | "Final grade: A";
+/// "" when there is no outlook (not graded) or every row is Not reachable.
+#[allow(dead_code, unused_variables)]
+pub fn best_grade_line(outlook: Option<&FinalOutlook>) -> String {
+    todo!("M13: R64")
+}
+
+/// R61: "1 on track · 1 to watch · 1 at risk" (Not enough data is not counted).
+#[allow(dead_code, unused_variables)]
+pub fn progress_counts_text(statuses: &[ProgressStatus]) -> String {
+    todo!("M13: R61")
+}
+
+/// R61: empty-state text; `has_term` false gives the no-term text, else the no-courses text.
+#[allow(dead_code, unused_variables)]
+pub fn progress_empty_text(has_term: bool) -> &'static str {
+    todo!("M13: R61")
+}
+
+/// R61–R65: one card.
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq)]
+pub struct ProgressCardView {
+    /// Sort key and title.
+    pub code: String,
+    pub name: String,
+    pub status: ProgressStatus,
+    /// `progress_status_label`.
+    pub status_label: String,
+    /// `progress_chip`.
+    pub chip: ChipKind,
+    /// `format_pct(pct)`: "87.5%" or "—".
+    pub attendance_figure: String,
+    /// `attendance_line`.
+    pub attendance_line: String,
+    /// `progress_target_text`.
+    pub target_text: String,
+    /// `bar_fraction`.
+    pub bar_fill: f32,
+    /// `target_fraction(..).is_some()`.
+    pub has_marker: bool,
+    /// `target_fraction(..).unwrap_or(0.0)`.
+    pub marker_at: f32,
+    /// `miss_line(attended, absent, pending, target)`.
+    pub miss_line: String,
+    /// `format_projected(projected_pct, letter)` when graded, else "—".
+    pub marks_figure: String,
+    /// `progress_marks_line`.
+    pub marks_line: String,
+    /// `best_grade_line(marks.outlook.as_ref())`.
+    pub best_grade_line: String,
+}
+
+/// R61–R65: build one card from the attendance summary, the course marks, and the grade scale.
+#[allow(dead_code, unused_variables)]
+pub fn progress_card(
+    summary: &AttendanceSummary,
+    marks: &CourseMarks,
+    scale: &[GradeRow],
+) -> ProgressCardView {
+    todo!("M13: R61")
+}
+
+/// R61: header texts and cards sorted by (status, code).
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq)]
+pub struct ProgressView {
+    pub gpa_text: String,
+    pub counts_text: String,
+    pub cards: Vec<ProgressCardView>,
+}
+
+/// R61: gpa_text = gpa_header_text(gpa) (R40, reused); counts from the cards.
+#[allow(dead_code, unused_variables)]
+pub fn progress_view(gpa: &GpaSummary, cards: Vec<ProgressCardView>) -> ProgressView {
+    todo!("M13: R61")
+}
