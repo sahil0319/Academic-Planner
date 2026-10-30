@@ -166,7 +166,7 @@ T011 screenshots listed per task.
   primary border); rows on `ListRow`; form with Carbon fields; row "Delete" stays
   `SecondaryButton` (research D10); replace every `radius-sm`/`radius-md`. Done-check: Gate, Grep,
   Same behaviour; screen 09. Commit `M17: assessments restyle`. Needs T004
-- [ ] T009 [P] [US1] (builder) Restyle crates/app/ui/rules.slint and crates/app/ui/import.slint:
+- [x] T009 [P] [US1] (builder) Restyle crates/app/ui/rules.slint and crates/app/ui/import.slint:
   rule set list rows and form (bands, components, grade scale) with Carbon fields, `Divider` on
   `border`/`divider-width`, rule set "Delete" stays secondary; Import panel paste box as a Carbon
   field (field fill, bottom rule, 2px inset focus ring instead of the primary border), result lines

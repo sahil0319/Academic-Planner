@@ -79,13 +79,14 @@ component FormError inherits Text {
     font-weight: Theme.body-sm-weight;
 }
 
+// R84: rule between component blocks: divider-width in `border`.
 component Divider inherits Rectangle {
     height: Theme.divider-width;
     background: Theme.border;
 }
 
 export component RulesPage inherits VerticalLayout {
-    spacing: Theme.space-xl;
+    spacing: Theme.space-xxl;
     alignment: start;
 
     PageTitle {
@@ -109,7 +110,8 @@ export component RulesPage inherits VerticalLayout {
                 alignment: center;
                 Body {
                     text: set.name;
-                    font-weight: Theme.label-md-weight;
+                    font-size: Theme.body-emphasis-size;
+                    font-weight: Theme.body-emphasis-weight;
                 }
                 Body {
                     text: set.summary;

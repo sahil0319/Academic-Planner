@@ -4,7 +4,7 @@
 import { ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { ImportLine, ImportLineKind } from "types.slint";
-import { PrimaryButton, SecondaryButton, Field, SectionCard } from "components.slint";
+import { FocusRing, PrimaryButton, SecondaryButton, Field, SectionCard } from "components.slint";
 
 export global ImportState {
     // The panel is shown.
@@ -47,7 +47,7 @@ component ResultLine inherits Text {
         : Theme.on-surface;
     font-family: kind == ImportLineKind.section ? Theme.font-heading : Theme.font-body;
     font-size: kind == ImportLineKind.section ? Theme.headline-md-size : Theme.body-md-size;
-    font-weight: kind == ImportLineKind.heading || kind == ImportLineKind.summary || kind == ImportLineKind.item ? Theme.label-md-weight : Theme.body-md-weight;
+    font-weight: kind == ImportLineKind.heading || kind == ImportLineKind.summary || kind == ImportLineKind.item ? Theme.body-emphasis-weight : Theme.body-md-weight;
 }
 
 export component ImportPanel inherits SectionCard {
@@ -60,13 +60,12 @@ export component ImportPanel inherits SectionCard {
         font-size: Theme.body-md-size;
     }
 
-    // Multi-line paste box, styled like Field.
+    // R84: multi-line paste box in the Carbon field style of `Field`: field fill, control-edge
+    // border-strong bottom rule, inset focus ring.
     Rectangle {
         height: 8 * Theme.row-height;
-        border-radius: Theme.radius-sm;
-        border-width: Theme.border-width;
-        border-color: paste.has-focus ? Theme.primary : Theme.border;
-        background: Theme.surface;
+        border-radius: Theme.radius-none;
+        background: Theme.field;
         clip: true;
 
         // Hidden carriers for the clipboard (research D17): select-all, copy, clear-selection.
@@ -88,7 +87,10 @@ export component ImportPanel inherits SectionCard {
 
         ScrollView {
             VerticalLayout {
-                padding: Theme.space-sm;
+                padding-left: Theme.space-lg;
+                padding-right: Theme.space-lg;
+                padding-top: Theme.space-sm;
+                padding-bottom: Theme.space-sm;
                 paste := TextInput {
                     text <=> ImportState.text;
                     wrap: word-wrap;
@@ -101,6 +103,14 @@ export component ImportPanel inherits SectionCard {
                 }
             }
         }
+
+        Rectangle {
+            y: parent.height - self.height;
+            height: Theme.control-edge-width;
+            background: Theme.border-strong;
+        }
+
+        if paste.has-focus: FocusRing { }
     }
 
     HorizontalLayout {
