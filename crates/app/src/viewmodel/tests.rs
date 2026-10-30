@@ -3595,3 +3595,95 @@ fn r64_marks_line() {
         "Secured 129.0 of 150 assessed marks"
     );
 }
+
+fn grade_row(letter: &str, min_pct: f64, points: f64) -> GradeRow {
+    GradeRow {
+        letter: letter.to_string(),
+        min_pct,
+        points,
+    }
+}
+
+fn progress_scale() -> Vec<GradeRow> {
+    vec![
+        grade_row("A+", 80.0, 4.0),
+        grade_row("B", 65.0, 3.0),
+        grade_row("B-", 60.0, 2.75),
+        grade_row("F", 0.0, 0.0),
+    ]
+}
+
+/// T63, R65: status from attendance and projected grade points.
+#[test]
+fn t63_progress_status() {
+    use ProgressStatus::*;
+    assert_eq!(
+        progress_status(true, Some(70.0), Some(75), None, None),
+        AtRisk
+    );
+    assert_eq!(
+        progress_status(false, Some(78.0), Some(75), None, None),
+        Watch
+    );
+    assert_eq!(
+        progress_status(false, Some(90.0), Some(75), Some(75.0), Some(3.0)),
+        OnTrack
+    );
+    assert_eq!(
+        progress_status(false, Some(90.0), Some(75), Some(72.0), Some(2.75)),
+        Watch
+    );
+    assert_eq!(
+        progress_status(false, Some(90.0), Some(75), Some(40.0), Some(0.0)),
+        AtRisk
+    );
+    assert_eq!(
+        progress_status(false, None, Some(75), None, None),
+        NotEnoughData
+    );
+}
+
+/// R65, D12: status boundaries (the Watch band is pct < target + 5; no target needs no band).
+#[test]
+fn r65_status_boundaries() {
+    use ProgressStatus::*;
+    assert_eq!(
+        progress_status(false, Some(80.0), Some(75), None, None),
+        OnTrack
+    );
+    assert_eq!(
+        progress_status(false, Some(79.9), Some(75), None, None),
+        Watch
+    );
+    assert_eq!(
+        progress_status(false, Some(60.0), None, None, None),
+        OnTrack
+    );
+    assert_eq!(
+        progress_status(false, None, None, Some(86.0), Some(4.0)),
+        OnTrack
+    );
+}
+
+/// R65, D11: grade points come from the scale by letter.
+#[test]
+fn r65_letter_points() {
+    let scale = progress_scale();
+    assert_eq!(letter_points(Some("B"), &scale), Some(3.0));
+    assert_eq!(letter_points(Some("Z"), &scale), None);
+    assert_eq!(letter_points(None, &scale), None);
+}
+
+/// R65: status labels and chip kinds.
+#[test]
+fn r65_label_and_chip() {
+    use ProgressStatus::*;
+    assert_eq!(progress_status_label(AtRisk), "At risk");
+    assert_eq!(progress_status_label(Watch), "Watch");
+    assert_eq!(progress_status_label(OnTrack), "On track");
+    assert_eq!(progress_status_label(NotEnoughData), "Not enough data");
+    assert_eq!(progress_chip(AtRisk), ChipKind::Absent);
+    assert_eq!(progress_chip(Watch), ChipKind::Pending);
+    assert_eq!(progress_chip(OnTrack), ChipKind::Attended);
+    assert_eq!(progress_chip(NotEnoughData), ChipKind::Cancelled);
+}
