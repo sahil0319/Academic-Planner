@@ -187,7 +187,7 @@ fn t69_past_terms_newest_first_with_counts_attendance_and_gpa() {
         .save_term(term_input("Spring 2026", "2026-01-05", "2026-05-01"))
         .unwrap();
     let b = graded_course(&mut p, "CSE201", 3.0, "Theory");
-    scored(&mut p, b.id, mid, "Mid", 23.25);
+    scored(&mut p, b.id, mid, "Mid", 46.5);
     graded_course(&mut p, "CSE202", 3.0, "Theory");
     let seven_of_eight = p.create_course(course_input("CSE203")).unwrap();
     mark_attendance(&mut p, seven_of_eight.id, 7, 1);
