@@ -3868,7 +3868,8 @@ fn r61_empty_text() {
         progress_counts_text(&[]),
         "0 on track · 0 to watch · 0 at risk"
     );
-=======
+}
+
 // ---- M12: bi-weekly slot form (R56, R58) ----
 
 /// Term start used by the T61 tests: a Monday. 2026-01-12 is the Monday of week 2 (even).
@@ -4027,7 +4028,6 @@ fn t61_session_row_biweekly_flag() {
 #[test]
 fn t61_every_other_week_label() {
     assert_eq!(EVERY_OTHER_WEEK, "Every other week");
->>>>>>> 9522010 (M12: app T61 tests)
 }
 
 /// R58: the label is empty for a weekly session or slot and "Every other week" for a bi-weekly one.
