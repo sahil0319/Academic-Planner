@@ -187,12 +187,17 @@ export component RulesPage inherits VerticalLayout {
             spacing: Theme.space-sm;
             padding-top: Theme.space-sm;
 
+            // Fixed column proportions: every row has the same five columns, so Name and Weight
+            // line up between items and attendance rows. Attendance rows keep the last three
+            // columns as hidden fields with the same labels. `preferred-width: 0` stops the
+            // typed text from setting a column width; the stretch factors do.
             HorizontalLayout {
                 spacing: Theme.space-md;
                 Field {
                     label: "Name";
                     text: c.name;
                     horizontal-stretch: 3;
+                    preferred-width: 0;
                     edited(t) => {
                         RulesState.components[i].name = t;
                     }
@@ -201,6 +206,7 @@ export component RulesPage inherits VerticalLayout {
                     label: "Weight %";
                     text: c.weight;
                     horizontal-stretch: 1;
+                    preferred-width: 0;
                     edited(t) => {
                         RulesState.components[i].weight = t;
                     }
@@ -209,6 +215,7 @@ export component RulesPage inherits VerticalLayout {
                     label: "Items held";
                     text: c.item-count;
                     horizontal-stretch: 1;
+                    preferred-width: 0;
                     edited(t) => {
                         RulesState.components[i].item-count = t;
                     }
@@ -217,6 +224,7 @@ export component RulesPage inherits VerticalLayout {
                     label: "Best counted";
                     text: c.best-count;
                     horizontal-stretch: 1;
+                    preferred-width: 0;
                     edited(t) => {
                         RulesState.components[i].best-count = t;
                     }
@@ -225,9 +233,28 @@ export component RulesPage inherits VerticalLayout {
                     label: "Each out of (empty = the component's marks)";
                     text: c.item-max;
                     horizontal-stretch: 2;
+                    preferred-width: 0;
                     edited(t) => {
                         RulesState.components[i].item-max = t;
                     }
+                }
+                if !c.is-items: Field {
+                    label: "Items held";
+                    horizontal-stretch: 1;
+                    preferred-width: 0;
+                    visible: false;
+                }
+                if !c.is-items: Field {
+                    label: "Best counted";
+                    horizontal-stretch: 1;
+                    preferred-width: 0;
+                    visible: false;
+                }
+                if !c.is-items: Field {
+                    label: "Each out of (empty = the component's marks)";
+                    horizontal-stretch: 2;
+                    preferred-width: 0;
+                    visible: false;
                 }
             }
 
@@ -306,6 +333,8 @@ export component RulesPage inherits VerticalLayout {
                     label: "From attendance %";
                     text: b.min;
                     error: b.error;
+                    horizontal-stretch: 1;
+                    preferred-width: 0;
                     edited(t) => {
                         RulesState.bands[i].min = t;
                     }
@@ -313,11 +342,15 @@ export component RulesPage inherits VerticalLayout {
                 Field {
                     label: "Marks earned %";
                     text: b.credit;
+                    horizontal-stretch: 1;
+                    preferred-width: 0;
                     edited(t) => {
                         RulesState.bands[i].credit = t;
                     }
                 }
+                // Fixed-width Remove column: same button in every row, never stretched.
                 VerticalLayout {
+                    horizontal-stretch: 0;
                     alignment: start;
                     padding-top: Theme.label-md-size + Theme.space-xs;
                     SecondaryButton {
@@ -373,6 +406,8 @@ export component RulesPage inherits VerticalLayout {
                 Field {
                     label: "Letter";
                     text: g.letter;
+                    horizontal-stretch: 1;
+                    preferred-width: 0;
                     edited(t) => {
                         RulesState.scale[i].letter = t;
                         RulesState.scale-dirty = true;
@@ -381,6 +416,8 @@ export component RulesPage inherits VerticalLayout {
                 Field {
                     label: "From %";
                     text: g.min;
+                    horizontal-stretch: 1;
+                    preferred-width: 0;
                     edited(t) => {
                         RulesState.scale[i].min = t;
                         RulesState.scale-dirty = true;
@@ -389,12 +426,16 @@ export component RulesPage inherits VerticalLayout {
                 Field {
                     label: "Points";
                     text: g.points;
+                    horizontal-stretch: 1;
+                    preferred-width: 0;
                     edited(t) => {
                         RulesState.scale[i].points = t;
                         RulesState.scale-dirty = true;
                     }
                 }
+                // Fixed-width Remove column: same button in every row, never stretched.
                 VerticalLayout {
+                    horizontal-stretch: 0;
                     alignment: start;
                     padding-top: Theme.label-md-size + Theme.space-xs;
                     SecondaryButton {

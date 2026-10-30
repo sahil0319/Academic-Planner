@@ -14,6 +14,7 @@
     "M19 spec (default attendance bands)": "done",
     "M12-M19 build": "not started (human decision: spec only)",
     "M17 build": "T001-T011 done; T012 builder part done (fixes, screenshots 01-17); human approval pending",
-    "M17 human fix 1 (appearance switch gap)": "done"
+    "M17 human fix 1 (appearance switch gap)": "done",
+    "M17 human fix 2 (Rules form row columns)": "done"
   }
 }
