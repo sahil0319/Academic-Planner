@@ -9,7 +9,7 @@ use serde_json::Value;
 
 use crate::db::{
     col_week_parity_opt, fmt_datetime, parse_date, parse_datetime, parse_time, Planner,
-    GRADING_SEED, SCHEMA_VERSION, SETTING_CHECK_UPDATES, SETTING_THEME,
+    DEFAULT_BANDS_MIGRATION, GRADING_SEED, SCHEMA_VERSION, SETTING_CHECK_UPDATES, SETTING_THEME,
 };
 use crate::error::{Error, Result};
 use crate::model::{ThemeMode, WeekParity};
@@ -330,6 +330,8 @@ fn apply(tx: &Transaction, b: &Backup, version: i64) -> rusqlite::Result<()> {
         }
     } else {
         tx.execute_batch(GRADING_SEED)?;
+        // R93: the seed holds the retired band table; the restored sets end with the defaults.
+        tx.execute_batch(DEFAULT_BANDS_MIGRATION)?;
     }
     for c in &b.courses {
         tx.execute(

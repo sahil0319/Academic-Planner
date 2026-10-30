@@ -29,7 +29,14 @@ const MIGRATIONS: &[&str] = &[
     ),
     // Migration 003 adds slot.week_parity for bi-weekly slots (R60).
     include_str!("migrations/003_week_parity.sql"),
+    // Migration 004 is data only: it swaps the retired placeholder attendance bands (R93).
+    include_str!("migrations/004_default_bands.sql"),
 ];
+
+/// R93: replaces attendance bands that are exactly the retired placeholder table with the
+/// defaults of R92; run by migration 004 and by a version-1 backup restore right after
+/// `GRADING_SEED`.
+pub(crate) const DEFAULT_BANDS_MIGRATION: &str = include_str!("migrations/004_default_bands.sql");
 
 /// R41: the default rule sets, bands, and grade scale; run by migration 002 and by a
 /// version-1 backup restore.
