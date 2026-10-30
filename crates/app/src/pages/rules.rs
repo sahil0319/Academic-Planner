@@ -80,11 +80,13 @@ pub fn wire(app: &Rc<App>) {
                 item_max: String::new(),
                 is_final: false,
             };
+            let had_attendance = ui.get_has_attendance();
             edit_components(ui, |rows| {
                 if let Ok(row) = bridge::component_row(&blank) {
                     rows.push(row);
                 }
             });
+            fill_default_bands(ui, had_attendance);
         })
     });
 
@@ -114,6 +116,7 @@ pub fn wire(app: &Rc<App>) {
     let weak = Rc::downgrade(app);
     ui.on_toggle_kind(move |i, is_items| {
         with(&weak, |_, ui| {
+            let had_attendance = ui.get_has_attendance();
             edit_components(ui, |rows| {
                 if let Some(row) = index(i, rows.len()).map(|i| &mut rows[i]) {
                     row.is_items = is_items;
@@ -121,6 +124,7 @@ pub fn wire(app: &Rc<App>) {
                     row.is_final = row.is_final && is_items;
                 }
             });
+            fill_default_bands(ui, had_attendance);
         })
     });
 
@@ -219,6 +223,22 @@ fn edit_components(ui: &RulesState<'_>, change: impl FnOnce(&mut Vec<ComponentRo
     let mut rows = rows_of(&ui.get_components());
     change(&mut rows);
     set_components(ui, rows);
+}
+
+/// R94: when an attendance component has just appeared in the form and there are no band rows,
+/// fills them from the default table. Existing rows are kept; nothing is stored until Save.
+fn fill_default_bands(ui: &RulesState<'_>, had_attendance: bool) {
+    if had_attendance || !ui.get_has_attendance() {
+        return;
+    }
+    let current: Vec<(String, String)> = rows_of(&ui.get_bands())
+        .iter()
+        .map(|b| (b.min.to_string(), b.credit.to_string()))
+        .collect();
+    if current.is_empty() {
+        let filled = vm::bands_with_defaults(&current);
+        ui.set_bands(bridge::model(filled.iter().map(bridge::band_row).collect()));
+    }
 }
 
 fn set_components(ui: &RulesState<'_>, rows: Vec<ComponentRow>) {

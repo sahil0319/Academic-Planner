@@ -2513,10 +2513,10 @@ fn t37_format_marks_quizzes() {
     assert_eq!(format_marks(39.0, 45.0), "39.0 of 45");
 }
 
-/// R35, T38: Attendance of the seeded Theory rule set shows `27.0 of 30`.
+/// R35, R95, T38: Attendance of the seeded Theory rule set (87% earns 60%) shows `18.0 of 30`.
 #[test]
 fn t38_format_marks_attendance() {
-    assert_eq!(format_marks(27.0, 30.0), "27.0 of 30");
+    assert_eq!(format_marks(18.0, 30.0), "18.0 of 30");
 }
 
 /// R37, T40: projected percentage and letter in one string; no data shows an em dash.
@@ -3172,8 +3172,9 @@ fn r33_marks_view_ungraded_is_empty() {
     assert!(view.needed.is_empty());
 }
 
-/// T37, T39 end to end (92% attendance is in the 100% band): the worked example of the spec (3-credit Theory, attendance 92%,
-/// quizzes 12/11/13/14, mid 60 of 75) reads through core into the card and table text.
+/// T37, T39, R95 end to end (92% attendance is in the 80% band, 24.0 of 30): the worked example
+/// of the spec (3-credit Theory, attendance 92%, quizzes 12/11/13/14, mid 60 of 75) reads
+/// through core into the card and table text.
 #[test]
 fn t39_worked_example_end_to_end() {
     use planner_core::Planner;
@@ -3251,9 +3252,9 @@ fn t39_worked_example_end_to_end() {
     let view = marks_view(&p.course_marks(course.id).unwrap());
     let row = |name: &str| view.rows.iter().find(|r| r.0 == name).unwrap().1.clone();
     assert_eq!(row("Quizzes"), "39.0 of 45");
-    assert_eq!(row("Attendance"), "30.0 of 30");
-    assert_eq!(view.secured, "129.0 of 300");
-    assert_eq!(view.projected, "86.0% \u{b7} A+");
+    assert_eq!(row("Attendance"), "24.0 of 30");
+    assert_eq!(view.secured, "123.0 of 300");
+    assert_eq!(view.projected, "82.0% \u{b7} A+");
     assert_eq!(view.needed_caption, "Score needed in the final, out of 150");
     let needed = |letter: &str| {
         view.needed
@@ -3263,8 +3264,8 @@ fn t39_worked_example_end_to_end() {
             .text
             .clone()
     };
-    assert_eq!(needed("A+"), "111.0");
-    assert_eq!(needed("A"), "96.0");
+    assert_eq!(needed("A+"), "117.0");
+    assert_eq!(needed("A"), "102.0");
     assert_eq!(needed("D"), "Secured");
     assert!(view.assumptions.is_empty());
     assert_eq!(
@@ -4294,4 +4295,45 @@ fn can_shift_biweekly_false_for_weekly_and_marked_sessions() {
 #[test]
 fn moved_next_week_text_is_the_toast() {
     assert_eq!(moved_next_week_text(), "Moved to next week.");
+
+// ---- M19: default attendance bands ----
+
+fn band_rows(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
+    pairs
+        .iter()
+        .map(|(min, credit)| (min.to_string(), credit.to_string()))
+        .collect()
+}
+
+/// R94, R92 (T90): with no band rows, the defaults fill six rows from
+/// `default_attendance_bands()`, in descending order, as ordinary form text.
+#[test]
+fn t90_bands_with_defaults_fills_empty_list() {
+    let filled = bands_with_defaults(&[]);
+    assert_eq!(
+        filled,
+        band_rows(&[
+            ("95", "100"),
+            ("90", "80"),
+            ("85", "60"),
+            ("75", "20"),
+            ("70", "10"),
+            ("0", "0"),
+        ])
+    );
+    let expected: Vec<(String, String)> = planner_core::default_attendance_bands()
+        .iter()
+        .map(band_form_row)
+        .collect();
+    assert_eq!(filled, expected);
+}
+
+/// R94 (T90): existing band rows are never replaced, including edited rows and a single row.
+#[test]
+fn t90_bands_with_defaults_keeps_existing_rows() {
+    let edited = band_rows(&[("95", "100"), ("90", "75"), ("0", "0"), ("60", "")]);
+    assert_eq!(bands_with_defaults(&edited), edited);
+
+    let single = band_rows(&[("0", "0")]);
+    assert_eq!(bands_with_defaults(&single), single);
 }

@@ -2164,6 +2164,20 @@ pub fn band_form_row(b: &AttendanceBand) -> (String, String) {
     (format_mark(b.min_pct), format_mark(b.credit_pct))
 }
 
+/// R94: the band rows to show for an attendance component. With no band rows the defaults of
+/// R92 fill them as ordinary editable text; existing rows are never replaced. Nothing is stored
+/// until Save.
+pub fn bands_with_defaults(current: &[(String, String)]) -> Vec<(String, String)> {
+    if current.is_empty() {
+        planner_core::default_attendance_bands()
+            .iter()
+            .map(band_form_row)
+            .collect()
+    } else {
+        current.to_vec()
+    }
+}
+
 /// R39: a stored grade row as `(letter, min %, points)` input text.
 pub fn grade_form_row(g: &GradeRow) -> (String, String, String) {
     (
