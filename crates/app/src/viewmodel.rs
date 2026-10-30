@@ -1947,19 +1947,34 @@ pub enum ProgressStatus {
 }
 
 /// R65: "At risk", "Watch", "On track", "Not enough data".
-#[allow(dead_code, unused_variables)]
+#[allow(dead_code)]
 pub fn progress_status_label(status: ProgressStatus) -> &'static str {
-    todo!("M13: R65")
+    match status {
+        ProgressStatus::AtRisk => "At risk",
+        ProgressStatus::Watch => "Watch",
+        ProgressStatus::OnTrack => "On track",
+        ProgressStatus::NotEnoughData => "Not enough data",
+    }
 }
 
 /// R65: On track = Attended, Watch = Pending, At risk = Absent, Not enough data = Cancelled.
-#[allow(dead_code, unused_variables)]
+#[allow(dead_code)]
 pub fn progress_chip(status: ProgressStatus) -> ChipKind {
-    todo!("M13: R65")
+    match status {
+        ProgressStatus::AtRisk => ChipKind::Absent,
+        ProgressStatus::Watch => ChipKind::Pending,
+        ProgressStatus::OnTrack => ChipKind::Attended,
+        ProgressStatus::NotEnoughData => ChipKind::Cancelled,
+    }
 }
 
 /// R65: `points` is the grade points of the projected letter (None when no projected letter).
-#[allow(dead_code, unused_variables)]
+///
+/// At risk: below the attendance target, or projected grade points of 0. Watch: attendance within
+/// 5 points above the target (needs both a percentage and a target, D12), or projected grade
+/// points under 3.0. On track: otherwise, when attendance or a projected percentage exists. Not
+/// enough data: neither exists.
+#[allow(dead_code)]
 pub fn progress_status(
     below_target: bool,
     pct: Option<f64>,
@@ -1967,13 +1982,28 @@ pub fn progress_status(
     projected_pct: Option<f64>,
     points: Option<f64>,
 ) -> ProgressStatus {
-    todo!("M13: R65")
+    if below_target || points == Some(0.0) {
+        return ProgressStatus::AtRisk;
+    }
+    let near_target = matches!((pct, target), (Some(p), Some(t)) if p < t as f64 + 5.0);
+    let low_points = points.is_some_and(|p| p < 3.0);
+    if near_target || low_points {
+        ProgressStatus::Watch
+    } else if pct.is_some() || projected_pct.is_some() {
+        ProgressStatus::OnTrack
+    } else {
+        ProgressStatus::NotEnoughData
+    }
 }
 
 /// R65: points of `letter` in the grade scale; None when the letter is None or not in the scale.
-#[allow(dead_code, unused_variables)]
+#[allow(dead_code)]
 pub fn letter_points(letter: Option<&str>, scale: &[GradeRow]) -> Option<f64> {
-    todo!("M13: R65")
+    let letter = letter?;
+    scale
+        .iter()
+        .find(|row| row.letter == letter)
+        .map(|row| row.points)
 }
 
 /// Noun for a class count: "class" when `n` is 1, else "classes" (D6).
@@ -2097,15 +2127,25 @@ pub fn best_grade_line(outlook: Option<&FinalOutlook>) -> String {
 }
 
 /// R61: "1 on track · 1 to watch · 1 at risk" (Not enough data is not counted).
-#[allow(dead_code, unused_variables)]
+#[allow(dead_code)]
 pub fn progress_counts_text(statuses: &[ProgressStatus]) -> String {
-    todo!("M13: R61")
+    let count = |wanted: ProgressStatus| statuses.iter().filter(|s| **s == wanted).count();
+    format!(
+        "{} on track \u{b7} {} to watch \u{b7} {} at risk",
+        count(ProgressStatus::OnTrack),
+        count(ProgressStatus::Watch),
+        count(ProgressStatus::AtRisk)
+    )
 }
 
 /// R61: empty-state text; `has_term` false gives the no-term text, else the no-courses text.
-#[allow(dead_code, unused_variables)]
+#[allow(dead_code)]
 pub fn progress_empty_text(has_term: bool) -> &'static str {
-    todo!("M13: R61")
+    if has_term {
+        "No courses yet. Add one on the Courses page."
+    } else {
+        "No term yet. Create one in Settings \u{2192} Term."
+    }
 }
 
 /// R61–R65: one card.
@@ -2143,13 +2183,53 @@ pub struct ProgressCardView {
 }
 
 /// R61–R65: build one card from the attendance summary, the course marks, and the grade scale.
-#[allow(dead_code, unused_variables)]
+///
+/// Grade points count only when a projected percentage exists (D11); the Marks figure is the
+/// projected percentage and letter of a graded course, else an em dash (D9).
+#[allow(dead_code)]
 pub fn progress_card(
     summary: &AttendanceSummary,
     marks: &CourseMarks,
     scale: &[GradeRow],
 ) -> ProgressCardView {
-    todo!("M13: R61")
+    let points = marks
+        .projected_pct
+        .and_then(|_| letter_points(marks.letter.as_deref(), scale));
+    let status = progress_status(
+        summary.below_target,
+        summary.pct,
+        summary.target,
+        marks.projected_pct,
+        points,
+    );
+    let marker = target_fraction(summary.target);
+    let marks_figure = if marks.graded && marks.projected_pct.is_some() {
+        format_projected(marks.projected_pct, marks.letter.as_deref())
+    } else {
+        DASH.to_string()
+    };
+    ProgressCardView {
+        code: summary.course_code.clone(),
+        name: summary.course_name.clone(),
+        status,
+        status_label: progress_status_label(status).to_string(),
+        chip: progress_chip(status),
+        attendance_figure: format_pct(summary.pct),
+        attendance_line: attendance_line(summary.attended, summary.absent, summary.pct),
+        target_text: progress_target_text(summary.target),
+        bar_fill: bar_fraction(summary.pct),
+        has_marker: marker.is_some(),
+        marker_at: marker.unwrap_or(0.0),
+        miss_line: miss_line(
+            summary.attended,
+            summary.absent,
+            summary.pending,
+            summary.target,
+        ),
+        marks_figure,
+        marks_line: progress_marks_line(marks),
+        best_grade_line: best_grade_line(marks.outlook.as_ref()),
+    }
 }
 
 /// R61: header texts and cards sorted by (status, code).
@@ -2162,7 +2242,13 @@ pub struct ProgressView {
 }
 
 /// R61: gpa_text = gpa_header_text(gpa) (R40, reused); counts from the cards.
-#[allow(dead_code, unused_variables)]
-pub fn progress_view(gpa: &GpaSummary, cards: Vec<ProgressCardView>) -> ProgressView {
-    todo!("M13: R61")
+#[allow(dead_code)]
+pub fn progress_view(gpa: &GpaSummary, mut cards: Vec<ProgressCardView>) -> ProgressView {
+    cards.sort_by(|a, b| (a.status, &a.code).cmp(&(b.status, &b.code)));
+    let statuses: Vec<ProgressStatus> = cards.iter().map(|card| card.status).collect();
+    ProgressView {
+        gpa_text: gpa_header_text(gpa),
+        counts_text: progress_counts_text(&statuses),
+        cards,
+    }
 }
