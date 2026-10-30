@@ -1,6 +1,6 @@
 {
-  "milestone": "M18 built (gate green); M12 next",
-  "phase": "m18-built",
+  "milestone": "overnight run: M19 and M15 in worktrees; then M16, M18a toast sweep",
+  "phase": "overnight-run",
   "tasks": {
     "M11": "done (v0.2.1 tagged)",
     "M12 spec": "done",
@@ -23,6 +23,10 @@
     "M18 build": "done 2026-10-31 overnight (T001-T006), gate green, 556+ tests; human visual check pending (toast look, wrapped text height)",
     "M13 build": "done, merged to main (572 tests); human visual look pending",
     "M14 build": "done, merged",
-    "M12 build": "done, merged (634 tests)"
+    "M12 build": "done, merged (634 tests)",
+    "M19 build": "in progress (worktree agent a59a5003bd93cba2e)",
+    "M15 build": "in progress (worktree agent a1d940a8e911661c2)",
+    "M16 build": "waiting for M15 merge",
+    "M18a toast sweep (R89a, T91)": "after M16"
   }
 }
