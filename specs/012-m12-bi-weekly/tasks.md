@@ -8,9 +8,9 @@ Tests (tester) come before implementation (builder). Decisions are in `decisions
 - [x] T002 Fix every existing caller and test fixture for the new fields (weekly = `None`); gate passes with stubs
 
 ## Phase 2: tests first (tester)
-- [ ] T003 Core tests T55-T60 plus R7 slot change, sync parity, backup round trip (`crates/core/tests/m12_biweekly.rs`)
+- [x] T003 Core tests T55-T60 plus R7 slot change, sync parity, backup round trip (`crates/core/tests/m12_biweekly.rs`)
 - [ ] T004 App view-model tests T61 and bi-weekly labels (`crates/app/src/viewmodel/tests.rs`)
-- [ ] T005 Confirm new tests fail for the right reason
+- [x] T005 (core part; app T004 pending) Confirm new tests fail for the right reason
 
 ## Phase 3: core (builder)
 - [ ] T006 R54 `term_week_parity` (T55)
