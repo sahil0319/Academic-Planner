@@ -683,8 +683,10 @@ export component AppearanceSwitch inherits Rectangle {
     in property <int> selected;
     callback select(int);
 
-    width: layout.preferred-width + 2 * Theme.control-edge-width;
-    height: layout.preferred-height + 2 * Theme.control-edge-width;
+    // The layout padding already holds the border width on each side, so its preferred size is the
+    // outer size: segments fill the inner area exactly, with no gap and no overflow.
+    width: layout.preferred-width;
+    height: layout.preferred-height;
     border-radius: Theme.radius-none;
     border-width: Theme.control-edge-width;
     border-color: Theme.border-strong;
