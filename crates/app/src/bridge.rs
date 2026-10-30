@@ -11,7 +11,8 @@ use crate::viewmodel::{self as vm, ChipKind};
 use crate::{
     AppWindow, AssessmentRow, BandRow, CalendarDay, CalendarWeek, Chip, ComponentRow, CourseRow,
     DayGroup, GradeRowView, HolidayRow, ImportLine, ImportLineKind, MarkRow, NeededRowView,
-    Palette, ProgressCardRow, RuleSetRow, SessionRow, SlotRow, StatusAction, SummaryView, Theme,
+    Palette, PastTermRow, ProgressCardRow, RuleSetRow, SessionRow, SlotRow, StatusAction,
+    SummaryView, Theme,
 };
 
 /// R-D18: Slint `int` is `i32`; an id that does not fit is reported, never truncated.
@@ -215,6 +216,17 @@ pub fn holiday_row(r: &vm::HolidayRow) -> HolidayRow {
         key: r.key.as_str().into(),
         date: r.date.as_str().into(),
         label: r.label.as_str().into(),
+    }
+}
+
+/// R70: past term row.
+pub fn past_term_row(r: &vm::PastTermRow) -> PastTermRow {
+    PastTermRow {
+        name: r.name.as_str().into(),
+        dates: r.dates.as_str().into(),
+        courses: r.courses.as_str().into(),
+        attendance: r.attendance.as_str().into(),
+        gpa: r.gpa.as_str().into(),
     }
 }
 

@@ -88,6 +88,15 @@ export struct HolidayRow {
     label: string,
 }
 
+// R70: one read-only past term row.
+export struct PastTermRow {
+    name: string,
+    dates: string,
+    courses: string,
+    attendance: string,
+    gpa: string,
+}
+
 // R13-R15: attendance summary as display text.
 export struct SummaryView {
     attended: string,

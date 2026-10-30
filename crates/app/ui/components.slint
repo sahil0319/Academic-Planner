@@ -644,6 +644,55 @@ export component Banner inherits Rectangle {
     }
 }
 
+// R66: inline text link (DESIGN.md "Term line"): body type in the link colour, keyboard
+// reachable (Tab, Return, Space) with the inset focus ring.
+export component LinkButton inherits Rectangle {
+    in property <string> text;
+    callback clicked();
+
+    height: Theme.input-height;
+    min-width: label.preferred-width;
+    horizontal-stretch: 0;
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-action-default => {
+        root.clicked();
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    // Keyboard access: Tab reaches the control, Return or Space activates it.
+    focus-scope := FocusScope {
+        x: 0;
+        width: 0; // clicks go to the TouchArea
+        key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Space {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    label := Text {
+        text: root.text;
+        // The link carries the accessible label.
+        accessible-role: none;
+        vertical-alignment: center;
+        color: Theme.link;
+        font-family: Theme.font-body;
+        font-size: Theme.body-md-size;
+        font-weight: Theme.body-md-weight;
+    }
+
+    if focus-scope.has-focus: FocusRing {}
+}
+
 // R84: page title (title-lg, on-surface).
 export component PageTitle inherits Text {
     color: Theme.on-surface;

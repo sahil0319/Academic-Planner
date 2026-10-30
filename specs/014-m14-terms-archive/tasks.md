@@ -93,7 +93,7 @@ Stories (for labels):
 
 ## Phase 4: UI and pages (builder) — US2, US3
 
-- [ ] T006 [US3] Add `export struct PastTermRow { name, dates, courses, attendance, gpa }` (all
+- [x] T006 [US3] Add `export struct PastTermRow { name, dates, courses, attendance, gpa }` (all
   `string`) to `crates/app/ui/types.slint` and `pub fn past_term_row(r: &vm::PastTermRow) ->
   PastTermRow` to `crates/app/src/bridge.rs`; add `LinkButton` (text in `Theme.link`, body type,
   `TouchArea`, `accessible-role: button`, Return/Space through `FocusScope`, `FocusRing` on focus;
