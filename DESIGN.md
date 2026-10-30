@@ -454,10 +454,11 @@ components:
 
 # Academic Planner Design System
 
-Version 2 (human decision 2026-10-30). This is the target of milestone M17 (docs/spec.md §13.12).
-Until M17 is built, `ui/theme.slint` still holds the version 1 values (warm cream, terracotta,
-Georgia; see this file at tag `v0.2.1`). Code written before M17 keeps using `Theme.*` tokens only,
-so M17 is a token swap plus the component changes described here.
+Version 2 (human decision 2026-10-30), built in milestone M17 (docs/spec.md §13.12) and approved
+2026-10-31. `ui/theme.slint` holds these values (version 1, warm cream and terracotta, is at tag
+`v0.2.1`). Code uses `Theme.*` tokens only. Departures recorded in M17: the due marker on the
+today cell is `on-primary`, status chips are square, and the dark theme uses the GitHub Dark
+Dimmed palette (see specs/017-m17-carbon-restyle/checklists/design-review.md).
 
 ## Overview
 

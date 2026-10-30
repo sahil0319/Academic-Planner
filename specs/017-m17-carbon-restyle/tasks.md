@@ -196,7 +196,7 @@ T011 screenshots listed per task.
   database. Done-check: Gate, Grep, alias grep empty, lint 0 errors, 24 files present, Same
   behaviour. Commit `M17: remove radius aliases, lint, light and dark screenshots`. Needs T005,
   T006, T007, T008, T009, T010
-- [ ] T012 [US6] (router, builder, human) Router: run `impeccable` (allowed in M17 by R86, critique
+- [x] T012 [US6] (router, builder, human) Router: run `impeccable` (allowed in M17 by R86, critique
   only) on the 24 screenshots against DESIGN.md and write the findings with severity into
   specs/017-m17-carbon-restyle/checklists/design-review.md; builder: fix every high-severity item
   in crates/app/ui/theme.slint or layout only, never with a hardcoded value (§12.3); router:

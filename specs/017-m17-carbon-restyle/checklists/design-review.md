@@ -282,3 +282,13 @@ prints nothing). Human approval is not recorded here; that is the human's step (
 Screenshots: all 24 reshot (the header band moves the switch and the content), plus the 10 new
 ones, in `specs/017-m17-carbon-restyle/screenshots/`. The screenshots were taken with a temporary
 harness (a debug scroll property and a timer driver, not committed) on scratch databases only.
+
+## Human approval (2026-10-31)
+
+The human reviewed the running app (not the screenshots) and approved M17 after these changes: appearance switch gap, Rules form columns, square status chips in a fixed column, text inputs with constant width, and the dark theme set to GitHub Dark Dimmed. The router recorded these answers (recommended defaults, accepted by "approve M17"):
+- OQ-1 update banner: keep the surface fill with a `border-strong` rule.
+- OQ-2 Fluent CheckBox/Switch: keep; square or themed widgets are a follow-up.
+- OQ-3 white marker on the today cell: accepted (departure from DESIGN.md, DESIGN.md not edited in M17).
+- OQ-4 negative zero: logged as a separate bug fix after M17.
+- F-08: residual elision on the three-button Awaiting rows accepted.
+
