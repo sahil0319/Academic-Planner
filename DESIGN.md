@@ -286,6 +286,22 @@ components:
     textColor: "{colors.progress-fill}"
     rounded: "{rounded.none}"
     height: "{spacing.progress-height}"
+  progress-target-marker:
+    backgroundColor: "{colors.progress-target}"
+    height: "{spacing.progress-height}"
+  text-link:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.link}"
+    typography: "{typography.body-md}"
+  focus-ring:
+    backgroundColor: "{colors.focus}"
+    height: 2px
+  control-edge:
+    backgroundColor: "{colors.border-strong}"
+    height: 1px
+  success-rule:
+    backgroundColor: "{colors.success}"
+    height: 3px
   empty-state:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.on-surface-muted}"
@@ -309,6 +325,24 @@ components:
   dark-button-primary-hover:
     backgroundColor: "{colors.dark-primary-hover}"
     textColor: "{colors.dark-on-primary}"
+  dark-button-primary-active:
+    backgroundColor: "{colors.dark-primary-active}"
+    textColor: "{colors.dark-on-primary}"
+  dark-progress-target-marker:
+    backgroundColor: "{colors.dark-progress-target}"
+  dark-text-link:
+    backgroundColor: "{colors.dark-surface}"
+    textColor: "{colors.dark-link}"
+    typography: "{typography.body-md}"
+  dark-focus-ring:
+    backgroundColor: "{colors.dark-focus}"
+    height: 2px
+  dark-control-edge:
+    backgroundColor: "{colors.dark-border-strong}"
+    height: 1px
+  dark-success-rule:
+    backgroundColor: "{colors.dark-success}"
+    height: 3px
   dark-button-secondary:
     backgroundColor: "{colors.dark-field}"
     textColor: "{colors.dark-on-surface}"
