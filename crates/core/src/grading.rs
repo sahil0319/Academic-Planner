@@ -11,6 +11,26 @@ use crate::model::{
     RuleSetInput,
 };
 
+/// R92: the default attendance bands, in descending `min_pct` order: at or above 95% earns
+/// 100% of the attendance marks, 90 earns 80, 85 earns 60, 75 earns 20, 70 earns 10, and 0
+/// earns 0. Pure (no I/O); the table satisfies R34 (at least one band, one with `min_pct` 0).
+pub fn default_attendance_bands() -> Vec<AttendanceBand> {
+    [
+        (95.0, 100.0),
+        (90.0, 80.0),
+        (85.0, 60.0),
+        (75.0, 20.0),
+        (70.0, 10.0),
+        (0.0, 0.0),
+    ]
+    .into_iter()
+    .map(|(min_pct, credit_pct)| AttendanceBand {
+        min_pct,
+        credit_pct,
+    })
+    .collect()
+}
+
 /// R34: weight sums within this distance of 100 are accepted.
 const WEIGHT_TOLERANCE: f64 = 0.01;
 

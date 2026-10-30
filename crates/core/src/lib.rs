@@ -18,6 +18,7 @@ mod terms;
 
 pub use db::{default_db_path, resolve_db_path, Planner, DB_ENV_VAR, DB_FILE_NAME, SCHEMA_VERSION};
 pub use error::{Error, Result};
+pub use grading::default_attendance_bands;
 pub use import::*;
 pub use model::*;
 pub use schedule::term_week_parity;
