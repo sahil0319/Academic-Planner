@@ -62,6 +62,14 @@ component Caption inherits Text {
     font-weight: Theme.label-md-weight;
 }
 
+// Sub-heading inside a card (design review F-09): body-emphasis in ink.
+component SubHeading inherits Text {
+    color: Theme.on-surface;
+    font-family: Theme.font-body;
+    font-size: Theme.body-emphasis-size;
+    font-weight: Theme.body-emphasis-weight;
+}
+
 component Body inherits Text {
     color: Theme.on-surface;
     vertical-alignment: center;
@@ -161,7 +169,7 @@ export component RulesPage inherits VerticalLayout {
 
         if RulesState.saved-lines.length > 0: VerticalLayout {
             spacing: Theme.space-xs;
-            Caption {
+            SubHeading {
                 text: "Saved rules";
             }
             for line in RulesState.saved-lines: Body {
@@ -171,7 +179,7 @@ export component RulesPage inherits VerticalLayout {
             }
         }
 
-        Caption {
+        SubHeading {
             text: "Components, in order";
         }
 

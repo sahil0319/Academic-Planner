@@ -120,6 +120,14 @@ component Caption inherits Text {
     font-weight: Theme.label-md-weight;
 }
 
+// Sub-heading inside a card (design review F-09): body-emphasis in ink, above its block.
+component SubHeading inherits Text {
+    color: Theme.on-surface;
+    font-family: Theme.font-body;
+    font-size: Theme.body-emphasis-size;
+    font-weight: Theme.body-emphasis-weight;
+}
+
 // Body text in ink.
 component Body inherits Text {
     color: Theme.on-surface;
@@ -330,202 +338,222 @@ export component CoursesPage inherits VerticalLayout {
             }
         }
 
-        // R33, R35-R37: marks card.
-        Caption {
-            text: "Marks";
-        }
-
-        if !CoursesState.graded: Meta {
-            text: CoursesState.not-graded-line;
-            overflow: elide;
-        }
-
-        if CoursesState.graded: VerticalLayout {
-            for m in CoursesState.mark-rows: ListRow {
-                Body {
-                    text: m.name;
-                    horizontal-stretch: 1;
-                }
-                Body {
-                    text: m.marks;
-                    horizontal-stretch: 0;
-                }
+        // F-10: each block of the detail card is a group with space-sm above and between its parts.
+        // Marks.
+        VerticalLayout {
+            padding-top: Theme.space-sm;
+            spacing: Theme.space-sm;
+            // R33, R35-R37: marks card.
+            SubHeading {
+                text: "Marks";
             }
-            HorizontalLayout {
-                spacing: Theme.space-xl;
-                alignment: start;
-                Figure {
-                    caption: "Secured";
-                    value: CoursesState.marks-secured;
-                }
-                Figure {
-                    caption: "Projected";
-                    value: CoursesState.marks-projected;
-                }
-            }
-        }
 
-        // R38: needed in final, or the actual grade once the final is scored.
-        if CoursesState.graded && CoursesState.actual-grade != "": Body {
-            text: CoursesState.actual-grade;
-        }
-
-        if CoursesState.graded && CoursesState.actual-grade == "": VerticalLayout {
-            spacing: Theme.space-xs;
-            Caption {
-                text: CoursesState.needed-caption;
-            }
-            for r in CoursesState.needed-rows: ListRow {
-                Body {
-                    text: r.letter;
-                    horizontal-stretch: 1;
-                }
-                Body {
-                    text: r.needed;
-                    horizontal-stretch: 0;
-                }
-            }
-            for line in CoursesState.needed-assumptions: Meta {
-                text: line;
+            if !CoursesState.graded: Meta {
+                text: CoursesState.not-graded-line;
                 overflow: elide;
             }
-        }
 
-        Caption {
-            text: "Sessions";
-        }
-
-        if CoursesState.sessions.length == 0: EmptyState {
-            text: "No sessions yet. Classes appear here from this course's weekly slots in Timetable → Rules, or add a makeup class below.";
-        }
-
-        if CoursesState.sessions.length > 0: ScrollView {
-            height: 10 * Theme.row-height;
-            VerticalLayout {
-                alignment: start;
-                // DESIGN.md list row: primary text left, muted metadata next to it.
-                for s in CoursesState.sessions: ListRow {
+            if CoursesState.graded: VerticalLayout {
+                for m in CoursesState.mark-rows: ListRow {
                     Body {
-                        text: s.date;
-                        horizontal-stretch: 0;
-                    }
-                    Body {
-                        text: s.weekday;
-                        horizontal-stretch: 0;
-                    }
-                    Body {
-                        text: s.time;
-                        horizontal-stretch: 0;
-                    }
-                    Meta {
-                        text: s.room;
-                        horizontal-stretch: 0;
-                    }
-                    Meta {
-                        text: s.note;
+                        text: m.name;
                         horizontal-stretch: 1;
                     }
-                    VerticalLayout {
-                        alignment: center;
-                        StatusChip {
-                            chip: s.chip;
-                            text: s.status-label;
-                        }
+                    Body {
+                        text: m.marks;
+                        horizontal-stretch: 0;
                     }
-                    // R12: Attended / Absent only once the session has started.
-                    VerticalLayout {
-                        alignment: center;
-                        SecondaryButton {
-                            text: "Attended";
-                            enabled: s.can-mark;
-                            clicked => {
-                                CoursesState.set-status(s.id, StatusAction.attended);
-                            }
+                }
+                VerticalLayout {
+                    padding-top: Theme.space-md;
+                    HorizontalLayout {
+                        spacing: Theme.space-xl;
+                        alignment: start;
+                        Figure {
+                            caption: "Secured";
+                            value: CoursesState.marks-secured;
                         }
-                    }
-                    VerticalLayout {
-                        alignment: center;
-                        SecondaryButton {
-                            text: "Absent";
-                            enabled: s.can-mark;
-                            clicked => {
-                                CoursesState.set-status(s.id, StatusAction.absent);
-                            }
-                        }
-                    }
-                    VerticalLayout {
-                        alignment: center;
-                        SecondaryButton {
-                            text: "Cancelled";
-                            clicked => {
-                                CoursesState.set-status(s.id, StatusAction.cancelled);
-                            }
-                        }
-                    }
-                    VerticalLayout {
-                        alignment: center;
-                        SecondaryButton {
-                            text: "Pending";
-                            clicked => {
-                                CoursesState.set-status(s.id, StatusAction.pending);
-                            }
+                        Figure {
+                            caption: "Projected";
+                            value: CoursesState.marks-projected;
                         }
                     }
                 }
             }
-        }
 
-        Caption {
-            text: "Add makeup class";
-        }
+            // R38: needed in final, or the actual grade once the final is scored.
+            if CoursesState.graded && CoursesState.actual-grade != "": Body {
+                text: CoursesState.actual-grade;
+            }
 
-        HorizontalLayout {
-            spacing: Theme.space-md;
-            Field {
-                label: "Date (DD-MM-YYYY)";
-                text <=> CoursesState.mk-date;
-                error: CoursesState.mk-date-error;
-            }
-            TimeField {
-                label: "Start";
-                text <=> CoursesState.mk-start;
-                pm <=> CoursesState.mk-start-pm;
-                error: CoursesState.mk-start-error;
-            }
-            TimeField {
-                label: "End";
-                text <=> CoursesState.mk-end;
-                pm <=> CoursesState.mk-end-pm;
-                error: CoursesState.mk-end-error;
-            }
-            Field {
-                label: "Room";
-                text <=> CoursesState.mk-room;
+            if CoursesState.graded && CoursesState.actual-grade == "": VerticalLayout {
+                padding-top: Theme.space-md;
+                spacing: Theme.space-xs;
+                SubHeading {
+                    text: CoursesState.needed-caption;
+                }
+                for r in CoursesState.needed-rows: ListRow {
+                    Body {
+                        text: r.letter;
+                        horizontal-stretch: 1;
+                    }
+                    Body {
+                        text: r.needed;
+                        horizontal-stretch: 0;
+                    }
+                }
+                for line in CoursesState.needed-assumptions: Meta {
+                    text: line;
+                    overflow: elide;
+                }
             }
         }
 
-        Field {
-            label: "Note";
-            text <=> CoursesState.mk-note;
-        }
-
-        if CoursesState.mk-form-error != "": FormError {
-            text: CoursesState.mk-form-error;
-        }
-
-        HorizontalLayout {
+        // Sessions.
+        VerticalLayout {
+            padding-top: Theme.space-sm;
             spacing: Theme.space-sm;
-            alignment: start;
-            PrimaryButton {
-                text: "Add makeup class";
-                clicked => {
-                    CoursesState.add-makeup();
+            SubHeading {
+                text: "Sessions";
+            }
+
+            if CoursesState.sessions.length == 0: EmptyState {
+                text: "No sessions yet. Classes appear here from this course's weekly slots in Timetable → Rules, or add a makeup class below.";
+            }
+
+            if CoursesState.sessions.length > 0: ScrollView {
+                height: 10 * Theme.row-height;
+                VerticalLayout {
+                    alignment: start;
+                    // DESIGN.md list row: primary text left, muted metadata next to it.
+                    for s in CoursesState.sessions: ListRow {
+                        Body {
+                            text: s.date;
+                            horizontal-stretch: 0;
+                        }
+                        Body {
+                            text: s.weekday;
+                            horizontal-stretch: 0;
+                        }
+                        Body {
+                            text: s.time;
+                            horizontal-stretch: 0;
+                        }
+                        Meta {
+                            text: s.room;
+                            horizontal-stretch: 0;
+                        }
+                        Meta {
+                            text: s.note;
+                            horizontal-stretch: 1;
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            StatusChip {
+                                chip: s.chip;
+                                text: s.status-label;
+                            }
+                        }
+                        // R12: Attended / Absent only once the session has started.
+                        VerticalLayout {
+                            alignment: center;
+                            SecondaryButton {
+                                text: "Attended";
+                                enabled: s.can-mark;
+                                clicked => {
+                                    CoursesState.set-status(s.id, StatusAction.attended);
+                                }
+                            }
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            SecondaryButton {
+                                text: "Absent";
+                                enabled: s.can-mark;
+                                clicked => {
+                                    CoursesState.set-status(s.id, StatusAction.absent);
+                                }
+                            }
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            SecondaryButton {
+                                text: "Cancelled";
+                                clicked => {
+                                    CoursesState.set-status(s.id, StatusAction.cancelled);
+                                }
+                            }
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            SecondaryButton {
+                                text: "Pending";
+                                clicked => {
+                                    CoursesState.set-status(s.id, StatusAction.pending);
+                                }
+                            }
+                        }
+                    }
                 }
             }
-            SecondaryButton {
-                text: "Close";
-                clicked => {
-                    CoursesState.close-detail();
+        }
+
+        // Makeup form.
+        VerticalLayout {
+            padding-top: Theme.space-sm;
+            spacing: Theme.space-sm;
+            SubHeading {
+                text: "Add makeup class";
+            }
+
+            HorizontalLayout {
+                spacing: Theme.space-md;
+                Field {
+                    label: "Date (DD-MM-YYYY)";
+                    text <=> CoursesState.mk-date;
+                    error: CoursesState.mk-date-error;
+                }
+                TimeField {
+                    label: "Start";
+                    text <=> CoursesState.mk-start;
+                    pm <=> CoursesState.mk-start-pm;
+                    error: CoursesState.mk-start-error;
+                }
+                TimeField {
+                    label: "End";
+                    text <=> CoursesState.mk-end;
+                    pm <=> CoursesState.mk-end-pm;
+                    error: CoursesState.mk-end-error;
+                }
+                Field {
+                    label: "Room";
+                    text <=> CoursesState.mk-room;
+                }
+            }
+
+            Field {
+                label: "Note";
+                text <=> CoursesState.mk-note;
+            }
+
+            if CoursesState.mk-form-error != "": FormError {
+                text: CoursesState.mk-form-error;
+            }
+
+            HorizontalLayout {
+                spacing: Theme.space-sm;
+                alignment: start;
+                PrimaryButton {
+                    text: "Add makeup class";
+                    clicked => {
+                        CoursesState.add-makeup();
+                    }
+                }
+                SecondaryButton {
+                    text: "Close";
+                    clicked => {
+                        CoursesState.close-detail();
+                    }
                 }
             }
         }
@@ -611,14 +639,19 @@ export component CoursesPage inherits VerticalLayout {
                     alignment: center;
                     HorizontalLayout {
                         spacing: Theme.space-sm;
+                        // F-07: a fixed code column and a left-aligned name give every row the
+                        // same name edge.
                         Body {
                             text: c.code;
+                            width: Theme.code-column-width;
                             horizontal-stretch: 0;
                             font-size: Theme.body-emphasis-size;
                             font-weight: Theme.body-emphasis-weight;
                         }
                         Body {
                             text: c.name;
+                            horizontal-alignment: left;
+                            horizontal-stretch: 1;
                         }
                         // R3: archived courses are marked in the list.
                         if c.archived: VerticalLayout {
@@ -629,32 +662,42 @@ export component CoursesPage inherits VerticalLayout {
                             }
                         }
                     }
+                    // F-07: label and value pairs are separated by space-md.
                     HorizontalLayout {
-                        spacing: Theme.space-xs;
+                        spacing: Theme.space-md;
                         alignment: start;
-                        Caption {
-                            text: "Instructor";
-                            vertical-alignment: center;
+                        HorizontalLayout {
+                            spacing: Theme.space-xs;
+                            Caption {
+                                text: "Instructor";
+                                vertical-alignment: center;
+                            }
+                            Meta {
+                                text: c.instructor;
+                                horizontal-stretch: 0;
+                            }
                         }
-                        Meta {
-                            text: c.instructor;
-                            horizontal-stretch: 0;
+                        HorizontalLayout {
+                            spacing: Theme.space-xs;
+                            Caption {
+                                text: "Room";
+                                vertical-alignment: center;
+                            }
+                            Meta {
+                                text: c.room;
+                                horizontal-stretch: 0;
+                            }
                         }
-                        Caption {
-                            text: "Room";
-                            vertical-alignment: center;
-                        }
-                        Meta {
-                            text: c.room;
-                            horizontal-stretch: 0;
-                        }
-                        Caption {
-                            text: "Target";
-                            vertical-alignment: center;
-                        }
-                        Meta {
-                            text: c.target;
-                            horizontal-stretch: 0;
+                        HorizontalLayout {
+                            spacing: Theme.space-xs;
+                            Caption {
+                                text: "Target";
+                                vertical-alignment: center;
+                            }
+                            Meta {
+                                text: c.target;
+                                horizontal-stretch: 0;
+                            }
                         }
                     }
                 }

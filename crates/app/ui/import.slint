@@ -45,9 +45,11 @@ component ResultLine inherits Text {
         : kind == ImportLineKind.warning ? Theme.status-pending
         : kind == ImportLineKind.detail ? Theme.on-surface-muted
         : Theme.on-surface;
-    font-family: kind == ImportLineKind.section ? Theme.font-heading : Theme.font-body;
-    font-size: kind == ImportLineKind.section ? Theme.headline-md-size : Theme.body-md-size;
-    font-weight: kind == ImportLineKind.heading || kind == ImportLineKind.summary || kind == ImportLineKind.item ? Theme.body-emphasis-weight : Theme.body-md-weight;
+    font-family: Theme.font-body;
+    // F-09: a section line ("Courses to update") is a sub-heading, so it uses body-emphasis like
+    // the heading, summary and item lines; headline-md stays for card titles.
+    font-size: Theme.body-md-size;
+    font-weight: kind == ImportLineKind.section || kind == ImportLineKind.heading || kind == ImportLineKind.summary || kind == ImportLineKind.item ? Theme.body-emphasis-weight : Theme.body-md-weight;
 }
 
 // R84a: the panel is a SectionCard-style card (surface, space-lg padding) with its own title row:
@@ -58,7 +60,9 @@ export component ImportPanel inherits Rectangle {
 
     VerticalLayout {
         padding: Theme.space-lg;
-        spacing: Theme.space-sm;
+        // F-10: space-md between the parts of a group; each new group starts a space-md lower
+        // (a padding-top wrapper), so related and unrelated items do not look equally close.
+        spacing: Theme.space-md;
 
         HorizontalLayout {
             spacing: Theme.space-sm;
@@ -171,12 +175,15 @@ export component ImportPanel inherits Rectangle {
             }
         }
 
-        Field {
-            label: "Effective date (DD-MM-YYYY)";
-            text <=> ImportState.date-text;
-            error: ImportState.date-error;
-            edited(value) => {
-                ImportState.date-edited(value);
+        VerticalLayout {
+            padding-top: Theme.space-md;
+            Field {
+                label: "Effective date (DD-MM-YYYY)";
+                text <=> ImportState.date-text;
+                error: ImportState.date-error;
+                edited(value) => {
+                    ImportState.date-edited(value);
+                }
             }
         }
 
@@ -208,14 +215,17 @@ export component ImportPanel inherits Rectangle {
             font-weight: Theme.body-sm-weight;
         }
 
-        if ImportState.lines.length > 0: ScrollView {
-            height: 12 * Theme.row-height;
-            VerticalLayout {
-                alignment: start;
-                spacing: Theme.space-xs;
-                for line in ImportState.lines: ResultLine {
-                    text: line.text;
-                    kind: line.kind;
+        if ImportState.lines.length > 0: VerticalLayout {
+            padding-top: Theme.space-md;
+            ScrollView {
+                height: 12 * Theme.row-height;
+                VerticalLayout {
+                    alignment: start;
+                    spacing: Theme.space-xs;
+                    for line in ImportState.lines: ResultLine {
+                        text: line.text;
+                        kind: line.kind;
+                    }
                 }
             }
         }
