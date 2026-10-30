@@ -1,6 +1,7 @@
 # Checkpoint
 
 - Milestones M7–M10 (docs/spec.md §13) are all built; version bumped to 0.2.0 for release. Each waits only on human steps.
+- M11 (§13.6, light flow, 2026-10-30): delete courses (multi-select, hard delete R51) and the GitHub button on About. Gate green at 573263e (544 tests). Human: look at the Courses selection/confirm panel and the About button.
 - Last green gate: 1183eb5 (fmt ok, clippy 0 warnings, 538 tests pass, theme grep clean, no todo!/dead_code allows). The v1→v2 upgrade was also checked on a copy of the real DB (9 courses, 90 sessions kept, backup written).
 - Human tasks:
   - M7 T035: install 0.2.0 by hand, then release 0.2.1 and update in-app (specs/007-m7-updater/quickstart.md §5).
