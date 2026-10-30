@@ -3526,3 +3526,72 @@ fn r62_target_text_and_bar() {
     assert_eq!(target_fraction(Some(75)), Some(0.75));
     assert_eq!(target_fraction(None), None);
 }
+
+fn needed_row(letter: &str, needed: Needed) -> NeededRow {
+    NeededRow {
+        letter: letter.to_string(),
+        min_pct: 0.0,
+        needed,
+    }
+}
+
+fn needed_outlook(rows: Vec<NeededRow>) -> FinalOutlook {
+    FinalOutlook::Needed {
+        rows,
+        final_item_max: 150.0,
+        assumptions: vec![],
+    }
+}
+
+/// T64, R64: the best grade line names the highest letter that is still reachable.
+#[test]
+fn t64_best_reachable_grade() {
+    let outlook = needed_outlook(vec![
+        needed_row("A+", Needed::NotReachable),
+        needed_row("A", Needed::Score(96.0)),
+        needed_row("A-", Needed::Score(80.0)),
+    ]);
+    assert_eq!(
+        best_grade_line(Some(&outlook)),
+        "A needs 96.0 of 150 in the final"
+    );
+    let secured = needed_outlook(vec![
+        needed_row("A+", Needed::Secured),
+        needed_row("A", Needed::Secured),
+    ]);
+    assert_eq!(best_grade_line(Some(&secured)), "A+ is already secured");
+    let actual = FinalOutlook::Actual {
+        letter: Some("A".to_string()),
+    };
+    assert_eq!(best_grade_line(Some(&actual)), "Final grade: A");
+}
+
+/// R64, D10: the best grade line is empty when there is no outlook or nothing is reachable.
+#[test]
+fn r64_best_grade_line_hidden() {
+    assert_eq!(best_grade_line(None), "");
+    let none_reachable = needed_outlook(vec![
+        needed_row("A+", Needed::NotReachable),
+        needed_row("A", Needed::NotReachable),
+    ]);
+    assert_eq!(best_grade_line(Some(&none_reachable)), "");
+}
+
+/// R64, D9: the marks line for not graded, no marks yet, and secured of assessed.
+#[test]
+fn r64_marks_line() {
+    let not_graded = CourseMarks {
+        graded: false,
+        ..course_marks(None)
+    };
+    assert_eq!(progress_marks_line(&not_graded), "Not graded");
+    let no_marks = CourseMarks {
+        projected_pct: None,
+        ..course_marks(None)
+    };
+    assert_eq!(progress_marks_line(&no_marks), "No marks entered yet");
+    assert_eq!(
+        progress_marks_line(&course_marks(None)),
+        "Secured 129.0 of 150 assessed marks"
+    );
+}
