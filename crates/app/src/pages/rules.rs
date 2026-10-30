@@ -251,15 +251,8 @@ fn load_form(ui: &RulesState<'_>, set: &RuleSet) -> Result<(), String> {
         .find(|c| c.kind == ComponentKind::Attendance)
         .map(|c| c.bands.iter().map(vm::band_form_row).collect())
         .unwrap_or_default();
-    // R34, R35: read-only lines of the saved components and attendance bands.
-    let lines: Vec<String> = set
-        .components
-        .iter()
-        .flat_map(|c| {
-            std::iter::once(format!("{}: {}", c.name, vm::component_summary(c)))
-                .chain(c.bands.iter().map(|b| format!("  {}", vm::band_text(b))))
-        })
-        .collect();
+    // R34, R35, R87: read-only lines of the saved components and attendance bands.
+    let lines = vm::rule_set_lines(set);
     ui.set_saved_lines(bridge::strings(&lines));
     ui.set_set_name(set.name.as_str().into());
     set_components(ui, rows);

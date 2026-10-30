@@ -1154,50 +1154,49 @@ pub fn csv_exported_message(folder: &Path) -> String {
     )
 }
 
-// M18 stubs (R89-R91): the builder replaces these with the real texts and removes the allow.
-#[allow(dead_code)]
+/// R89: toast text: Term saved.
 pub fn term_saved_text() -> String {
-    String::new()
+    "Term saved.".to_string()
 }
 
-#[allow(dead_code)]
+/// R89: toast text: Holidays saved.
 pub fn holidays_saved_text() -> String {
-    String::new()
+    "Holidays saved.".to_string()
 }
 
-#[allow(dead_code)]
+/// R89: toast text: Holiday removed.
 pub fn holiday_removed_text() -> String {
-    String::new()
+    "Holiday removed.".to_string()
 }
 
-#[allow(dead_code)]
+/// R89: toast text: Settings saved.
 pub fn settings_saved_text() -> String {
-    String::new()
+    "Settings saved.".to_string()
 }
 
-#[allow(dead_code)]
+/// R89: toast text: Template copied
 pub fn template_copied_text() -> String {
-    String::new()
+    "Template copied".to_string()
 }
 
-#[allow(dead_code)]
+/// R89: toast text: AI prompt copied
 pub fn prompt_copied_text() -> String {
-    String::new()
+    "AI prompt copied".to_string()
 }
 
-#[allow(dead_code)]
+/// R90: toast text: Rule set saved.
 pub fn rule_set_saved_text() -> String {
-    String::new()
+    "Rule set saved.".to_string()
 }
 
-#[allow(dead_code)]
+/// R90: toast text: Grade scale saved.
 pub fn grade_scale_saved_text() -> String {
-    String::new()
+    "Grade scale saved.".to_string()
 }
 
-#[allow(dead_code)]
+/// R91: the hint above the Save button when a row fails to parse
 pub fn fix_rows_hint_text() -> String {
-    String::new()
+    "Fix the rows marked in red before saving.".to_string()
 }
 
 /// Message for a file that could not be read or written.
@@ -1706,11 +1705,14 @@ pub fn component_summary(component: &RuleComponent) -> String {
 
 /// R87: the lines of the "Saved rules" list: each component once as `"name: summary"`, each band
 /// of an attendance component indented by two spaces under it.
-///
-/// M18 stub: the builder moves the text over from `pages/rules.rs`.
-#[allow(dead_code)]
-pub fn rule_set_lines(_set: &RuleSet) -> Vec<String> {
-    todo!("R87: move the saved-lines text out of pages/rules.rs")
+pub fn rule_set_lines(set: &RuleSet) -> Vec<String> {
+    set.components
+        .iter()
+        .flat_map(|c| {
+            std::iter::once(format!("{}: {}", c.name, component_summary(c)))
+                .chain(c.bands.iter().map(|b| format!("  {}", band_text(b))))
+        })
+        .collect()
 }
 
 /// R35: `"≥ 90% → 100%"`.
