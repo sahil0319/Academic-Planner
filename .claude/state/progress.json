@@ -20,6 +20,7 @@
     "M17 human fix 4 (dark theme very dark navy)": "done (human decision 2026-10-31; dark-* tokens in DESIGN.md, theme.slint, contract; light unchanged)",
     "M17 human fix 5 (dark theme GitHub Dark Dimmed palette)": "done (human decision 2026-10-31; replaces navy; dark-* tokens in DESIGN.md, theme.slint, contract, spec wording; light unchanged)",
     "M17 approval": "approved by human 2026-10-31 (OQ-1..4 defaults)",
-    "M18 build": "done 2026-10-31 overnight (T001-T006), gate green, 556+ tests; human visual check pending (toast look, wrapped text height)"
+    "M18 build": "done 2026-10-31 overnight (T001-T006), gate green, 556+ tests; human visual check pending (toast look, wrapped text height)",
+    "M13 build": "done, merged to main (572 tests); human visual look pending"
   }
 }
