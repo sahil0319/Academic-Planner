@@ -4,7 +4,7 @@ use std::fmt;
 
 use chrono::{NaiveDate, NaiveTime, Weekday};
 
-use crate::model::{Slot, SyncReport};
+use crate::model::{Slot, SyncReport, WeekParity};
 
 /// R48: the plan `preview_import` returns and `apply_import` applies. When `errors` is
 /// non-empty (R42), `term`, `add`, and `update` are empty and nothing may be written.
@@ -131,13 +131,15 @@ pub struct SlotChange {
     pub add: Vec<ImportSlot>,
 }
 
-/// R45: a weekly slot as the file states it.
+/// R45, R59: a slot as the file states it. `week_parity` is the file's `biweekly` value
+/// already converted through R54 with the effective date (R49); `None` = every week.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportSlot {
     pub weekday: Weekday,
     pub start: NaiveTime,
     pub end: NaiveTime,
     pub room: Option<String>,
+    pub week_parity: Option<WeekParity>,
 }
 
 /// R48: what `apply_import` did: the applied plan and the sync that followed (R6).

@@ -16,6 +16,7 @@ fn add_slot_returns_stored_values() {
     let input = SlotInput {
         room: Some("B-202".into()),
         valid_to: Some(d("2026-01-19")),
+        week_parity: None,
         ..slot_a(cse.id)
     };
     let slot = p.add_slot(input.clone()).unwrap();
@@ -36,6 +37,7 @@ fn list_slots_inclusive_validity() {
         .add_slot(SlotInput {
             valid_from: d("2026-01-12"),
             valid_to: Some(d("2026-01-19")),
+            week_parity: None,
             ..slot_a(cse.id)
         })
         .unwrap();

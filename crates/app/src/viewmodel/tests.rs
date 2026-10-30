@@ -54,6 +54,7 @@ fn session_view(
         course_name: "Intro to Programming".to_string(),
         display_status: display_status.to_string(),
         is_past,
+        biweekly: false,
     }
 }
 
@@ -118,6 +119,7 @@ fn slot(valid_to: Option<NaiveDate>, room: Option<&str>) -> Slot {
         room: room.map(str::to_string),
         valid_from: d(2026, 9, 1),
         valid_to,
+        week_parity: None,
     }
 }
 
@@ -617,6 +619,7 @@ fn parse_slot_form_valid() {
         " B12 ",
         "01-09-2026",
         "20-12-2026",
+        None,
     )
     .unwrap();
     assert_eq!(
@@ -629,6 +632,7 @@ fn parse_slot_form_valid() {
             room: Some("B12".to_string()),
             valid_from: d(2026, 9, 1),
             valid_to: Some(d(2026, 12, 20)),
+            week_parity: None,
         }
     );
 }
@@ -650,6 +654,7 @@ fn parse_slot_form_empty_valid_to_is_none() {
         "",
         "01-09-2026",
         "",
+        None,
     )
     .unwrap();
     assert_eq!(input.valid_to, None);
@@ -673,6 +678,7 @@ fn parse_slot_form_reports_all_errors_at_once() {
         "",
         "x",
         "y",
+        None,
     )
     .unwrap_err();
     assert_eq!(err.get("course"), "Choose a course");
@@ -700,6 +706,7 @@ fn parse_slot_form_requires_valid_from() {
         "",
         "",
         "",
+        None,
     )
     .unwrap_err();
     assert_eq!(err.get("valid_from"), DATE_ERR);
@@ -723,6 +730,7 @@ fn parse_slot_form_passes_end_before_start_to_core() {
         "",
         "01-09-2026",
         "",
+        None,
     )
     .unwrap();
     assert_eq!(input.start_time, t(10, 30));
@@ -1127,6 +1135,7 @@ fn session_row_for_past_pending_session() {
             chip: ChipKind::Pending,
             can_mark: true,
             note: "bring laptop".to_string(),
+            biweekly: false,
         }
     );
 }
@@ -1278,6 +1287,7 @@ fn slot_row_with_valid_to() {
             course: "CSE101".to_string(),
             room: "C3".to_string(),
             valid: "From September 1, 2026 to December 20, 2026".to_string(),
+            biweekly: false,
         }
     );
 }
@@ -4085,4 +4095,203 @@ fn t70_term_save_error_stays_inline() {
         outcome.form_error,
         "Term end date 2026-01-04 is before its start date 2026-01-05"
     );
+}
+
+// ---- M12: bi-weekly slot form (R56, R58) ----
+
+/// Term start used by the T61 tests: a Monday. 2026-01-12 is the Monday of week 2 (even).
+fn t61_term_start() -> NaiveDate {
+    d(2026, 1, 5)
+}
+
+fn t61_today() -> NaiveDate {
+    d(2026, 1, 12)
+}
+
+/// R56, T61: bi-weekly and "Class this week" ticked on an even week stores Even.
+#[test]
+fn t61_class_this_week_ticked_stores_current_parity() {
+    assert_eq!(
+        slot_parity_from_form(t61_term_start(), t61_today(), true, true),
+        Some(WeekParity::Even)
+    );
+}
+
+/// R56, T61: bi-weekly with "Class this week" not ticked stores the other parity.
+#[test]
+fn t61_class_this_week_unticked_stores_other_parity() {
+    assert_eq!(
+        slot_parity_from_form(t61_term_start(), t61_today(), true, false),
+        Some(WeekParity::Odd)
+    );
+}
+
+/// R56, T61: an unticked bi-weekly box stores no parity, whatever "Class this week" says.
+#[test]
+fn t61_weekly_form_stores_no_parity() {
+    for class_this_week in [true, false] {
+        assert_eq!(
+            slot_parity_from_form(t61_term_start(), t61_today(), false, class_this_week),
+            None
+        );
+    }
+}
+
+/// R56, T61: editing an odd slot on 01-12 pre-fills bi-weekly ticked, "Class this week" not.
+#[test]
+fn t61_edit_odd_slot_prefills_not_this_week() {
+    assert_eq!(
+        slot_form_from_parity(t61_term_start(), t61_today(), Some(WeekParity::Odd)),
+        (true, false)
+    );
+}
+
+/// R56, T61: editing an even slot on 01-12 pre-fills both boxes ticked.
+#[test]
+fn t61_edit_even_slot_prefills_this_week() {
+    assert_eq!(
+        slot_form_from_parity(t61_term_start(), t61_today(), Some(WeekParity::Even)),
+        (true, true)
+    );
+}
+
+/// R56, T61: editing a weekly slot pre-fills bi-weekly unticked and "Class this week" ticked.
+#[test]
+fn t61_edit_weekly_slot_prefills_defaults() {
+    assert_eq!(
+        slot_form_from_parity(t61_term_start(), t61_today(), None),
+        (false, true)
+    );
+}
+
+/// R56, T61: form to parity to form returns the same boxes for all four combinations, except
+/// that an unticked bi-weekly box always comes back with "Class this week" ticked.
+#[test]
+fn t61_form_round_trip() {
+    for (biweekly, class_this_week) in [(true, true), (true, false), (false, true), (false, false)]
+    {
+        let parity =
+            slot_parity_from_form(t61_term_start(), t61_today(), biweekly, class_this_week);
+        let back = slot_form_from_parity(t61_term_start(), t61_today(), parity);
+        let expected = if biweekly {
+            (true, class_this_week)
+        } else {
+            (false, true)
+        };
+        assert_eq!(back, expected);
+    }
+}
+
+/// R54, R56, T61: a term starting on a Wednesday counts its own week as week 1 (odd), so the
+/// following Monday is week 2 (even).
+#[test]
+fn t61_wednesday_start_term_counts_own_week_as_week_one() {
+    let start = d(2026, 1, 7);
+    assert_eq!(
+        slot_parity_from_form(start, d(2026, 1, 7), true, true),
+        Some(WeekParity::Odd)
+    );
+    assert_eq!(
+        slot_parity_from_form(start, d(2026, 1, 9), true, true),
+        Some(WeekParity::Odd)
+    );
+    assert_eq!(
+        slot_parity_from_form(start, d(2026, 1, 12), true, true),
+        Some(WeekParity::Even)
+    );
+    assert_eq!(
+        slot_form_from_parity(start, d(2026, 1, 12), Some(WeekParity::Odd)),
+        (true, false)
+    );
+}
+
+/// R56, T61: `parse_slot_form` copies the week parity into the input unchanged.
+#[test]
+fn t61_parse_slot_form_passes_week_parity_through() {
+    for parity in [None, Some(WeekParity::Odd), Some(WeekParity::Even)] {
+        let input = parse_slot_form(
+            Some(1),
+            1,
+            TimeText {
+                digits: "900",
+                pm: false,
+            },
+            TimeText {
+                digits: "1030",
+                pm: false,
+            },
+            "",
+            "01-09-2026",
+            "",
+            parity,
+        )
+        .unwrap();
+        assert_eq!(input.week_parity, parity);
+    }
+}
+
+/// R58, T61: a slot row is flagged bi-weekly exactly when the slot has a week parity.
+#[test]
+fn t61_slot_row_biweekly_flag() {
+    let courses = [course(1, "CSE101")];
+    let mut s = slot(None, None);
+    assert!(!slot_row(&s, &courses).biweekly);
+    s.week_parity = Some(WeekParity::Odd);
+    assert!(slot_row(&s, &courses).biweekly);
+    s.week_parity = Some(WeekParity::Even);
+    assert!(slot_row(&s, &courses).biweekly);
+}
+
+/// R58, T61: a session row carries the session view's bi-weekly flag.
+#[test]
+fn t61_session_row_biweekly_flag() {
+    let mut view = pending_view(1, d(2026, 1, 12));
+    assert!(!session_row(&view).biweekly);
+    view.biweekly = true;
+    assert!(session_row(&view).biweekly);
+}
+
+/// R58, T61: the label next to the time of a bi-weekly session or slot.
+#[test]
+fn t61_every_other_week_label() {
+    assert_eq!(EVERY_OTHER_WEEK, "Every other week");
+}
+
+/// R58: the label is empty for a weekly session or slot and "Every other week" for a bi-weekly one.
+#[test]
+fn biweekly_label_follows_the_flag() {
+    assert_eq!(biweekly_label(true), EVERY_OTHER_WEEK);
+    assert_eq!(biweekly_label(false), "");
+}
+
+/// R58: "Move to next week" shows for a pending bi-weekly session dated today or later.
+#[test]
+fn can_shift_biweekly_needs_biweekly_pending_and_not_past_date() {
+    let today = d(2026, 1, 12);
+    let mut view = pending_view(1, today);
+    view.biweekly = true;
+    assert!(can_shift_biweekly(&view, today));
+    view.session.date = d(2026, 1, 20);
+    assert!(can_shift_biweekly(&view, today));
+    view.session.date = d(2026, 1, 11);
+    assert!(!can_shift_biweekly(&view, today));
+}
+
+/// R58: a weekly session, or one that is not pending, never offers the button.
+#[test]
+fn can_shift_biweekly_false_for_weekly_and_marked_sessions() {
+    let today = d(2026, 1, 12);
+    let weekly = pending_view(1, today);
+    assert!(!can_shift_biweekly(&weekly, today));
+    for status in [Status::Attended, Status::Absent, Status::Cancelled] {
+        let mut view = session_view(2, today, status, "Marked", true);
+        view.biweekly = true;
+        assert!(!can_shift_biweekly(&view, today));
+    }
+}
+
+/// R58, R89: the toast text after a move.
+#[test]
+fn moved_next_week_text_is_the_toast() {
+    assert_eq!(moved_next_week_text(), "Moved to next week.");
 }

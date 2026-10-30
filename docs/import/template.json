@@ -8,7 +8,7 @@
       "credits": 3, "rule_set": "Theory",
       "instructor": null, "room": null, "min_attendance_pct": 75,
       "slots": [
-        { "day": "Mon", "start": "10:30", "end": "11:45", "room": null },
+        { "day": "Mon", "start": "10:30", "end": "11:45", "room": null, "biweekly": null },
         { "day": "Fri", "start": "14:30", "end": "15:45" }
       ]
     }

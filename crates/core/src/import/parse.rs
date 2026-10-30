@@ -8,7 +8,8 @@ use chrono::{NaiveDate, NaiveTime, Weekday};
 use serde_json::{Map, Value};
 
 use super::types::{ImportIssue, ImportSlot, ImportTerm, RuleSetRef};
-use crate::model::{Course, Term};
+use crate::model::{Course, Term, WeekParity};
+use crate::schedule::term_week_parity;
 
 const FORMAT: &str = "academic-planner-courses";
 
@@ -24,7 +25,7 @@ const COURSE_KEYS: &[&str] = &[
     "min_attendance_pct",
     "slots",
 ];
-const SLOT_KEYS: &[&str] = &["day", "start", "end", "room"];
+const SLOT_KEYS: &[&str] = &["day", "start", "end", "room", "biweekly"];
 
 /// R42: database facts the validation needs, read by the caller before parsing.
 pub(super) struct Context<'a> {
@@ -34,6 +35,8 @@ pub(super) struct Context<'a> {
     pub rule_sets: &'a [RuleSetRef],
     /// R43: courses of the active term, archived included.
     pub courses: &'a [Course],
+    /// R49, R59: the effective date; `biweekly` values are relative to its week.
+    pub effective_from: NaiveDate,
 }
 
 /// R44: a course key that is absent (keep), `null` (clear), or has a value.
@@ -109,6 +112,8 @@ pub(super) fn parse(text: &str, ctx: &Context<'_>) -> Parsed {
 struct Walker {
     errors: Vec<ImportIssue>,
     warnings: Vec<ImportIssue>,
+    /// R54, R59: start of the term the slots belong to (the active term, else the file's).
+    term_start: Option<NaiveDate>,
 }
 
 fn join(path: &str, key: &str) -> String {
@@ -180,6 +185,10 @@ impl Walker {
             }
             Some(v) => self.term(v, ctx),
         };
+        self.term_start = ctx
+            .active_term
+            .map(|t| t.start_date)
+            .or(term.as_ref().map(|t| t.start_date));
 
         let courses = match root.get("courses") {
             None => {
@@ -348,7 +357,7 @@ impl Walker {
         let instructor = self.optional_text(obj, "instructor", path);
         let room = self.optional_text(obj, "room", path);
         let min_attendance_pct = self.min_attendance_pct(obj, path);
-        let slots = self.slots(obj, path);
+        let slots = self.slots(obj, path, ctx);
         self.warn_unknown(obj, COURSE_KEYS, path);
 
         Some(ParsedCourse {
@@ -469,7 +478,12 @@ impl Walker {
     }
 
     /// R42, R45: `slots` is a list (empty allowed); `null` is an error.
-    fn slots(&mut self, obj: &Map<String, Value>, path: &str) -> Field<Vec<ImportSlot>> {
+    fn slots(
+        &mut self,
+        obj: &Map<String, Value>,
+        path: &str,
+        ctx: &Context<'_>,
+    ) -> Field<Vec<ImportSlot>> {
         let at = join(path, "slots");
         match obj.get("slots") {
             None => Field::Absent,
@@ -478,7 +492,7 @@ impl Walker {
                 for (j, item) in items.iter().enumerate() {
                     let slot_path = format!("{at}[{j}]");
                     match item.as_object() {
-                        Some(o) => slots.extend(self.slot(o, &slot_path)),
+                        Some(o) => slots.extend(self.slot(o, &slot_path, ctx)),
                         None => self.error(&slot_path, "must be an object"),
                     }
                 }
@@ -491,8 +505,14 @@ impl Walker {
         }
     }
 
-    /// R42, R2: day, 24-hour start and end with end after start, optional room.
-    fn slot(&mut self, obj: &Map<String, Value>, path: &str) -> Option<ImportSlot> {
+    /// R42, R2: day, 24-hour start and end with end after start, optional room. R59: optional
+    /// `biweekly`.
+    fn slot(
+        &mut self,
+        obj: &Map<String, Value>,
+        path: &str,
+        ctx: &Context<'_>,
+    ) -> Option<ImportSlot> {
         let day = match obj.get("day") {
             None | Some(Value::Null) => {
                 self.error(&join(path, "day"), "required");
@@ -515,6 +535,7 @@ impl Walker {
             Field::Value(r) => Some(r),
             Field::Absent | Field::Null => None,
         };
+        let week_parity = self.biweekly(obj, path, ctx);
         self.warn_unknown(obj, SLOT_KEYS, path);
         if let (Some(s), Some(e)) = (start, end) {
             if e <= s {
@@ -527,7 +548,40 @@ impl Walker {
             start: start?,
             end: end?,
             room,
+            week_parity: week_parity?,
         })
+    }
+
+    /// R59: `"this_week"` / `"next_week"` / `null` / absent. The value becomes a parity
+    /// through R54: `this_week` is the parity of the effective date's term week, `next_week`
+    /// the other one. Any other value is an error at `<slot>.biweekly`. The outer `None` means
+    /// the value was invalid; the inner `None` means every week.
+    fn biweekly(
+        &mut self,
+        obj: &Map<String, Value>,
+        path: &str,
+        ctx: &Context<'_>,
+    ) -> Option<Option<WeekParity>> {
+        let this_week =
+            |start: Option<NaiveDate>| start.map(|s| term_week_parity(s, ctx.effective_from));
+        let flip = |p: WeekParity| match p {
+            WeekParity::Odd => WeekParity::Even,
+            WeekParity::Even => WeekParity::Odd,
+        };
+        match obj.get("biweekly") {
+            None | Some(Value::Null) => Some(None),
+            Some(Value::String(s)) if s == "this_week" => Some(this_week(self.term_start)),
+            Some(Value::String(s)) if s == "next_week" => {
+                Some(this_week(self.term_start).map(flip))
+            }
+            Some(_) => {
+                self.error(
+                    &join(path, "biweekly"),
+                    "must be \"this_week\", \"next_week\", or null",
+                );
+                None
+            }
+        }
     }
 
     fn time(&mut self, obj: &Map<String, Value>, key: &str, path: &str) -> Option<NaiveTime> {

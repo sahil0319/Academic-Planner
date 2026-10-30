@@ -69,6 +69,7 @@ fn add_slot(
         room: room.map(String::from),
         valid_from: d(from),
         valid_to: None,
+        week_parity: None,
     })
     .unwrap()
 }

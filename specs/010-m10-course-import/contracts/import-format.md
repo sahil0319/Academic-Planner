@@ -25,7 +25,7 @@
 - `term`: `name`, `start`, `end`.
 - Course: `code`, `name`, `credits`, `rule_set`, `instructor`, `room`, `min_attendance_pct`,
   `slots`.
-- Slot: `day`, `start`, `end`, `room`.
+- Slot: `day`, `start`, `end`, `room`, `biweekly` (R59, added by M12).
 
 Every other key (e.g. `notes`, `archived`, `teacher`, `comment`) → warning
 `{path}: unknown key, ignored` (R42).
@@ -39,6 +39,7 @@ Every other key (e.g. `notes`, `archived`, `teacher`, `comment`) → warning
 | `slots` | untouched | error | absent = no slots |
 | `slots: []` | — | — | ends all current slots / new course has none |
 | slot `room` | no slot room | no slot room | same |
+| slot `biweekly` | every week | every week | same |
 | `code` | error (required) | error | error |
 
 ## Grammar
@@ -48,6 +49,10 @@ Every other key (e.g. `notes`, `archived`, `teacher`, `comment`) → warning
 - time: `H:MM` or `HH:MM`, 00:00–23:59, 24-hour.
 - date: `YYYY-MM-DD`.
 - `version`: integer `1`.
+- slot `biweekly` (R59): `"this_week"`, `"next_week"`, `null`, or absent. `this_week` means the
+  slot meets in the term week that contains the effective date (R49), `next_week` the week
+  after it; the importer turns the value into a week parity through R54 before planning, and
+  R45 compares slots including parity. `null` or absent means every week.
 - `credits`: number > 0. `min_attendance_pct`: integer 0–100.
 
 ## Error messages (exact wording is the builder's; these are the required facts)
@@ -74,4 +79,5 @@ Every other key (e.g. `notes`, `archived`, `teacher`, `comment`) → warning
 | `courses[i].slots[j].day` | bad | `must be a day name (Mon or Monday) or 1–7` |
 | `courses[i].slots[j].start`/`.end` | bad | `must be a 24-hour time HH:MM` |
 | `courses[i].slots[j].end` | ≤ start | `must be after start` |
+| `courses[i].slots[j].biweekly` | not `"this_week"`, `"next_week"`, or null | `must be "this_week", "next_week", or null` |
 | any string field | wrong JSON type | `must be text` |

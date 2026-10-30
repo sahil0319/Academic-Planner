@@ -163,6 +163,7 @@ fn insert_import_slot(
             room: slot.room.clone(),
             valid_from: effective_from,
             valid_to: None,
+            week_parity: slot.week_parity,
         },
     )?;
     Ok(())

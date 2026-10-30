@@ -35,14 +35,23 @@ pub fn refresh(app: &App) {
         }
     }
     let loaded = app.planner().dashboard(now);
-    let view = match loaded {
-        Ok(d) => viewmodel::dashboard_view(&d),
+    let (view, next_shift) = match loaded {
+        Ok(d) => {
+            // R58: the next class offers "Move to next week" when it qualifies.
+            let target = d
+                .next_class
+                .as_ref()
+                .filter(|v| viewmodel::can_shift_biweekly(v, now.date()))
+                .map(|v| (v.session.id, v.session.course_id, v.session.date));
+            (viewmodel::dashboard_view(&d), target)
+        }
         Err(e) => {
             state.set_message(viewmodel::error_text(&e).into());
             return;
         }
     };
-    if let Err(text) = fill(&state, &view) {
+    app.state().shiftable = next_shift.into_iter().collect();
+    if let Err(text) = fill(&state, &view, next_shift.is_some()) {
         state.set_message(text.into());
         return;
     }
@@ -52,7 +61,11 @@ pub fn refresh(app: &App) {
 }
 
 /// Copies the view into the Slint global; stops at the first id that does not fit.
-fn fill(state: &DashboardState<'_>, view: &DashboardView) -> Result<(), String> {
+fn fill(
+    state: &DashboardState<'_>,
+    view: &DashboardView,
+    next_can_shift: bool,
+) -> Result<(), String> {
     state.set_banner(bridge::strings(&view.banner));
     // R16, R17: hide Next class when that session is already in today's day panel. The panel
     // shows today on start and after a rollover; `view.today` holds exactly today's rows.
@@ -63,7 +76,7 @@ fn fill(state: &DashboardState<'_>, view: &DashboardView) -> Result<(), String> 
     // R17: no next class hides the row and shows the empty state.
     match &view.next_class {
         Some(row) => {
-            state.set_next_class(bridge::session_row(row)?);
+            state.set_next_class(bridge::session_row_with_shift(row, next_can_shift)?);
             state.set_has_next(true);
         }
         None => {
@@ -147,8 +160,16 @@ fn fill_calendar(app: &App, state: &DashboardState<'_>, now: NaiveDateTime) -> R
             b.session.id,
         ))
     });
-    let day_rows: Vec<viewmodel::SessionRow> =
-        day_views.into_iter().map(viewmodel::session_row).collect();
+    // R58: each row says whether "Move to next week" is offered; the targets are remembered.
+    let mut day_rows: Vec<(viewmodel::SessionRow, bool)> = Vec::new();
+    for view in day_views {
+        let can_shift = viewmodel::can_shift_biweekly(view, today);
+        if can_shift {
+            let s = &view.session;
+            app.state().shiftable.push((s.id, s.course_id, s.date));
+        }
+        day_rows.push((viewmodel::session_row(view), can_shift));
+    }
     // Assessments due that day, completed or not, in core's due order; the panel shows the time.
     let due_rows = assessments
         .iter()
@@ -165,7 +186,9 @@ fn fill_calendar(app: &App, state: &DashboardState<'_>, now: NaiveDateTime) -> R
         viewmodel::day_panel_holiday_text(&viewmodel::holiday_text(&holidays, selected)).into(),
     );
     state.set_panel_empty_text(viewmodel::day_panel_empty_text(selected, today).into());
-    state.set_panel_sessions(bridge::rows(&day_rows, bridge::session_row)?);
+    state.set_panel_sessions(bridge::rows(&day_rows, |(row, can_shift)| {
+        bridge::session_row_with_shift(row, *can_shift)
+    })?);
     state.set_panel_assessments(bridge::model(due_rows));
     Ok(())
 }
@@ -180,6 +203,12 @@ pub fn wire(app: &Rc<App>) {
     state.on_set_status(move |id, action| {
         if let Some(app) = weak.upgrade() {
             set_status(&app, id, bridge::status(action));
+        }
+    });
+    let weak = Rc::downgrade(app);
+    state.on_shift_biweekly(move |id| {
+        if let Some(app) = weak.upgrade() {
+            shift_biweekly(&app, id);
         }
     });
     let weak = Rc::downgrade(app);
@@ -248,6 +277,31 @@ fn set_status(app: &App, id: i32, status: planner_core::Status) {
         Ok(()) => {
             show(app, "");
             app.changed(false);
+        }
+        Err(e) => show(app, &viewmodel::error_text(&e)),
+    }
+}
+
+/// R58: moves the bi-weekly classes of the session's course from its date on to the other week,
+/// then refreshes every page and toasts. An unknown session (the list changed) only refreshes;
+/// a core error stays inline in the dashboard `message`.
+fn shift_biweekly(app: &App, id: i32) {
+    let target = app
+        .state()
+        .shiftable
+        .iter()
+        .find(|(session, _, _)| *session == i64::from(id))
+        .copied();
+    let Some((_, course_id, date)) = target else {
+        app.refresh_all();
+        return;
+    };
+    let result = app.planner_mut().shift_biweekly(course_id, date);
+    match result {
+        Ok(()) => {
+            show(app, "");
+            app.changed(false);
+            app.toast(&viewmodel::moved_next_week_text());
         }
         Err(e) => show(app, &viewmodel::error_text(&e)),
     }

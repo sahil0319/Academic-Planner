@@ -8,11 +8,11 @@ use std::path::Path;
 
 use chrono::{Datelike, Days, Duration, NaiveDate, NaiveDateTime, NaiveTime, Timelike, Weekday};
 use planner_core::{
-    Assessment, AssessmentFilter, AssessmentInput, AssessmentKind, Assumption, AttendanceBand,
-    AttendanceSummary, ComponentKind, Course, CourseInput, CourseMarks, Dashboard, FinalOutlook,
-    GpaStatus, GpaSummary, GradeRow, Holiday, MakeupInput, Needed, PastTermSummary, RuleComponent,
-    RuleComponentInput, RuleSet, SessionView, Settings, Slot, SlotInput, Status, Term, TermInput,
-    ThemeMode,
+    term_week_parity, Assessment, AssessmentFilter, AssessmentInput, AssessmentKind, Assumption,
+    AttendanceBand, AttendanceSummary, ComponentKind, Course, CourseInput, CourseMarks, Dashboard,
+    FinalOutlook, GpaStatus, GpaSummary, GradeRow, Holiday, MakeupInput, Needed, PastTermSummary,
+    RuleComponent, RuleComponentInput, RuleSet, SessionView, Settings, Slot, SlotInput, Status,
+    Term, TermInput, ThemeMode, WeekParity,
 };
 
 use crate::updater::InstallKind;
@@ -460,7 +460,72 @@ pub fn parse_course_form(
     }
 }
 
+/// R58: label shown next to the time of a bi-weekly session or slot.
+pub const EVERY_OTHER_WEEK: &str = "Every other week";
+
+/// R58: [`EVERY_OTHER_WEEK`] for a bi-weekly session or slot, else an empty label.
+pub fn biweekly_label(biweekly: bool) -> &'static str {
+    if biweekly {
+        EVERY_OTHER_WEEK
+    } else {
+        ""
+    }
+}
+
+/// R58: true when the session shows "Move to next week": it comes from a bi-weekly slot, is
+/// still pending, and is dated today or later.
+pub fn can_shift_biweekly(view: &SessionView, today: NaiveDate) -> bool {
+    view.biweekly && view.session.status == Status::Pending && view.session.date >= today
+}
+
+/// R58, R89: toast text after "Move to next week".
+pub fn moved_next_week_text() -> String {
+    "Moved to next week.".to_string()
+}
+
+/// R54: the other week parity.
+fn other_parity(parity: WeekParity) -> WeekParity {
+    match parity {
+        WeekParity::Odd => WeekParity::Even,
+        WeekParity::Even => WeekParity::Odd,
+    }
+}
+
+/// R56: the stored parity for the slot form. Weekly (`biweekly` false) gives `None`. Bi-weekly
+/// gives `term_week_parity(term_start, today)` when `class_this_week`, else the other parity.
+pub fn slot_parity_from_form(
+    term_start: NaiveDate,
+    today: NaiveDate,
+    biweekly: bool,
+    class_this_week: bool,
+) -> Option<WeekParity> {
+    if !biweekly {
+        return None;
+    }
+    let current = term_week_parity(term_start, today);
+    Some(if class_this_week {
+        current
+    } else {
+        other_parity(current)
+    })
+}
+
+/// R56: pre-fills the slot form from a stored parity, as `(biweekly, class_this_week)`.
+/// Weekly (`None`) gives `(false, true)`.
+pub fn slot_form_from_parity(
+    term_start: NaiveDate,
+    today: NaiveDate,
+    parity: Option<WeekParity>,
+) -> (bool, bool) {
+    match parity {
+        None => (false, true),
+        Some(p) => (true, p == term_week_parity(term_start, today)),
+    }
+}
+
+/// R56: `week_parity` comes from [`slot_parity_from_form`] and is copied into the input.
 /// Checks `course`, `weekday`, `start`, `end`, `valid_from`, `valid_to`. R2: end <= start is core's.
+#[allow(clippy::too_many_arguments)]
 pub fn parse_slot_form(
     course_id: Option<i64>,
     weekday: i32,
@@ -469,6 +534,7 @@ pub fn parse_slot_form(
     room: &str,
     valid_from: &str,
     valid_to: &str,
+    week_parity: Option<WeekParity>,
 ) -> Result<SlotInput, FormErrors> {
     let mut errors = FormErrors::default();
     let course_id = errors.check(
@@ -501,6 +567,7 @@ pub fn parse_slot_form(
             room: optional_text(room),
             valid_from,
             valid_to,
+            week_parity,
         }),
         _ => Err(errors),
     }
@@ -692,6 +759,8 @@ pub struct SessionRow {
     pub chip: ChipKind,
     pub can_mark: bool,
     pub note: String,
+    /// R58: the session belongs to a bi-weekly slot.
+    pub biweekly: bool,
 }
 
 /// R11, R12: builds a session row; the status label is core's `display_status` with its date
@@ -709,6 +778,7 @@ pub fn session_row(view: &SessionView) -> SessionRow {
         chip: chip_kind(s.status),
         can_mark: can_mark_attendance(view),
         note: s.note.clone().unwrap_or_default(),
+        biweekly: view.biweekly,
     }
 }
 
@@ -818,6 +888,8 @@ pub struct SlotRow {
     pub course: String,
     pub room: String,
     pub valid: String,
+    /// R58: the slot has a week parity.
+    pub biweekly: bool,
 }
 
 /// Course is the matching code, or an em dash when not found.
@@ -841,6 +913,7 @@ pub fn slot_row(slot: &Slot, courses: &[Course]) -> SlotRow {
         course,
         room: or_dash(slot.room.as_deref()),
         valid,
+        biweekly: slot.week_parity.is_some(),
     }
 }
 

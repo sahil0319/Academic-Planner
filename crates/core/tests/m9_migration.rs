@@ -69,10 +69,10 @@ fn m9_migration_002_upgrades_v1_file_db() {
     let version: i64 = conn
         .query_row("PRAGMA user_version", [], |r| r.get(0))
         .unwrap();
-    assert_eq!(version, 2);
+    assert_eq!(version, 3);
     assert!(dir
         .path()
-        .join("backups/pre-migrate-v1-to-v2.sqlite")
+        .join("backups/pre-migrate-v1-to-v3.sqlite")
         .exists());
     assert_eq!(count(&conn, "rule_set"), 2);
     assert_eq!(count(&conn, "rule_component"), 7);

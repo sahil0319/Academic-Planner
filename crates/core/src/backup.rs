@@ -8,11 +8,11 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 use crate::db::{
-    fmt_datetime, parse_date, parse_datetime, parse_time, Planner, GRADING_SEED, SCHEMA_VERSION,
-    SETTING_CHECK_UPDATES, SETTING_THEME,
+    col_week_parity_opt, fmt_datetime, parse_date, parse_datetime, parse_time, Planner,
+    GRADING_SEED, SCHEMA_VERSION, SETTING_CHECK_UPDATES, SETTING_THEME,
 };
 use crate::error::{Error, Result};
-use crate::model::ThemeMode;
+use crate::model::{ThemeMode, WeekParity};
 
 /// R21: value of the `format` key of every backup document.
 const BACKUP_FORMAT: &str = "academic-planner-backup";
@@ -109,6 +109,9 @@ struct SlotRow {
     valid_from: String,
     #[serde(deserialize_with = "nullable")]
     valid_to: Option<String>,
+    /// R60: absent in version-1 and version-2 backups, which restore as weekly slots.
+    #[serde(default)]
+    week_parity: Option<WeekParity>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -351,7 +354,7 @@ fn apply(tx: &Transaction, b: &Backup, version: i64) -> rusqlite::Result<()> {
     for s in &b.slots {
         tx.execute(
             "INSERT INTO slot (id, course_id, weekday, start_time, end_time, room, valid_from, \
-             valid_to) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+             valid_to, week_parity) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
                 s.id,
                 s.course_id,
@@ -360,7 +363,8 @@ fn apply(tx: &Transaction, b: &Backup, version: i64) -> rusqlite::Result<()> {
                 s.end_time,
                 s.room,
                 s.valid_from,
-                s.valid_to
+                s.valid_to,
+                s.week_parity.map(WeekParity::as_db)
             ],
         )?;
     }
@@ -478,8 +482,8 @@ impl Planner {
             )?,
             slots: rows(
                 &tx,
-                "SELECT id, course_id, weekday, start_time, end_time, room, valid_from, valid_to \
-                 FROM slot ORDER BY id",
+                "SELECT id, course_id, weekday, start_time, end_time, room, valid_from, valid_to, \
+                 week_parity FROM slot ORDER BY id",
                 |r| {
                     Ok(SlotRow {
                         id: r.get(0)?,
@@ -490,6 +494,7 @@ impl Planner {
                         room: r.get(5)?,
                         valid_from: r.get(6)?,
                         valid_to: r.get(7)?,
+                        week_parity: col_week_parity_opt(r, 8)?,
                     })
                 },
             )?,

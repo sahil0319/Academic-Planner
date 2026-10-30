@@ -19,6 +19,11 @@ export struct SessionRow {
     // R12: attendance can be marked only once the session has started.
     can-mark: bool,
     note: string,
+    // R58: the session belongs to a bi-weekly slot; the label is "Every other week".
+    biweekly: bool,
+    biweekly-label: string,
+    // R58: a pending bi-weekly session dated today or later can move to next week.
+    can-shift: bool,
 }
 
 export struct DayGroup {
@@ -80,6 +85,9 @@ export struct SlotRow {
     course: string,
     room: string,
     valid: string,
+    // R58: the slot has a week parity; the label is "Every other week".
+    biweekly: bool,
+    biweekly-label: string,
 }
 
 export struct HolidayRow {

@@ -27,6 +27,8 @@ const MIGRATIONS: &[&str] = &[
         include_str!("migrations/002_grading.sql"),
         include_str!("grading_seed.sql")
     ),
+    // Migration 003 adds slot.week_parity for bi-weekly slots (R60).
+    include_str!("migrations/003_week_parity.sql"),
 ];
 
 /// R41: the default rule sets, bands, and grade scale; run by migration 002 and by a
@@ -694,8 +696,9 @@ pub(crate) fn load_course(conn: &Connection, id: i64) -> Result<Course> {
 /// Inserts a slot row exactly as given (validation is the caller's job) and returns it.
 pub(crate) fn insert_slot(conn: &Connection, input: &SlotInput) -> Result<Slot> {
     conn.execute(
-        "INSERT INTO slot (course_id, weekday, start_time, end_time, room, valid_from, valid_to)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        "INSERT INTO slot (course_id, weekday, start_time, end_time, room, valid_from, valid_to,
+             week_parity)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
         params![
             input.course_id,
             weekday_to_db(input.weekday),
@@ -703,7 +706,8 @@ pub(crate) fn insert_slot(conn: &Connection, input: &SlotInput) -> Result<Slot> 
             fmt_time(input.end_time),
             input.room,
             fmt_date(input.valid_from),
-            input.valid_to.map(fmt_date)
+            input.valid_to.map(fmt_date),
+            input.week_parity.map(WeekParity::as_db)
         ],
     )?;
     load_slot(conn, conn.last_insert_rowid())
@@ -711,7 +715,7 @@ pub(crate) fn insert_slot(conn: &Connection, input: &SlotInput) -> Result<Slot> 
 
 pub(crate) const SLOT_COLS: &str =
     "s.id, s.course_id, s.weekday, s.start_time, s.end_time, s.room, \
-     s.valid_from, s.valid_to";
+     s.valid_from, s.valid_to, s.week_parity";
 
 pub(crate) fn slot_from_row(r: &Row) -> rusqlite::Result<Slot> {
     Ok(Slot {
@@ -723,6 +727,7 @@ pub(crate) fn slot_from_row(r: &Row) -> rusqlite::Result<Slot> {
         room: r.get(5)?,
         valid_from: col_date(r, 6)?,
         valid_to: col_date_opt(r, 7)?,
+        week_parity: col_week_parity_opt(r, 8)?,
     })
 }
 
@@ -905,6 +910,24 @@ impl Status {
     }
 }
 
+impl WeekParity {
+    /// R54, R60: the `slot.week_parity` text.
+    pub(crate) fn as_db(self) -> &'static str {
+        match self {
+            WeekParity::Odd => "odd",
+            WeekParity::Even => "even",
+        }
+    }
+
+    pub(crate) fn from_db(s: &str) -> Option<Self> {
+        match s {
+            "odd" => Some(WeekParity::Odd),
+            "even" => Some(WeekParity::Even),
+            _ => None,
+        }
+    }
+}
+
 impl SessionKind {
     pub(crate) fn as_db(self) -> &'static str {
         match self {
@@ -1034,6 +1057,10 @@ pub(crate) fn col_datetime(row: &Row, idx: usize) -> rusqlite::Result<NaiveDateT
 pub(crate) fn col_weekday(row: &Row, idx: usize) -> rusqlite::Result<Weekday> {
     let n: i64 = row.get(idx)?;
     weekday_from_db(n).ok_or_else(|| bad_value(idx, "weekday", &n.to_string()))
+}
+
+pub(crate) fn col_week_parity_opt(row: &Row, idx: usize) -> rusqlite::Result<Option<WeekParity>> {
+    decode_opt(row, idx, "week parity", WeekParity::from_db)
 }
 
 pub(crate) fn col_status(row: &Row, idx: usize) -> rusqlite::Result<Status> {

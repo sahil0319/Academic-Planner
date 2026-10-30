@@ -125,6 +125,15 @@ pub struct Course {
     pub rule_set_id: Option<i64>,
 }
 
+/// R54: which alternate week a bi-weekly slot meets in; term week 1 is odd. Stored as
+/// `'odd'` / `'even'` in `slot.week_parity` (R60); a weekly slot has no parity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum WeekParity {
+    Odd,
+    Even,
+}
+
 /// Input for `add_slot` / `change_slot`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SlotInput {
@@ -138,6 +147,8 @@ pub struct SlotInput {
     pub valid_from: NaiveDate,
     /// Last date the slot applies (inclusive); `None` = until term end.
     pub valid_to: Option<NaiveDate>,
+    /// R55: `None` = every week; `Some` = only weeks of that term-week parity.
+    pub week_parity: Option<WeekParity>,
 }
 
 /// A recurring weekly timetable rule (`slot` table).
@@ -151,6 +162,8 @@ pub struct Slot {
     pub room: Option<String>,
     pub valid_from: NaiveDate,
     pub valid_to: Option<NaiveDate>,
+    /// R55: `None` = every week; `Some` = only weeks of that term-week parity.
+    pub week_parity: Option<WeekParity>,
 }
 
 /// One dated class occurrence (`session` table). Sessions are snapshots: their date, time,
@@ -182,6 +195,8 @@ pub struct SessionView {
     pub display_status: String,
     /// `now >= session start`: attendance may be marked (R12).
     pub is_past: bool,
+    /// R58: the session comes from a bi-weekly slot (its slot has a `week_parity`).
+    pub biweekly: bool,
 }
 
 /// Input for `reschedule` / `add_makeup`.

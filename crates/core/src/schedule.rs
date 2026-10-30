@@ -17,7 +17,86 @@ use crate::model::*;
 pub(crate) const ACTIVE_SCOPE: &str =
     "c.archived = 0 AND c.term_id = (SELECT id FROM term WHERE is_active = 1)";
 
+/// R54: parity of the term week containing `date`. Term weeks run Monday to Sunday and week
+/// 1 is the week containing `term_start`; the parity is `Odd` when the whole weeks between
+/// the Monday of `term_start`'s week and the Monday of `date`'s week are even (weeks 1, 3,
+/// 5, ...), else `Even`. Dates before the term follow the same alternation.
+pub fn term_week_parity(term_start: NaiveDate, date: NaiveDate) -> WeekParity {
+    let monday = |d: NaiveDate| {
+        d.signed_duration_since(NaiveDate::MIN).num_days()
+            - i64::from(d.weekday().num_days_from_monday())
+    };
+    let weeks = (monday(date) - monday(term_start)) / 7;
+    if weeks.rem_euclid(2) == 0 {
+        WeekParity::Odd
+    } else {
+        WeekParity::Even
+    }
+}
+
 impl Planner {
+    /// R57: flips the parity of every bi-weekly slot of the course that is valid on `from`,
+    /// from `from` on (R7 split or in-place flip), then syncs with today = `from` in the same
+    /// transaction. No bi-weekly slot valid on `from` is `Error::Validation`; an unknown
+    /// course is `Error::NotFound`.
+    pub fn shift_biweekly(&mut self, course_id: i64, from: NaiveDate) -> Result<()> {
+        let tx = self.conn.transaction()?;
+        load_course(&tx, course_id)?;
+        let before = from
+            .pred_opt()
+            .ok_or_else(|| Error::Validation(format!("date {from} has no previous day")))?;
+        let slots: Vec<Slot> = {
+            let mut stmt = tx.prepare(&format!(
+                "SELECT {SLOT_COLS} FROM slot s
+                 WHERE s.course_id = ?1 AND s.week_parity IS NOT NULL
+                   AND s.valid_from <= ?2 AND (s.valid_to IS NULL OR s.valid_to >= ?2)
+                 ORDER BY s.id"
+            ))?;
+            let rows = stmt
+                .query_map(params![course_id, fmt_date(from)], slot_from_row)?
+                .collect::<rusqlite::Result<_>>()?;
+            rows
+        };
+        if slots.is_empty() {
+            return Err(Error::Validation(format!(
+                "course {course_id} has no bi-weekly slot valid on {from}; nothing to move"
+            )));
+        }
+        for slot in slots {
+            let flipped = match slot.week_parity {
+                Some(WeekParity::Odd) => WeekParity::Even,
+                _ => WeekParity::Odd,
+            };
+            if slot.valid_from >= from {
+                tx.execute(
+                    "UPDATE slot SET week_parity = ?1 WHERE id = ?2",
+                    params![flipped.as_db(), slot.id],
+                )?;
+            } else {
+                tx.execute(
+                    "UPDATE slot SET valid_to = ?1 WHERE id = ?2",
+                    params![fmt_date(before), slot.id],
+                )?;
+                insert_slot(
+                    &tx,
+                    &SlotInput {
+                        course_id: slot.course_id,
+                        weekday: slot.weekday,
+                        start_time: slot.start_time,
+                        end_time: slot.end_time,
+                        room: slot.room,
+                        valid_from: from,
+                        valid_to: slot.valid_to,
+                        week_parity: Some(flipped),
+                    },
+                )?;
+            }
+        }
+        sync_in(&tx, from)?;
+        tx.commit()?;
+        Ok(())
+    }
+
     /// R7: ends the old slot the day before `effective_from`, inserts the changed slot from
     /// `effective_from`, then syncs with today = `effective_from`, all in one transaction.
     /// Past sessions keep their stored values (sessions are snapshots). `input.valid_from`
@@ -165,6 +244,10 @@ impl Planner {
 /// existing row for that `(slot, date)` is left untouched, whatever its status (R8). The
 /// session copies start, end, and room (slot room, else course room) at creation time.
 ///
+/// R55: a slot with `week_parity` only produces sessions on dates whose term-week parity
+/// (R54, from the active term's start) equals it; a holiday skips its week but never shifts
+/// the pattern.
+///
 /// R5: sync never deletes past or non-pending sessions; it deletes a session only when it
 /// is regular, pending, dated on or after `today`, no longer produced by R4, and not
 /// referenced by any makeup's `replaces_session_id` (R9, R12; research R-D13).
@@ -184,7 +267,7 @@ pub(crate) fn sync_in(conn: &Connection, today: NaiveDate) -> Result<SyncReport>
              ORDER BY s.id"
         ))?;
         let rows = stmt
-            .query_map([term_id], |r| Ok((slot_from_row(r)?, r.get(8)?)))?
+            .query_map([term_id], |r| Ok((slot_from_row(r)?, r.get(9)?)))?
             .collect::<rusqlite::Result<_>>()?;
         rows
     };
@@ -201,7 +284,10 @@ pub(crate) fn sync_in(conn: &Connection, today: NaiveDate) -> Result<SyncReport>
         let last = term.end_date.min(slot.valid_to.unwrap_or(term.end_date));
         let mut day = first_weekday_on_or_after(first, slot.weekday);
         while let Some(date) = day.filter(|d| *d <= last) {
-            if !holidays.contains(&date) {
+            let parity_ok = slot
+                .week_parity
+                .is_none_or(|p| p == term_week_parity(term.start_date, date));
+            if parity_ok && !holidays.contains(&date) {
                 expected.insert((slot.id, date));
                 report.created += insert.execute(params![
                     slot.course_id,
@@ -272,7 +358,8 @@ pub(crate) fn query_views(
     let mut stmt = conn.prepare(&format!(
         "SELECT {SESSION_COLS}, c.code, c.name,
              (SELECT m.date FROM session m WHERE m.replaces_session_id = s.id
-              ORDER BY m.id DESC LIMIT 1)
+              ORDER BY m.id DESC LIMIT 1),
+             coalesce((SELECT sl.week_parity IS NOT NULL FROM slot sl WHERE sl.id = s.slot_id), 0)
          FROM session s
          JOIN course c ON c.id = s.course_id
          WHERE {condition}
@@ -288,6 +375,7 @@ pub(crate) fn query_views(
                 is_past: now >= session_start(&session),
                 course_code: r.get(11)?,
                 course_name: r.get(12)?,
+                biweekly: r.get(14)?,
                 session,
             })
         })?

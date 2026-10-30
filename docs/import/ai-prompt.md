@@ -30,7 +30,7 @@ described below.
       "credits": 3, "rule_set": "Theory",
       "instructor": null, "room": null, "min_attendance_pct": 75,
       "slots": [
-        { "day": "Mon", "start": "10:30", "end": "11:45", "room": null },
+        { "day": "Mon", "start": "10:30", "end": "11:45", "room": null, "biweekly": null },
         { "day": "Fri", "start": "14:30", "end": "15:45" }
       ]
     }
@@ -54,7 +54,11 @@ described below.
   - `instructor`, `room`: text, or `null` when the timetable does not say.
   - `min_attendance_pct`: a whole number from 0 to 100, or `null` when the timetable does not say.
   - `slots`: the weekly class meetings of the course (see below).
-- Slot: `day`, `start`, `end`, and optionally `room`.
+- Slot: `day`, `start`, `end`, and optionally `room` and `biweekly`.
+  - `biweekly`: leave it out (or use `null`) for a class that meets every week. Use it only when
+    the timetable says the class meets every other week (for example "alternate weeks" or
+    "bi-weekly"). Use `"this_week"` when the class meets in the week you are importing in, and
+    `"next_week"` when it meets in the week after. Any other value is an error.
 
 Use only these keys. Any other key is ignored by the importer.
 

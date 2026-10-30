@@ -45,6 +45,8 @@ export global DashboardState {
     in property <[SessionRow]> awaiting;
     // R11, R12: Rust calls set_status(id, status, now), then refreshes every page.
     callback set-status(int, StatusAction);
+    // R58: Rust calls shift_biweekly for the session's course and date, then refreshes every page.
+    callback shift-biweekly(int);
 
     // Mini calendar (§6 mini calendar change): "October 2026".
     in property <string> month-title;
@@ -107,10 +109,16 @@ component SessionLine inherits ListRow {
         preferred-width: Theme.date-column-width;
         min-width: 0;
     }
-    RowMeta {
-        text: root.item.time;
+    // R58: "Every other week" sits under the time of a bi-weekly session.
+    VerticalLayout {
         preferred-width: Theme.time-column-width;
         min-width: 0;
+        RowMeta {
+            text: root.item.time;
+        }
+        if root.item.biweekly: RowMeta {
+            text: root.item.biweekly-label;
+        }
     }
     RowText {
         text: root.item.course;
@@ -124,6 +132,16 @@ component SessionLine inherits ListRow {
     StatusColumn {
         chip: root.item.chip;
         text: root.item.status-label;
+    }
+    // R58: a pending bi-weekly session dated today or later can move to next week.
+    if root.item.can-shift: VerticalLayout {
+        alignment: center;
+        SecondaryButton {
+            text: "Move to next week";
+            clicked => {
+                DashboardState.shift-biweekly(root.item.id);
+            }
+        }
     }
 }
 
@@ -249,8 +267,14 @@ component PanelSessionLine inherits ListRow {
         spacing: Theme.space-xs;
         HorizontalLayout {
             spacing: Theme.space-sm;
-            RowMeta {
-                text: root.item.time;
+            // R58: "Every other week" sits under the time of a bi-weekly session.
+            VerticalLayout {
+                RowMeta {
+                    text: root.item.time;
+                }
+                if root.item.biweekly: RowMeta {
+                    text: root.item.biweekly-label;
+                }
             }
             RowText {
                 text: root.item.course;
@@ -271,6 +295,13 @@ component PanelSessionLine inherits ListRow {
         HorizontalLayout {
             alignment: end;
             spacing: Theme.space-sm;
+            // R58: a pending bi-weekly session dated today or later can move to next week.
+            if root.item.can-shift: SecondaryButton {
+                text: "Move to next week";
+                clicked => {
+                    DashboardState.shift-biweekly(root.item.id);
+                }
+            }
             SecondaryButton {
                 text: "Attended";
                 // R12: attendance only once the session has started.

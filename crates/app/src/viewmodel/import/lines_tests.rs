@@ -86,6 +86,7 @@ fn preview_lines_term_add_and_update_sections() {
             start: t(10, 30),
             end: t(11, 45),
             room: None,
+            week_parity: None,
         }],
     }];
     plan.update = vec![CourseUpdate {
@@ -107,6 +108,7 @@ fn preview_lines_term_add_and_update_sections() {
                 room: None,
                 valid_from: d(2026, 1, 5),
                 valid_to: None,
+                week_parity: None,
             }],
             add: Vec::new(),
         }),
