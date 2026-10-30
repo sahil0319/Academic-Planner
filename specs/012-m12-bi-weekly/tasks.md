@@ -17,7 +17,7 @@ Tests (tester) come before implementation (builder). Decisions are in `decisions
 - [x] T007 R55 sync and slot persistence with parity (T56)
 - [x] T008 R57 `shift_biweekly` (T57, T58)
 - [x] T009 R60 backup and migration (T60)
-- [ ] T010 R59 import `biweekly` key, R45 comparison, template and AI prompt (T59)
+- [x] T010 R59 import `biweekly` key, R45 comparison, template and AI prompt (T59)
 
 ## Phase 4: app (builder)
 - [ ] T011 Slot form, parity conversion in `viewmodel.rs` (R56, T61)

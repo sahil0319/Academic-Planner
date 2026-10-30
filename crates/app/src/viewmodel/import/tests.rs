@@ -33,6 +33,7 @@ fn import_slot(
         start,
         end,
         room: room.map(str::to_string),
+        week_parity: None,
     }
 }
 

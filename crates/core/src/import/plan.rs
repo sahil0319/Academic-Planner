@@ -12,7 +12,7 @@ use crate::db::{
     active_term_id, course_from_row, load_term, slot_from_row, COURSE_COLS, SLOT_COLS,
 };
 use crate::error::Result;
-use crate::model::{Course, Slot};
+use crate::model::{Course, Slot, WeekParity};
 
 /// R42-R48: parses and validates `text` against the database and returns the plan.
 /// With errors, the plan carries only `errors` and `warnings` (R42: nothing may be written).
@@ -34,6 +34,7 @@ pub(super) fn build_plan(
         active_term: active_term.as_ref(),
         rule_sets: &rule_sets,
         courses: &courses,
+        effective_from,
     };
     let parsed = parse::parse(text, &ctx);
     let mut plan = ImportPlan {
@@ -163,8 +164,14 @@ fn course_update(
     })
 }
 
-/// A slot as the comparison sees it: weekday, start, end, room.
-type SlotKey = (u32, chrono::NaiveTime, chrono::NaiveTime, Option<String>);
+/// A slot as the comparison sees it: weekday, start, end, room, week parity (R45, R59).
+type SlotKey = (
+    u32,
+    chrono::NaiveTime,
+    chrono::NaiveTime,
+    Option<String>,
+    Option<&'static str>,
+);
 
 fn file_key(s: &ImportSlot) -> SlotKey {
     (
@@ -172,6 +179,7 @@ fn file_key(s: &ImportSlot) -> SlotKey {
         s.start,
         s.end,
         s.room.clone(),
+        s.week_parity.map(WeekParity::as_db),
     )
 }
 
@@ -181,10 +189,11 @@ fn stored_key(s: &Slot) -> SlotKey {
         s.start_time,
         s.end_time,
         s.room.clone(),
+        s.week_parity.map(WeekParity::as_db),
     )
 }
 
-/// R45, R7: compares the file's slots, as a sorted multiset of (day, start, end, room), with
+/// R45, R7: compares the file's slots, as a sorted multiset of (day, start, end, room, parity), with
 /// the stored slots valid on `effective_from` (a missing room equals a `null` room).
 /// Equal: no change. Different: every stored slot not ended before `effective_from` is ended
 /// (`valid_to = E - 1`, like `change_slot`), including slots that start after it so they cannot
