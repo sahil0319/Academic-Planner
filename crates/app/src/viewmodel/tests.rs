@@ -4295,6 +4295,7 @@ fn can_shift_biweekly_false_for_weekly_and_marked_sessions() {
 #[test]
 fn moved_next_week_text_is_the_toast() {
     assert_eq!(moved_next_week_text(), "Moved to next week.");
+}
 
 // ---- M19: default attendance bands ----
 

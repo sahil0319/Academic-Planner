@@ -9,6 +9,7 @@ use chrono::NaiveDate;
 use common::*;
 use planner_core::{
     term_week_parity, Course, Error, Planner, Slot, SlotInput, Status, TermInput, WeekParity,
+    SCHEMA_VERSION,
 };
 use rusqlite::Connection;
 use serde_json::{json, Value};
@@ -571,7 +572,7 @@ fn t60_backup_round_trip_keeps_parity() {
     let text = source.export_json(dt(NOW)).unwrap();
 
     let doc = parse(&text);
-    assert_eq!(doc["schema_version"], 3);
+    assert_eq!(doc["schema_version"], SCHEMA_VERSION);
     let parities: Vec<&Value> = doc["slots"]
         .as_array()
         .unwrap()
@@ -654,10 +655,12 @@ fn t60_open_version_2_db_applies_migration_003() {
     let version: i64 = conn
         .query_row("PRAGMA user_version", [], |r| r.get(0))
         .unwrap();
-    assert_eq!(version, 3);
+    assert_eq!(version, SCHEMA_VERSION);
     assert!(dir
         .path()
-        .join("backups/pre-migrate-v2-to-v3.sqlite")
+        .join(format!(
+            "backups/pre-migrate-v2-to-v{SCHEMA_VERSION}.sqlite"
+        ))
         .exists());
     let stored: Option<String> = conn
         .query_row("SELECT week_parity FROM slot WHERE id = 1", [], |r| {
