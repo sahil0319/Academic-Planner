@@ -71,7 +71,7 @@ Stories (for labels):
   `courses_of_term(.., false)`, and make `term_gpa` return the empty projected summary with no
   active term, else `term_gpa_for(active_id)`. T41 (`m9_gpa.rs`) stays green.
   Commit: `M14: term_gpa_for helper and PastTermSummary`.
-- [ ] T004 [US1] Create `crates/core/src/terms.rs` (`mod terms;` in `crates/core/src/lib.rs`) with
+- [x] T004 [US1] Create `crates/core/src/terms.rs` (`mod terms;` in `crates/core/src/lib.rs`) with
   `Planner::archive_term(&mut self, id: i64, today: NaiveDate) -> Result<()>` (order: NotFound;
   already inactive → `Ok(())`; `today <= end_date` → `Error::Validation(format!("This term ends on
   {}; archive it after that", end.format("%B %-d, %Y")))`; else `UPDATE term SET is_active = 0`)

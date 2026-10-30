@@ -19,3 +19,4 @@ Taken unattended with the recommended option (router instruction). One line each
 - D15 Week numbers use an own pure helper `term_week_number(start, date)` in `viewmodel.rs` (R54 numbering, Monday-Sunday weeks, week 1 contains the start); M12's `term_week_parity` is not on this branch.
 - D16 T68 needs no core change: sync, dashboard, and reminders already read only the active term (checked in code); the T68 test is the guard.
 - D17 Analysis remediation applied: removed the [P] marker from T006 (it needs T005) and corrected the coverage table in plan.md.
+- D18 TEST BUG, not fixed (builder may not edit tests): t69 in m14_terms_archive.rs scores the Spring B course 23.25 on Mid, but Mid is 25% of 300 marks = 75 (R36/R37/R40, item_max = marks), so 23.25 is 31% = F (0.00), not 62% = B (3.00); 46.5 is the intended score. With 46.5 all six core tests pass (checked on a scratch copy). Tester must fix the number.
