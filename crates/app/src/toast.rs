@@ -1,6 +1,5 @@
 //! R88: the toast queue. Pure type: no slint and no system clock; the caller passes the time as
 //! the `Duration` since app start.
-#![allow(dead_code)]
 
 use std::time::Duration;
 

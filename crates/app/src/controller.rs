@@ -6,16 +6,21 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use std::time::{Duration, Instant};
 
 use chrono::{NaiveDate, NaiveDateTime};
 use planner_core::Planner;
-use slint::{ComponentHandle, SharedString};
+use slint::{ComponentHandle, Model, SharedString, VecModel};
 
+use crate::toast::ToastQueue;
 use crate::viewmodel::{self, FilterChoice};
 use crate::{
     bridge, notify, pages, AboutState, AppState, AppWindow, AssessmentsState, CoursesState,
-    DashboardState, RulesState, SettingsState, TimetableState,
+    DashboardState, RulesState, SettingsState, TimetableState, ToastState, ToastView,
 };
+
+/// R88: how often the toast timer expires toasts and moves the timer bars.
+const TOAST_TICK: Duration = Duration::from_millis(50);
 
 /// Page-level UI state that is not stored in the database (data-model.md "UI state").
 #[derive(Debug, Clone)]
@@ -87,6 +92,16 @@ pub struct App {
     clock: fn() -> NaiveDateTime,
     window: slint::Weak<AppWindow>,
     state: RefCell<UiState>,
+    /// R88: the toasts on screen.
+    toasts: RefCell<ToastQueue>,
+    /// R88: monotonic start of the app; the queue gets the time elapsed since it. Not the wall
+    /// clock, so toast times never depend on the date.
+    started: Instant,
+    /// R88: the model behind `ToastState.toasts`; rows are updated in place while the set of
+    /// toasts stays the same, so the close button keeps keyboard focus.
+    toast_model: Rc<VecModel<ToastView>>,
+    /// R88: expires toasts and moves the timer bars; stopped when the app is dropped.
+    toast_timer: slint::Timer,
 }
 
 impl App {
@@ -99,13 +114,80 @@ impl App {
         window: &AppWindow,
     ) -> Rc<Self> {
         let today = clock().date();
+        let toast_model = Rc::new(VecModel::default());
+        window
+            .global::<ToastState>()
+            .set_toasts(toast_model.clone().into());
         Rc::new(App {
             planner: RefCell::new(planner),
             db_path,
             clock,
             window: window.as_weak(),
             state: RefCell::new(UiState::new(today)),
+            toasts: RefCell::new(ToastQueue::new()),
+            started: Instant::now(),
+            toast_model,
+            toast_timer: slint::Timer::default(),
         })
+    }
+
+    /// R88: connects the cross button and starts the toast timer (about 50 ms).
+    pub fn start_toasts(self: &Rc<Self>) {
+        if let Some(window) = self.window() {
+            let weak = Rc::downgrade(self);
+            window.global::<ToastState>().on_dismiss(move |id| {
+                if let (Some(app), Ok(id)) = (weak.upgrade(), u64::try_from(id)) {
+                    app.toasts.borrow_mut().close(id);
+                    app.show_toasts();
+                }
+            });
+        }
+        let weak = Rc::downgrade(self);
+        self.toast_timer
+            .start(slint::TimerMode::Repeated, TOAST_TICK, move || {
+                if let Some(app) = weak.upgrade() {
+                    app.show_toasts();
+                }
+            });
+    }
+
+    /// R88, R89: shows `text` as a toast. The same text on screen restarts its timer; errors never
+    /// go through here, they stay inline (`show_message`).
+    pub fn toast(&self, text: &str) {
+        let now = self.started.elapsed();
+        self.toasts.borrow_mut().add(text, now);
+        self.show_toasts();
+    }
+
+    /// R88: expires finished toasts and pushes the visible ones, with their bar fractions, to the
+    /// window.
+    fn show_toasts(&self) {
+        let now = self.started.elapsed();
+        let mut queue = self.toasts.borrow_mut();
+        queue.expire(now);
+        let views: Vec<ToastView> = queue
+            .visible(now)
+            .into_iter()
+            .map(|toast| ToastView {
+                id: i32::try_from(toast.id).unwrap_or(i32::MAX),
+                text: toast.text.as_str().into(),
+                remaining: queue.remaining(toast, now),
+            })
+            .collect();
+        drop(queue);
+        let same_set = views.len() == self.toast_model.row_count()
+            && views.iter().enumerate().all(|(i, view)| {
+                self.toast_model
+                    .row_data(i)
+                    .is_some_and(|row| row.id == view.id && row.text == view.text)
+            });
+        if same_set {
+            for (i, view) in views.into_iter().enumerate() {
+                self.toast_model.set_row_data(i, view);
+            }
+        } else {
+            self.toast_model.set_vec(views);
+        }
     }
 
     /// Current local date and time, read fresh on every call.

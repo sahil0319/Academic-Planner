@@ -1,0 +1,147 @@
+// R88: toast notifications (DESIGN.md "Toast notification"). Rust owns the queue and the timer and
+// pushes the visible toasts into `ToastState`; this file only draws them. Every color and size
+// comes from Theme.*; no logic beyond bindings.
+import { Theme } from "theme.slint";
+import { FocusRing } from "components.slint";
+
+// One toast on screen: `id` is passed back to Rust, `remaining` is the timer bar fraction (1 full,
+// 0 empty).
+export struct ToastView {
+    id: int,
+    text: string,
+    remaining: float,
+}
+
+export global ToastState {
+    in property <[ToastView]> toasts;
+    // The cross button of toast `id` was activated.
+    callback dismiss(int);
+}
+
+// 24px cross button with the accessible label "Dismiss". Stroked cross in a 16 x 16 view box.
+component ToastClose inherits Rectangle {
+    callback clicked();
+
+    width: Theme.toast-close-size;
+    height: Theme.toast-close-size;
+    border-radius: Theme.radius-none;
+    background: touch.has-hover ? Theme.surface-hover : transparent;
+    accessible-role: button;
+    accessible-label: "Dismiss";
+    accessible-action-default => {
+        root.clicked();
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    // Keyboard access: Tab reaches the button, Enter or Space activates it.
+    focus-scope := FocusScope {
+        x: 0;
+        width: 0; // clicks go to the TouchArea
+        key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Space {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    Path {
+        x: (root.width - self.width) / 2;
+        y: (root.height - self.height) / 2;
+        width: Theme.appearance-icon;
+        height: Theme.appearance-icon;
+        viewbox-width: 16;
+        viewbox-height: 16;
+        commands: "M 3.5 3.5 L 12.5 12.5 M 12.5 3.5 L 3.5 12.5";
+        fill: transparent;
+        stroke: Theme.on-surface;
+        stroke-width: Theme.appearance-icon-stroke;
+        accessible-role: none;
+    }
+
+    if focus-scope.has-focus: FocusRing {}
+}
+
+// R88: one toast. success-bg fill, rule-width success rule on the left edge, wrapping on-surface
+// text, the close button top-right, and a timer track along the bottom edge whose success bar is
+// anchored to the right edge and shrinks toward the left. No shadow, no animation.
+component ToastCard inherits Rectangle {
+    in property <string> text;
+    in property <float> remaining;
+    callback dismiss();
+
+    width: Theme.toast-width;
+    height: content.preferred-height;
+    background: Theme.success-bg;
+    border-radius: Theme.radius-none;
+
+    content := VerticalLayout {
+        HorizontalLayout {
+            padding: Theme.space-md;
+            padding-left: Theme.space-md + Theme.rule-width;
+            spacing: Theme.space-sm;
+
+            Text {
+                text: root.text;
+                horizontal-stretch: 1;
+                wrap: word-wrap;
+                color: Theme.on-surface;
+                font-family: Theme.font-body;
+                font-size: Theme.body-md-size;
+                font-weight: Theme.body-md-weight;
+            }
+
+            VerticalLayout {
+                alignment: start;
+                ToastClose {
+                    clicked => {
+                        root.dismiss();
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            height: Theme.toast-timer-height;
+            background: Theme.border;
+
+            Rectangle {
+                x: parent.width * (1 - root.remaining);
+                width: parent.width * root.remaining;
+                background: Theme.success;
+            }
+        }
+    }
+
+    Rectangle {
+        x: 0;
+        width: Theme.rule-width;
+        background: Theme.success;
+    }
+}
+
+// R88: the stack in the bottom-right corner: space-lg from the edges, space-sm apart, newest at
+// the bottom. Place it as the last child of the window so it sits above every page; the window
+// sets x and y.
+export component ToastStack inherits Rectangle {
+    width: Theme.toast-width;
+    height: stack.preferred-height;
+
+    stack := VerticalLayout {
+        spacing: Theme.space-sm;
+        for toast in ToastState.toasts: ToastCard {
+            text: toast.text;
+            remaining: toast.remaining;
+            dismiss => {
+                ToastState.dismiss(toast.id);
+            }
+        }
+    }
+}

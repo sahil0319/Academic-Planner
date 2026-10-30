@@ -74,6 +74,7 @@ fn main() -> anyhow::Result<()> {
             pages::about::wire(&app);
             pages::rules::wire(&app);
             pages::import::wire(&app);
+            app.start_toasts();
 
             let weak = Rc::downgrade(&app);
             window.global::<AppState>().on_page_selected(move |_| {

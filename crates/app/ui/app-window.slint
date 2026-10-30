@@ -18,6 +18,7 @@ import { SettingsPage, SettingsState } from "settings.slint";
 import { AboutPage, AboutState, UpdateBanner } from "about.slint";
 import { RulesPage, RulesState } from "rules.slint";
 import { ImportState } from "import.slint";
+import { ToastStack, ToastState, ToastView } from "toast.slint";
 
 export {
     Chip,
@@ -37,6 +38,7 @@ export {
     ImportLine,
     ImportLineKind,
 } from "types.slint";
+export { ToastView }
 export {
     DashboardState,
     TimetableState,
@@ -46,6 +48,7 @@ export {
     AboutState,
     RulesState,
     ImportState,
+    ToastState,
 }
 // Rust sets Theme.mode and the std-widgets color scheme (§6 "Appearance:").
 export { Theme, Palette }
@@ -218,5 +221,11 @@ export component AppWindow inherits Window {
         select(i) => {
             AppState.theme-selected(i);
         }
+    }
+
+    // R88: toasts sit above every page, bottom-right.
+    ToastStack {
+        x: parent.width - self.width - Theme.space-lg;
+        y: parent.height - self.height - Theme.space-lg;
     }
 }
