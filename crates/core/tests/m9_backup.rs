@@ -6,6 +6,7 @@ mod common;
 use common::*;
 use planner_core::{
     AssessmentInput, AssessmentKind, ComponentKind, Error, GradeRow, Planner, RuleSetInput,
+    SCHEMA_VERSION,
 };
 use serde_json::Value;
 
@@ -108,7 +109,7 @@ fn t42_v2_export_restore_export_equal() {
     let first = export_text(&source, NOW);
 
     let doc = parse(&first);
-    assert_eq!(doc["schema_version"], 3);
+    assert_eq!(doc["schema_version"], SCHEMA_VERSION);
     assert_eq!(doc["courses"][0]["credits"], 3.0);
     assert_eq!(doc["courses"][0]["rule_set_id"], 1);
     assert_eq!(doc["assessments"][0]["score"], 61.5);

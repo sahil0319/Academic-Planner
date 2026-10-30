@@ -1,7 +1,7 @@
 -- R93: data-only migration. An attendance component whose bands are exactly the retired
 -- placeholder table (90/100, 85/90, 80/80, 75/70, 70/60, 0/0) is "not configured" and gets the
 -- default table of R92 (95/100, 90/80, 85/60, 75/20, 70/10, 0/0). Any other bands, and every
--- other row, are left alone. Run by migration 003 and by a version-1 backup restore (after the
+-- other row, are left alone. Run by migration 004 and by a version-1 backup restore (after the
 -- grading seed).
 
 CREATE TEMP TABLE unconfigured_attendance AS

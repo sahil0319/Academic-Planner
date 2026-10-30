@@ -3,7 +3,7 @@
 mod common;
 
 use common::*;
-use planner_core::{AssessmentFilter, AssessmentKind, Error, Planner};
+use planner_core::{AssessmentFilter, AssessmentKind, Error, Planner, SCHEMA_VERSION};
 use rusqlite::Connection;
 use tempfile::TempDir;
 
@@ -31,8 +31,8 @@ fn assessment_input(course_id: i64) -> planner_core::AssessmentInput {
     }
 }
 
-/// R25, R26, R33, R36, §13.3: opening a version 1 file database upgrades it to version 2,
-/// keeps the data, adds the new columns as `None`, writes the pre-migration copy, and seeds
+/// R25, R26, R33, R36, §13.3: opening a version 1 file database upgrades it to the current
+/// version, keeps the data, adds the new columns as `None`, writes the pre-migration copy, and seeds
 /// the grading tables.
 #[test]
 fn m9_migration_002_upgrades_v1_file_db() {
@@ -69,10 +69,12 @@ fn m9_migration_002_upgrades_v1_file_db() {
     let version: i64 = conn
         .query_row("PRAGMA user_version", [], |r| r.get(0))
         .unwrap();
-    assert_eq!(version, 3);
+    assert_eq!(version, SCHEMA_VERSION);
     assert!(dir
         .path()
-        .join("backups/pre-migrate-v1-to-v3.sqlite")
+        .join(format!(
+            "backups/pre-migrate-v1-to-v{SCHEMA_VERSION}.sqlite"
+        ))
         .exists());
     assert_eq!(count(&conn, "rule_set"), 2);
     assert_eq!(count(&conn, "rule_component"), 7);

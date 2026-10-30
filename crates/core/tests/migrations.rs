@@ -61,7 +61,6 @@ fn t20_fresh_db_migrated_and_reopen_is_noop() {
 
     let planner = Planner::open(Path::new(uri)).unwrap();
     assert_eq!(user_version(&keep), SCHEMA_VERSION);
-    assert_eq!(SCHEMA_VERSION, 3);
     let tables: Vec<String> = schema(&keep)
         .into_iter()
         .filter(|(kind, _, _)| kind == "table")
@@ -101,10 +100,8 @@ fn t26_newer_schema_version_refused() {
     assert!(
         matches!(
             err,
-            Error::SchemaTooNew {
-                found: 4,
-                supported: 3
-            }
+            Error::SchemaTooNew { found, supported }
+                if found == SCHEMA_VERSION + 1 && supported == SCHEMA_VERSION
         ),
         "unexpected error: {err:?}"
     );

@@ -25,11 +25,11 @@ fn band(min_pct: f64, credit_pct: f64) -> AttendanceBand {
 
 fn default_bands() -> Vec<AttendanceBand> {
     vec![
-        band(90.0, 100.0),
-        band(85.0, 90.0),
-        band(80.0, 80.0),
-        band(75.0, 70.0),
-        band(70.0, 60.0),
+        band(95.0, 100.0),
+        band(90.0, 80.0),
+        band(85.0, 60.0),
+        band(75.0, 20.0),
+        band(70.0, 10.0),
         band(0.0, 0.0),
     ]
 }

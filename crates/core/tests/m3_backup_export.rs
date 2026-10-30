@@ -8,7 +8,7 @@ use chrono::NaiveTime;
 use common::*;
 use planner_core::{
     AssessmentInput, AssessmentKind, Holiday, Planner, Session, SessionKind, Settings, Status,
-    TermInput, ThemeMode,
+    TermInput, ThemeMode, SCHEMA_VERSION,
 };
 use serde_json::{json, Value};
 
@@ -177,7 +177,7 @@ fn r21_export_has_exact_top_level_keys() {
     assert_eq!(keys, expected);
 
     assert_eq!(doc["format"], json!("academic-planner-backup"));
-    assert_eq!(doc["schema_version"], json!(3));
+    assert_eq!(doc["schema_version"], json!(SCHEMA_VERSION));
     assert_eq!(doc["exported_at"], json!("2026-01-25T18:30"));
 }
 
@@ -330,11 +330,11 @@ fn seeded_grading_json() -> Value {
     let bands = |component_id: i64| -> Vec<Value> {
         [
             (0.0, 0.0),
-            (70.0, 60.0),
-            (75.0, 70.0),
-            (80.0, 80.0),
-            (85.0, 90.0),
-            (90.0, 100.0),
+            (70.0, 10.0),
+            (75.0, 20.0),
+            (85.0, 60.0),
+            (90.0, 80.0),
+            (95.0, 100.0),
         ]
         .iter()
         .map(|(min_pct, credit_pct)| {

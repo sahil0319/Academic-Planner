@@ -62,7 +62,7 @@ fn t37_quizzes_best_three_of_four() {
     close(quizzes.assessed_fraction, 1.0);
 }
 
-/// R35, R33 (T38): 87% attendance falls in the 85 band (90% credit) and earns 27.0 of 30.
+/// R35, R33, R95 (T38): 87% attendance falls in the 85 band (60% credit) and earns 18.0 of 30.
 #[test]
 fn t38_attendance_band_87_pct() {
     let mut p = planner();
@@ -71,7 +71,7 @@ fn t38_attendance_band_87_pct() {
 
     let marks = p.course_marks(course.id).unwrap();
     let attendance = component(&marks, "Attendance");
-    close(attendance.earned, 27.0);
+    close(attendance.earned, 18.0);
     close(attendance.marks, 30.0);
 }
 
@@ -193,7 +193,7 @@ fn r37_nothing_assessed_has_no_projection() {
     close(marks.assessed, 0.0);
 }
 
-/// R37 (T39 inputs): secured is the sum of earned marks, assessed the marks of what was
+/// R37, R95 (T39 inputs; 92% attendance earns the 80% band, 24.0 of 30): secured is the sum of earned marks, assessed the marks of what was
 /// assessed, and the projection is secured / assessed.
 #[test]
 fn r37_secured_and_assessed_sums() {
@@ -201,9 +201,9 @@ fn r37_secured_and_assessed_sums() {
     let course_id = t39_course(&mut p);
 
     let marks = p.course_marks(course_id).unwrap();
-    close(marks.secured, 129.0);
+    close(marks.secured, 123.0);
     close(marks.assessed, 150.0);
-    assert_pct(marks.projected_pct, Some(86.0));
+    assert_pct(marks.projected_pct, Some(82.0));
     assert_eq!(marks.letter.as_deref(), Some("A+"));
 }
 
@@ -332,8 +332,9 @@ fn assert_needed(rows: &[NeededRow], letter: &str, expected: Needed) {
     }
 }
 
-/// R38 (T39): 3-credit Theory, attendance 92%, quizzes 12, 11, 13, 14, mid 60 of 75, no final:
-/// the final (item max 150) needs 111.0 for an A+ and 96.0 for an A, and so on down the scale.
+/// R38, R95 (T39): 3-credit Theory, attendance 92% (24.0 of 30), quizzes 12, 11, 13, 14, mid 60
+/// of 75, no final: the final (item max 150) needs 117.0 for an A+ and 102.0 for an A, and so
+/// on down the scale.
 #[test]
 fn t39_needed_in_final() {
     let mut p = planner();
@@ -344,14 +345,14 @@ fn t39_needed_in_final() {
     let letters: Vec<&str> = rows.iter().map(|r| r.letter.as_str()).collect();
     assert_eq!(letters, LETTERS.to_vec());
     let expected = [
-        ("A+", Needed::Score(111.0)),
-        ("A", Needed::Score(96.0)),
-        ("A-", Needed::Score(81.0)),
-        ("B+", Needed::Score(66.0)),
-        ("B", Needed::Score(51.0)),
-        ("B-", Needed::Score(36.0)),
-        ("C+", Needed::Score(21.0)),
-        ("C", Needed::Score(6.0)),
+        ("A+", Needed::Score(117.0)),
+        ("A", Needed::Score(102.0)),
+        ("A-", Needed::Score(87.0)),
+        ("B+", Needed::Score(72.0)),
+        ("B", Needed::Score(57.0)),
+        ("B-", Needed::Score(42.0)),
+        ("C+", Needed::Score(27.0)),
+        ("C", Needed::Score(12.0)),
         ("D", Needed::Secured),
         ("F", Needed::Secured),
     ];
@@ -361,8 +362,8 @@ fn t39_needed_in_final() {
     assert!(assumptions.is_empty(), "{assumptions:?}");
 }
 
-/// R38 (T39, OQ-1 A): a missing quiz counts as 0, raising the need to 114.0 (A+) and 99.0
-/// (A), and the outlook lists one assumed-0 quiz.
+/// R38, R95 (T39, OQ-1 A): a missing quiz counts as 0, raising the need to 120.0 (A+) and
+/// 105.0 (A), and the outlook lists one assumed-0 quiz.
 #[test]
 fn t39_missing_quiz_listed_as_assumed_zero() {
     let mut p = planner();
@@ -373,8 +374,8 @@ fn t39_missing_quiz_listed_as_assumed_zero() {
     scored(&mut p, course.id, mid, "Mid", 60.0);
 
     let (rows, _, assumptions) = needed_outlook(&p, course.id);
-    assert_needed(&rows, "A+", Needed::Score(114.0));
-    assert_needed(&rows, "A", Needed::Score(99.0));
+    assert_needed(&rows, "A+", Needed::Score(120.0));
+    assert_needed(&rows, "A", Needed::Score(105.0));
     assert_eq!(
         assumptions,
         vec![Assumption {
@@ -417,8 +418,8 @@ fn r38_needed_rounds_up() {
     assert_needed(&rows, "A+", Needed::NotReachable);
 }
 
-/// R38 (T39): float noise must not push a needed score up by 0.1. The worked example needs
-/// 111.0 for an A+ (not 111.1), and a 1.5-credit course with only mid 32.5 needs 57.5 for a B
+/// R38, R95 (T39): float noise must not push a needed score up by 0.1. The worked example needs
+/// 117.0 for an A+ (not 117.1), and a 1.5-credit course with only mid 32.5 needs 57.5 for a B
 /// (60% of 150 = 90), where the raw float result is 57.50000000000001 (not 57.6).
 #[test]
 fn r38_float_noise_does_not_round_up() {
@@ -426,7 +427,7 @@ fn r38_float_noise_does_not_round_up() {
     let worked = t39_course(&mut p);
     let (rows, _, _) = needed_outlook(&p, worked);
     match row(&rows, "A+").needed {
-        Needed::Score(v) => assert_eq!(v, 111.0),
+        Needed::Score(v) => assert_eq!(v, 117.0),
         other => panic!("A+: {other:?}"),
     }
 
