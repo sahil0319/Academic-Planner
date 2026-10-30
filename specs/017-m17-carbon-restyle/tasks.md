@@ -185,7 +185,7 @@ T011 screenshots listed per task.
 
 ## Phase 6: User Story 6 - Cleanup, screenshots, critique, approval (P3, R82, R86, §7)
 
-- [ ] T011 [US6] (builder, then router) Builder: delete `radius-sm`, `radius-md`,
+- [x] T011 [US6] (builder, then router) Builder: delete `radius-sm`, `radius-md`,
   `calendar-holiday-highlight`, and (if unreferenced) `calendar-today` from
   crates/app/ui/theme.slint and fix any leftover use in crates/app/ui/*.slint; run
   `! grep -rnE 'radius-sm|radius-md|calendar-holiday-highlight' crates/app/ui`; run
