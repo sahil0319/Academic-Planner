@@ -54,6 +54,7 @@ fn session_view(
         course_name: "Intro to Programming".to_string(),
         display_status: display_status.to_string(),
         is_past,
+        biweekly: false,
     }
 }
 
@@ -118,6 +119,7 @@ fn slot(valid_to: Option<NaiveDate>, room: Option<&str>) -> Slot {
         room: room.map(str::to_string),
         valid_from: d(2026, 9, 1),
         valid_to,
+        week_parity: None,
     }
 }
 
@@ -629,6 +631,7 @@ fn parse_slot_form_valid() {
             room: Some("B12".to_string()),
             valid_from: d(2026, 9, 1),
             valid_to: Some(d(2026, 12, 20)),
+            week_parity: None,
         }
     );
 }

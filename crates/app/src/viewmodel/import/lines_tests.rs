@@ -107,6 +107,7 @@ fn preview_lines_term_add_and_update_sections() {
                 room: None,
                 valid_from: d(2026, 1, 5),
                 valid_to: None,
+                week_parity: None,
             }],
             add: Vec::new(),
         }),

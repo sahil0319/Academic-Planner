@@ -17,7 +17,25 @@ use crate::model::*;
 pub(crate) const ACTIVE_SCOPE: &str =
     "c.archived = 0 AND c.term_id = (SELECT id FROM term WHERE is_active = 1)";
 
+/// R54: parity of the term week containing `date`. Term weeks run Monday to Sunday and week
+/// 1 is the week containing `term_start`; the parity is `Odd` when the whole weeks between
+/// the Monday of `term_start`'s week and the Monday of `date`'s week are even (weeks 1, 3,
+/// 5, ...), else `Even`. Dates before the term follow the same alternation.
+pub fn term_week_parity(term_start: NaiveDate, date: NaiveDate) -> WeekParity {
+    let _ = (term_start, date);
+    todo!("R54: term_week_parity")
+}
+
 impl Planner {
+    /// R57: flips the parity of every bi-weekly slot of the course that is valid on `from`,
+    /// from `from` on (R7 split or in-place flip), then syncs with today = `from` in the same
+    /// transaction. No bi-weekly slot valid on `from` is `Error::Validation`; an unknown
+    /// course is `Error::NotFound`.
+    pub fn shift_biweekly(&mut self, course_id: i64, from: NaiveDate) -> Result<()> {
+        let _ = (course_id, from);
+        todo!("R57: shift_biweekly")
+    }
+
     /// R7: ends the old slot the day before `effective_from`, inserts the changed slot from
     /// `effective_from`, then syncs with today = `effective_from`, all in one transaction.
     /// Past sessions keep their stored values (sessions are snapshots). `input.valid_from`
@@ -184,7 +202,7 @@ pub(crate) fn sync_in(conn: &Connection, today: NaiveDate) -> Result<SyncReport>
              ORDER BY s.id"
         ))?;
         let rows = stmt
-            .query_map([term_id], |r| Ok((slot_from_row(r)?, r.get(8)?)))?
+            .query_map([term_id], |r| Ok((slot_from_row(r)?, r.get(9)?)))?
             .collect::<rusqlite::Result<_>>()?;
         rows
     };
@@ -272,7 +290,8 @@ pub(crate) fn query_views(
     let mut stmt = conn.prepare(&format!(
         "SELECT {SESSION_COLS}, c.code, c.name,
              (SELECT m.date FROM session m WHERE m.replaces_session_id = s.id
-              ORDER BY m.id DESC LIMIT 1)
+              ORDER BY m.id DESC LIMIT 1),
+             coalesce((SELECT sl.week_parity IS NOT NULL FROM slot sl WHERE sl.id = s.slot_id), 0)
          FROM session s
          JOIN course c ON c.id = s.course_id
          WHERE {condition}
@@ -288,6 +307,7 @@ pub(crate) fn query_views(
                 is_past: now >= session_start(&session),
                 course_code: r.get(11)?,
                 course_name: r.get(12)?,
+                biweekly: r.get(14)?,
                 session,
             })
         })?

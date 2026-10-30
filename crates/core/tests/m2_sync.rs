@@ -123,6 +123,7 @@ fn t14_session_on_term_end_date_is_generated() {
     p.add_slot(SlotInput {
         weekday: Weekday::Sun,
         valid_to: Some(term.end_date),
+        week_parity: None,
         ..slot_a(cse.id)
     })
     .unwrap();
@@ -141,6 +142,7 @@ fn t14_open_ended_slot_reaches_term_end_date() {
     p.add_slot(SlotInput {
         weekday: Weekday::Sun,
         valid_to: None,
+        week_parity: None,
         ..slot_a(cse.id)
     })
     .unwrap();

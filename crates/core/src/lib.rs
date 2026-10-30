@@ -19,3 +19,4 @@ pub use db::{default_db_path, resolve_db_path, Planner, DB_ENV_VAR, DB_FILE_NAME
 pub use error::{Error, Result};
 pub use import::*;
 pub use model::*;
+pub use schedule::term_week_parity;

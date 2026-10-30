@@ -501,6 +501,7 @@ pub fn parse_slot_form(
             room: optional_text(room),
             valid_from,
             valid_to,
+            week_parity: None,
         }),
         _ => Err(errors),
     }

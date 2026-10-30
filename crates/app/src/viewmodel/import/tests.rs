@@ -46,6 +46,7 @@ fn stored_slot(weekday: Weekday, start: NaiveTime, end: NaiveTime, room: Option<
         room: room.map(str::to_string),
         valid_from: d(2026, 1, 5),
         valid_to: None,
+        week_parity: None,
     }
 }
 

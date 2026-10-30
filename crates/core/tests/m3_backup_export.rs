@@ -177,7 +177,7 @@ fn r21_export_has_exact_top_level_keys() {
     assert_eq!(keys, expected);
 
     assert_eq!(doc["format"], json!("academic-planner-backup"));
-    assert_eq!(doc["schema_version"], json!(2));
+    assert_eq!(doc["schema_version"], json!(3));
     assert_eq!(doc["exported_at"], json!("2026-01-25T18:30"));
 }
 

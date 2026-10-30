@@ -64,6 +64,7 @@ pub fn slot_a(course_id: i64) -> SlotInput {
         room: None,
         valid_from: d("2026-01-05"),
         valid_to: None,
+        week_parity: None,
     }
 }
 
@@ -76,6 +77,7 @@ pub fn slot_b(course_id: i64) -> SlotInput {
         room: None,
         valid_from: d("2026-01-05"),
         valid_to: None,
+        week_parity: None,
     }
 }
 
