@@ -110,7 +110,7 @@ checked through the T011 screenshots, so the builder needs no human between them
 **Goal**: the shell around every page in the Carbon look. **Independent test**: any page's
 screenshot in both themes (T011 screens 01–12 all show it).
 
-- [ ] T004 [US4] (builder) Restyle `NavItem` and `AppearanceSwitch`/`AppearanceSegment` in
+- [x] T004 [US4] (builder) Restyle `NavItem` and `AppearanceSwitch`/`AppearanceSegment` in
   crates/app/ui/components.slint and the shell in crates/app/ui/app-window.slint per
   contracts/components.md (R84, R85): sidebar `nav-width` 240px on `surface-alt` with a 1px
   `border` right edge, nav padding/spacing on the 4px grid; `NavItem` `nav-item-height`, space-lg

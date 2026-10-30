@@ -76,12 +76,13 @@ export component AppWindow inherits Window {
     }
 
     if AppState.startup-error == "": HorizontalLayout {
+        // R84, R85: sidebar nav-width on surface-alt with a divider-width border on the right edge.
         Rectangle {
             width: Theme.nav-width;
             background: Theme.surface-alt;
 
             VerticalLayout {
-                padding: Theme.space-sm;
+                padding-top: Theme.space-lg;
                 spacing: Theme.space-xs;
                 alignment: start;
 
@@ -142,8 +143,15 @@ export component AppWindow inherits Window {
                     }
                 }
             }
+
+            Rectangle {
+                x: parent.width - self.width;
+                width: Theme.divider-width;
+                background: Theme.border;
+            }
         }
 
+        // R84: content area on neutral; the pages sit in space-xl padding.
         Rectangle {
             background: Theme.neutral;
 

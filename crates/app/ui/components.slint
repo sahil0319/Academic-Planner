@@ -4,18 +4,37 @@ import { ComboBox } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { Chip } from "types.slint";
 
-// Left navigation entry. The active item uses the selected fill and label weight, never the accent.
-// Focus shows a terracotta ring (DESIGN.md focus rings).
+// R84: Carbon focus ring (DESIGN.md "Focus"): a focus-ring-width ring drawn inside the control's bounds, so it
+// never changes the control size. `filled` adds the on-primary inner ring that filled buttons
+// carry so the ring stays visible on the blue fill. Overlay it as the last child of a control.
+component FocusRing inherits Rectangle {
+    in property <bool> filled;
+    in property <color> ring-color: Theme.focus;
+
+    border-width: Theme.focus-ring-width;
+    border-color: root.ring-color;
+
+    if root.filled: Rectangle {
+        x: Theme.focus-ring-width;
+        y: Theme.focus-ring-width;
+        width: parent.width - 2 * Theme.focus-ring-width;
+        height: parent.height - 2 * Theme.focus-ring-width;
+        border-width: Theme.focus-inner-width;
+        border-color: Theme.on-primary;
+    }
+}
+
+// R84, R85: left navigation entry. Hover surface-hover; the active item uses surface-selected,
+// label weight 600, and a rule-width primary bar on its left edge (not colour alone, DESIGN.md).
+// Focus is an inset ring.
 export component NavItem inherits Rectangle {
     in property <string> text;
     in property <bool> active;
     callback clicked();
 
-    height: Theme.row-height;
-    border-radius: Theme.radius-sm;
-    border-width: Theme.border-width;
-    border-color: focus-scope.has-focus ? Theme.primary : transparent;
-    background: root.active || touch.has-hover ? Theme.surface-selected : transparent;
+    height: Theme.nav-item-height;
+    border-radius: Theme.radius-none;
+    background: root.active ? Theme.surface-selected : touch.has-hover ? Theme.surface-hover : transparent;
     accessible-role: tab;
     accessible-label: root.text;
     accessible-item-selectable: true;
@@ -45,39 +64,27 @@ export component NavItem inherits Rectangle {
     }
 
     HorizontalLayout {
-        padding-left: Theme.space-sm;
-        padding-right: Theme.space-sm;
+        padding-left: Theme.space-lg;
+        padding-right: Theme.space-lg;
         Text {
             text: root.text;
             // The nav item carries the accessible label.
             accessible-role: none;
             vertical-alignment: center;
-            color: Theme.on-surface;
+            color: root.active || touch.has-hover ? Theme.on-surface : Theme.on-surface-muted;
             font-family: Theme.font-body;
-            font-size: Theme.body-md-size;
-            font-weight: root.active ? Theme.label-md-weight : Theme.body-md-weight;
+            font-size: root.active ? Theme.body-emphasis-size : Theme.body-md-size;
+            font-weight: root.active ? Theme.body-emphasis-weight : Theme.body-md-weight;
         }
     }
-}
 
-// R84: Carbon focus ring (DESIGN.md "Focus"): a focus-ring-width ring drawn inside the control's bounds, so it
-// never changes the control size. `filled` adds the on-primary inner ring that filled buttons
-// carry so the ring stays visible on the blue fill. Overlay it as the last child of a control.
-component FocusRing inherits Rectangle {
-    in property <bool> filled;
-    in property <color> ring-color: Theme.focus;
-
-    border-width: Theme.focus-ring-width;
-    border-color: root.ring-color;
-
-    if root.filled: Rectangle {
-        x: Theme.focus-ring-width;
-        y: Theme.focus-ring-width;
-        width: parent.width - 2 * Theme.focus-ring-width;
-        height: parent.height - 2 * Theme.focus-ring-width;
-        border-width: Theme.focus-inner-width;
-        border-color: Theme.on-primary;
+    if root.active: Rectangle {
+        x: 0;
+        width: Theme.rule-width;
+        background: Theme.primary;
     }
+
+    if focus-scope.has-focus: FocusRing {}
 }
 
 // R84: primary button; at most one per panel (DESIGN.md). Hover primary-hover, press
@@ -394,6 +401,8 @@ export component AmPmToggle inherits Rectangle {
     background: Theme.field;
 
     layout := HorizontalLayout {
+        // The border is drawn inside the bounds; keep the children inside it.
+        padding: Theme.control-edge-width;
         AmPmSegment {
             label: "AM";
             active: !root.pm;
@@ -598,8 +607,9 @@ export component PageTitle inherits Text {
     font-weight: Theme.title-lg-weight;
 }
 
-// One icon segment of the appearance switch (DESIGN.md "Appearance switch"). `icon` holds SVG
-// path commands in a 16 x 16 view box; the icon is stroked, never filled.
+// One icon segment of the appearance switch (R84, DESIGN.md "Appearance switch"). `icon` holds SVG
+// path commands in a 16 x 16 view box; the icon is stroked, never filled. The selected segment is
+// surface-inverse with an on-surface-inverse icon; the others are field fill (hover surface-hover).
 component AppearanceSegment inherits Rectangle {
     in property <string> label;
     in property <string> icon;
@@ -608,10 +618,8 @@ component AppearanceSegment inherits Rectangle {
 
     width: Theme.appearance-segment;
     height: Theme.appearance-segment;
-    border-radius: Theme.radius-full;
-    border-width: Theme.border-width;
-    border-color: focus-scope.has-focus ? Theme.primary : root.active ? Theme.border : transparent;
-    background: root.active ? Theme.surface : transparent;
+    border-radius: Theme.radius-none;
+    background: root.active ? Theme.surface-inverse : touch.has-hover ? Theme.surface-hover : Theme.field;
     accessible-role: button;
     accessible-label: root.label;
     accessible-action-default => {
@@ -647,26 +655,32 @@ component AppearanceSegment inherits Rectangle {
         viewbox-height: 16;
         commands: root.icon;
         fill: transparent;
-        stroke: root.active || touch.has-hover ? Theme.on-surface : Theme.on-surface-muted;
+        stroke: root.active ? Theme.on-surface-inverse : Theme.on-surface;
         stroke-width: Theme.appearance-icon-stroke;
         accessible-role: none;
     }
+
+    if focus-scope.has-focus: FocusRing {}
 }
 
-// Three-way System / Light / Dark switch (§6 "Appearance:", DESIGN.md "Appearance switch"):
-// monitor, sun, and moon segments on a surface-alt pill. `selected` is 0 System, 1 Light, 2 Dark;
-// `select(i)` reports the clicked segment and Rust applies and saves it.
+// Three-way System / Light / Dark switch (§6 "Appearance:", R84, DESIGN.md "Appearance switch"):
+// a square segmented control with monitor, sun, and moon segments inside a border-strong edge.
+// `selected` is 0 System, 1 Light, 2 Dark; `select(i)` reports the clicked segment and Rust applies
+// and saves it.
 export component AppearanceSwitch inherits Rectangle {
     in property <int> selected;
     callback select(int);
 
-    width: layout.preferred-width;
-    height: layout.preferred-height;
-    border-radius: Theme.radius-full;
-    background: Theme.surface-alt;
+    width: layout.preferred-width + 2 * Theme.control-edge-width;
+    height: layout.preferred-height + 2 * Theme.control-edge-width;
+    border-radius: Theme.radius-none;
+    border-width: Theme.control-edge-width;
+    border-color: Theme.border-strong;
+    background: Theme.field;
 
     layout := HorizontalLayout {
-        padding: Theme.border-width * 2;
+        // The border is drawn inside the bounds; keep the children inside it.
+        padding: Theme.control-edge-width;
         AppearanceSegment {
             label: "Use system appearance";
             // Monitor: screen, neck, and base.
