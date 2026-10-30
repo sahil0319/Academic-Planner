@@ -24,7 +24,7 @@
     "M13 build": "done, merged to main (572 tests); human visual look pending",
     "M14 build": "done, merged",
     "M12 build": "done, merged (634 tests)",
-    "M19 build": "in progress (worktree agent a59a5003bd93cba2e)",
+    "M19 build": "done, merged",
     "M15 build": "in progress (worktree agent a1d940a8e911661c2)",
     "M16 build": "waiting for M15 merge",
     "M18a toast sweep (R89a, T91)": "after M16"
