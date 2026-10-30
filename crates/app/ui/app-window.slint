@@ -1,5 +1,11 @@
 // Main window: left navigation and the current page (docs/spec.md §6, FR-004), or only the
 // startup error when the database cannot be opened (FR-008).
+// R83: IBM Plex Sans 400 and 600, embedded in the binary. Release @ibm/plex-sans@1.1.0
+// (github.com/IBM/plex), fonts/complete/ttf/, licence in fonts/OFL.txt (SIL OFL 1.1).
+// SHA-256 IBMPlexSans-Regular.ttf:  975dcda37d80f038dcd143c22e33ca2d97a0cc5a929aace1c749153b0fe1afa5
+// SHA-256 IBMPlexSans-SemiBold.ttf: a20caf8286023a6a7a85e40b1d2a4ae9fc3e3b1f9eda8f4c542dd4986af67bb1
+import "fonts/IBMPlexSans-Regular.ttf";
+import "fonts/IBMPlexSans-SemiBold.ttf";
 import { ScrollView, Palette } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { AppState } from "types.slint";

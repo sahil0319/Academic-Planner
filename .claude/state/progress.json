@@ -1,6 +1,6 @@
 {
-  "milestone": "M12-M19 (spec only)",
-  "phase": "specified-awaiting-human-start",
+  "milestone": "M17 (build in progress)",
+  "phase": "building",
   "tasks": {
     "M11": "done (v0.2.1 tagged)",
     "M12 spec": "done",
@@ -12,6 +12,7 @@
     "DESIGN.md lint": "done (0 errors, 0 warnings)",
     "M18 spec (Rules save confirmation)": "done",
     "M19 spec (default attendance bands)": "done",
-    "M12-M19 build": "not started (human decision: spec only)"
+    "M12-M19 build": "not started (human decision: spec only)",
+    "M17 build": "T001 done (fonts vendored); T002-T012 pending"
   }
 }

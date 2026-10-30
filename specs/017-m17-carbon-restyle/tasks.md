@@ -55,7 +55,7 @@ checked through the T011 screenshots, so the builder needs no human between them
 
 ## Phase 1: Setup (fonts, R83)
 
-- [ ] T001 (builder) Vendor and embed IBM Plex Sans (research D1, D2): download the official IBM
+- [x] T001 (builder) Vendor and embed IBM Plex Sans (research D1, D2): download the official IBM
   Plex release (github.com/IBM/plex, `@ibm/plex-sans`, `fonts/complete/ttf/`) and copy only
   `IBMPlexSans-Regular.ttf` and `IBMPlexSans-SemiBold.ttf` into crates/app/ui/fonts/, plus the
   release licence as crates/app/ui/fonts/OFL.txt; add `import "fonts/IBMPlexSans-Regular.ttf";`
