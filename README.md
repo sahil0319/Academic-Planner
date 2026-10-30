@@ -14,7 +14,8 @@ are shown and typed in 12-hour form (type `930` and choose PM). Courses can have
 Rules page holds your grading rules, so the app can track your marks, show the score you need in
 the final for each grade, and compute your term GPA. A courses-and-timetable JSON import (with a
 template and an AI prompt in [docs/import](docs/import/)) sets up a whole semester from a pasted
-document, and the About page checks for and installs updates.
+document, and the About page checks for and installs updates. Courses you no longer need can be
+selected and deleted together from the Courses page.
 
 What's new in each version is in the [release notes](docs/releases/).
 

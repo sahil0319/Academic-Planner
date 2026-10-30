@@ -218,7 +218,7 @@ checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
 name = "app"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "cargo-packager-updater",
@@ -3850,7 +3850,7 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
 name = "planner-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "csv",
