@@ -1,5 +1,5 @@
-// Design tokens from DESIGN.md. The only place colors and sizes are defined.
-// Values are copied exactly from the DESIGN.md front matter (research R-D13).
+// Design tokens from DESIGN.md v2 (IBM Carbon, R82). The only place colors and sizes are defined.
+// Values are copied exactly from the DESIGN.md front matter.
 import { Palette } from "std-widgets.slint";
 
 export global Theme {
@@ -13,81 +13,124 @@ export global Theme {
         || (Palette.color-scheme == ColorScheme.unknown && std-background.to-hsv().value < 0.5)));
     property <color> std-background: Palette.background;
 
-    // Colors: each token is `dark ? <DESIGN.md dark-*> : <DESIGN.md light>`.
-    out property <color> primary: dark ? #D9774F : #B4532F;
-    out property <color> primary-hover: dark ? #E48A63 : #9C4526;
-    out property <color> on-primary: dark ? #1C1B18 : #FFFFFF;
-    out property <color> neutral: dark ? #1C1B18 : #F5F4ED;
-    out property <color> surface: dark ? #24221E : #FDFCF9;
-    out property <color> surface-alt: dark ? #2B2924 : #EFEDE5;
-    out property <color> surface-selected: dark ? #38352E : #E4E1D6;
-    out property <color> border: dark ? #3A372F : #E3E0D5;
-    out property <color> on-surface: dark ? #EDEAE0 : #1F1E1B;
-    out property <color> on-surface-muted: dark ? #A8A396 : #68645B;
-    out property <color> error: dark ? #EF8A72 : #A8321F;
-    out property <color> status-attended: dark ? #93CBA2 : #2F6B3F;
-    out property <color> status-attended-bg: dark ? #22362A : #E4EEE1;
-    out property <color> status-absent: dark ? #F29B87 : #A8321F;
-    out property <color> status-absent-bg: dark ? #43261F : #F8E4DE;
-    out property <color> status-cancelled: dark ? #B9B4A8 : #68645B;
-    out property <color> status-cancelled-bg: dark ? #302E29 : #ECEAE2;
-    out property <color> status-pending: dark ? #E6BD6A : #7F5610;
-    out property <color> status-pending-bg: dark ? #3B3121 : #F6ECD2;
-    out property <color> below-target: dark ? #F2A985 : #8A3A1A;
-    out property <color> below-target-bg: dark ? #40291D : #F6E3D6;
+    // Colors (R82): each token is `dark ? <DESIGN.md dark-*> : <DESIGN.md light>`.
+    out property <color> primary: dark ? #0F62FE : #0F62FE;
+    out property <color> primary-hover: dark ? #0050E6 : #0050E6;
+    out property <color> primary-active: dark ? #002D9C : #002D9C;
+    out property <color> on-primary: dark ? #FFFFFF : #FFFFFF;
+    out property <color> neutral: dark ? #161616 : #FFFFFF;
+    out property <color> surface: dark ? #262626 : #F4F4F4;
+    out property <color> surface-alt: dark ? #161616 : #FFFFFF;
+    out property <color> surface-hover: dark ? #333333 : #E8E8E8;
+    out property <color> surface-selected: dark ? #393939 : #E0E0E0;
+    out property <color> surface-inverse: dark ? #F4F4F4 : #161616;
+    out property <color> on-surface-inverse: dark ? #161616 : #FFFFFF;
+    out property <color> field: dark ? #393939 : #FFFFFF;
+    out property <color> border: dark ? #393939 : #E0E0E0;
+    out property <color> border-strong: dark ? #8D8D8D : #8D8D8D;
+    out property <color> on-surface: dark ? #F4F4F4 : #161616;
+    out property <color> on-surface-muted: dark ? #C6C6C6 : #525252;
+    out property <color> on-surface-subtle: dark ? #A8A8A8 : #6F6F6F;
+    out property <color> link: dark ? #78A9FF : #0F62FE;
+    out property <color> focus: dark ? #FFFFFF : #0F62FE;
+    out property <color> error: dark ? #FF8389 : #DA1E28;
+    out property <color> status-attended: dark ? #6FDC8C : #0E6027;
+    out property <color> status-attended-bg: dark ? #044317 : #A7F0BA;
+    out property <color> status-absent: dark ? #FFB3B8 : #A2191F;
+    out property <color> status-absent-bg: dark ? #750E13 : #FFD7D9;
+    out property <color> status-cancelled: dark ? #E0E0E0 : #393939;
+    out property <color> status-cancelled-bg: dark ? #525252 : #E0E0E0;
+    out property <color> status-pending: dark ? #F1C21B : #8E6A00;
+    out property <color> status-pending-bg: dark ? #483700 : #FCF4D6;
+    out property <color> below-target: dark ? #FFB3B8 : #A2191F;
+    out property <color> below-target-bg: dark ? #4A0C10 : #FFF1F1;
+    out property <color> progress-track: dark ? #393939 : #E0E0E0;
+    out property <color> progress-fill: dark ? #F4F4F4 : #161616;
+    out property <color> progress-target: dark ? #78A9FF : #0F62FE;
+    out property <color> calendar-holiday: dark ? #002D9C : #D0E2FF;
+    out property <color> calendar-midterm: dark ? #6929C4 : #D4BBFF;
+    out property <color> calendar-final: dark ? #9F1853 : #FFAFD2;
+    out property <color> calendar-public-holiday: dark ? #005D5D : #9EF0F0;
+    out property <color> success: dark ? #24A148 : #24A148;
+    out property <color> success-bg: dark ? #071908 : #DEFBE6;
 
-    // Typography families. Empty string = platform default (system-ui, and the Georgia fallback).
-    out property <string> font-heading: "Georgia";
-    out property <string> font-body: "";
+    // Typography families (R83): IBM Plex Sans 400 and 600, embedded in app-window.slint.
+    out property <string> font-heading: "IBM Plex Sans";
+    out property <string> font-body: "IBM Plex Sans";
 
     // Typography sizes and weights. Slint Text has no line-height, so line heights are comments.
-    // title-lg: Georgia, line height 1.25
-    out property <length> title-lg-size: 22px;
+    // title-lg: line height 32px
+    out property <length> title-lg-size: 24px;
     out property <int> title-lg-weight: 400;
-    // headline-md: Georgia, line height 1.3
+    // headline-md: line height 22px
     out property <length> headline-md-size: 16px;
-    out property <int> headline-md-weight: 400;
-    // body-md: system-ui, line height 1.45
-    out property <length> body-md-size: 13px;
+    out property <int> headline-md-weight: 600;
+    // numeral-md: line height 32px (used from M13)
+    out property <length> numeral-md-size: 24px;
+    out property <int> numeral-md-weight: 400;
+    // body-md: line height 20px
+    out property <length> body-md-size: 14px;
     out property <int> body-md-weight: 400;
-    // body-sm: system-ui, line height 1.4
+    // body-emphasis: line height 18px
+    out property <length> body-emphasis-size: 14px;
+    out property <int> body-emphasis-weight: 600;
+    // body-sm: line height 16px
     out property <length> body-sm-size: 12px;
     out property <int> body-sm-weight: 400;
-    // label-md: system-ui, line height 1.2
+    // label-md: line height 16px
     out property <length> label-md-size: 12px;
-    out property <int> label-md-weight: 600;
-    // label-sm: system-ui, line height 1.2
-    out property <length> label-sm-size: 11px;
-    out property <int> label-sm-weight: 600;
+    out property <int> label-md-weight: 400;
+    // label-sm: line height 16px
+    out property <length> label-sm-size: 12px;
+    out property <int> label-sm-weight: 400;
 
-    // Radii
+    // Radii: square everywhere except the pill status chip (DESIGN.md "Shapes").
     out property <length> radius-none: 0px;
-    out property <length> radius-sm: 6px;
-    out property <length> radius-md: 10px;
     out property <length> radius-full: 9999px;
+    // Temporary aliases of radius-none, removed in M17 T011.
+    out property <length> radius-sm: radius-none;
+    out property <length> radius-md: radius-none;
 
-    // Spacing
+    // Spacing (4px grid)
     out property <length> space-xs: 4px;
     out property <length> space-sm: 8px;
     out property <length> space-md: 12px;
     out property <length> space-lg: 16px;
     out property <length> space-xl: 24px;
     out property <length> space-xxl: 32px;
+    out property <length> space-xxxl: 48px;
 
     // Sizes
-    out property <length> nav-width: 208px;
-    out property <length> row-height: 34px;
-    out property <length> input-height: 30px;
+    out property <length> nav-width: 240px;
+    out property <length> nav-item-height: 32px;
+    out property <length> row-height: 40px;
+    out property <length> input-height: 32px;
+    // Progress bar height and target marker width (used from M13).
+    out property <length> progress-height: 8px;
+    out property <length> progress-target-width: 2px;
     out property <length> window-width: 1100px;
     out property <length> window-height: 720px;
     out property <length> divider-width: 1px;
     out property <length> border-width: 1px;
-    // DESIGN.md "Mini calendar": 36px day cells, the today circle inside a cell, the 4px due dot.
+    // DESIGN.md "Focus" and "control-edge": 1px control bottom rule, 2px inset focus ring, 1px
+    // inner ring on filled buttons.
+    out property <length> control-edge-width: 1px;
+    out property <length> focus-ring-width: 2px;
+    out property <length> focus-inner-width: 1px;
+    // 3px left rule: nav active bar, banner and toast (R84).
+    out property <length> rule-width: 3px;
+    // DESIGN.md "toast" (used from M18).
+    out property <length> toast-width: 320px;
+    out property <length> toast-close-size: 24px;
+    out property <length> toast-timer-height: 3px;
+    // Square swatch in legends (DESIGN.md "Mini calendar" and "Exam period cards").
+    out property <length> swatch-size: 12px;
+    // DESIGN.md "Mini calendar": 36px day cells and the 4px due square.
     out property <length> calendar-cell: 36px;
+    // Removed in M17 T011 if unused (the v1 today circle).
     out property <length> calendar-today: 22px;
     out property <length> calendar-marker: 4px;
-    // DESIGN.md "Mini calendar": holiday and exam period highlight, primary #B4532F at about 15%
-    // opacity; dark: dark-primary #D9774F at about 22% opacity (DESIGN.md "Dark theme tokens").
+    // Removed in M17 T011 (replaced by calendar-holiday): v1 holiday highlight.
     out property <color> calendar-holiday-highlight: dark ? #D9774F38 : #B4532F26;
 
     // DESIGN.md "Appearance switch": 28px icon segments.

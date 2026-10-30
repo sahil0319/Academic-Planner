@@ -74,7 +74,7 @@ checked through the T011 screenshots, so the builder needs no human between them
 
 ## Phase 2: Foundational (blocking)
 
-- [ ] T002 (builder) Rewrite crates/app/ui/theme.slint to contracts/theme-tokens.md (R82): every
+- [x] T002 (builder) Rewrite crates/app/ui/theme.slint to contracts/theme-tokens.md (R82): every
   colour as `dark ? <dark-*> : <light>` with the exact DESIGN.md v2 values; `font-heading` and
   `font-body` = "IBM Plex Sans" (R83); typography sizes and weights incl. new `numeral-md`,
   `body-emphasis`, label weights 400, line heights as comments; `radius-none`, `radius-full`, and

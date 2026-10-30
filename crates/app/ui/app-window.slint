@@ -53,6 +53,8 @@ export { Theme, Palette }
 export component AppWindow inherits Window {
     title: "Academic Planner";
     background: Theme.neutral;
+    // R83: IBM Plex Sans for every text that sets no font-family.
+    default-font-family: Theme.font-body;
     preferred-width: Theme.window-width;
     preferred-height: Theme.window-height;
 
