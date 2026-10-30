@@ -5,7 +5,7 @@ import { ComboBox } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { SessionRow, DayGroup, SlotRow, StatusAction } from "types.slint";
 import {
-    NavItem,
+    FocusRing,
     PrimaryButton,
     SecondaryButton,
     Field,
@@ -146,15 +146,76 @@ component ComboField inherits VerticalLayout {
     }
 }
 
-// Inline panel of the selected session: status actions, stored note, and reschedule form.
+// R84: one Week / Rules tab (research D11): a square control with a control-edge border-strong
+// edge; the active tab uses surface-selected with label weight 600, hover surface-hover, and
+// focus is an inset ring (focus-ring-width).
+component TabButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> active;
+    callback clicked();
+
+    height: Theme.input-height;
+    min-width: label.preferred-width + 2 * Theme.space-lg;
+    horizontal-stretch: 0;
+    border-radius: Theme.radius-none;
+    border-width: Theme.control-edge-width;
+    border-color: Theme.border-strong;
+    background: root.active ? Theme.surface-selected : touch.has-hover ? Theme.surface-hover : Theme.field;
+    accessible-role: tab;
+    accessible-label: root.text;
+    accessible-item-selectable: true;
+    accessible-item-selected: root.active;
+    accessible-action-default => {
+        root.clicked();
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    // Keyboard access (T028 critique): Tab reaches the tab, Enter or Space selects it.
+    focus-scope := FocusScope {
+        x: 0;
+        width: 0; // clicks go to the TouchArea
+        key-pressed(event) => {
+            if event.text == Key.Return || event.text == Key.Space {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    label := Text {
+        text: root.text;
+        // The tab carries the accessible label.
+        accessible-role: none;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        color: Theme.on-surface;
+        font-family: Theme.font-body;
+        font-size: Theme.body-md-size;
+        font-weight: root.active ? Theme.body-emphasis-weight : Theme.body-md-weight;
+    }
+
+    if focus-scope.has-focus: FocusRing {}
+}
+
+// R84: inline panel of the selected session: status actions, stored note, and reschedule form. A
+// square surface panel with a divider-width border edge so it stands out inside its day card.
 component SessionPanel inherits Rectangle {
     in property <SessionRow> session;
 
-    background: Theme.surface-alt;
-    border-radius: Theme.radius-sm;
+    background: Theme.surface;
+    border-radius: Theme.radius-none;
+    border-width: Theme.divider-width;
+    border-color: Theme.border;
 
     VerticalLayout {
-        padding: Theme.space-md;
+        padding: Theme.space-lg;
         spacing: Theme.space-sm;
 
         // R8, R11, R12: Attended / Absent only once the session has started.
@@ -252,7 +313,7 @@ component SessionPanel inherits Rectangle {
 
 // Week tab: previous / next / today over one Monday–Sunday week, grouped by day (R-D17).
 component WeekTab inherits VerticalLayout {
-    spacing: Theme.space-md;
+    spacing: Theme.space-xxl;
 
     HorizontalLayout {
         spacing: Theme.space-sm;
@@ -326,7 +387,7 @@ component WeekTab inherits VerticalLayout {
 
 // Rules tab: slots valid today, with add / edit (R7) / end (R5) forms.
 component RulesTab inherits VerticalLayout {
-    spacing: Theme.space-md;
+    spacing: Theme.space-xxl;
 
     HorizontalLayout {
         alignment: start;
@@ -488,7 +549,7 @@ component RulesTab inherits VerticalLayout {
 }
 
 export component TimetablePage inherits VerticalLayout {
-    spacing: Theme.space-xl;
+    spacing: Theme.space-xxl;
     alignment: start;
 
     PageTitle {
@@ -498,14 +559,14 @@ export component TimetablePage inherits VerticalLayout {
     HorizontalLayout {
         spacing: Theme.space-xs;
         alignment: start;
-        NavItem {
+        TabButton {
             text: "Week";
             active: TimetableState.tab == 0;
             clicked => {
                 TimetableState.tab = 0;
             }
         }
-        NavItem {
+        TabButton {
             text: "Rules";
             active: TimetableState.tab == 1;
             clicked => {

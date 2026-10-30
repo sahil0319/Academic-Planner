@@ -149,7 +149,7 @@ screenshot in both themes (T011 screens 01–12 all show it).
 **Goal**: each page in v2, light and dark, with the components of T003. **Independent test**: the
 T011 screenshots listed per task.
 
-- [ ] T006 [P] [US1] (builder) Restyle crates/app/ui/timetable.slint: Week/Rules tabs square with
+- [x] T006 [P] [US1] (builder) Restyle crates/app/ui/timetable.slint: Week/Rules tabs square with
   selected surface-selected + 600 (research D11), week rows on `ListRow` (40px) with
   `StatusChip`, `SessionPanel` and the reschedule/slot forms as square section cards with Carbon
   fields, page-local `ComboField`/text components on v2 roles; replace every `radius-sm`/
