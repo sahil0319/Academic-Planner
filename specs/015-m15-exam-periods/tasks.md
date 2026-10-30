@@ -58,7 +58,7 @@ Stories (for labels):
   `user_version == SCHEMA_VERSION` and `backups/pre-migrate-v1-to-v{SCHEMA_VERSION}.sqlite`;
   `m9_backup.rs` `doc["schema_version"] == SCHEMA_VERSION`; any other assertion the full run
   shows that only encodes the old version or holiday shape. Commit: `M15: core tests T71-T73`.
-- [ ] T002 [P] [US3] [US4] Write app unit tests in `crates/app/src/viewmodel/tests.rs` against
+- [x] T002 [P] [US3] [US4] Write app unit tests in `crates/app/src/viewmodel/tests.rs` against
   plan.md "App view model": helper `holiday()` gains `kind: DayOffKind::Holiday`; new helper
   `day_off(date, label, kind)`;
   `t74_month_grid_marks_each_day_off_kind` (October 2026: holiday 10-06, midterm 10-14, final

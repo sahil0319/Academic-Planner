@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 
 use super::*;
-use planner_core::{Error, GpaStatus, NeededRow};
+use planner_core::{DayOffKind, Error, GpaStatus, NeededRow};
 
 const DATE_ERR: &str = "Use DD-MM-YYYY, e.g. 29-10-2026";
 const TIME_ERR: &str = "Enter the time as digits, e.g. 930 (hour 1–12, minutes 00–59)";
@@ -23,9 +23,14 @@ fn dt(y: i32, m: u32, day: u32, h: u32, min: u32) -> NaiveDateTime {
 }
 
 fn holiday(date: NaiveDate, label: Option<&str>) -> Holiday {
+    day_off(date, label, DayOffKind::Holiday)
+}
+
+fn day_off(date: NaiveDate, label: Option<&str>, kind: DayOffKind) -> Holiday {
     Holiday {
         date,
         label: label.map(str::to_string),
+        kind,
     }
 }
 
@@ -4098,6 +4103,7 @@ fn t70_term_save_error_stays_inline() {
     );
 }
 
+<<<<<<< HEAD
 // ---- M12: bi-weekly slot form (R56, R58) ----
 
 /// Term start used by the T61 tests: a Monday. 2026-01-12 is the Monday of week 2 (even).
@@ -4337,4 +4343,198 @@ fn t90_bands_with_defaults_keeps_existing_rows() {
 
     let single = band_rows(&[("0", "0")]);
     assert_eq!(bands_with_defaults(&single), single);
+=======
+// ---- M15: day off kinds (R71-R74, R89a) ----
+
+/// R74 (T74): each day off kind marks its calendar cell and gives its fill key; every other
+/// cell has no kind and an empty key; a weekend exam day keeps `is_weekend`.
+#[test]
+fn t74_month_grid_marks_each_day_off_kind() {
+    let days = [
+        day_off(d(2026, 10, 6), Some("Break"), DayOffKind::Holiday),
+        day_off(d(2026, 10, 14), None, DayOffKind::Midterm),
+        day_off(d(2026, 10, 22), Some("Finals"), DayOffKind::Final),
+        day_off(d(2026, 10, 17), None, DayOffKind::Midterm),
+    ];
+    let grid = month_grid(
+        d(2026, 10, 1),
+        d(2026, 10, 5),
+        d(2026, 10, 5),
+        &[],
+        &[],
+        &days,
+    );
+
+    for (key, kind, fill) in [
+        ("2026-10-06", DayOffKind::Holiday, "holiday"),
+        ("2026-10-14", DayOffKind::Midterm, "midterm"),
+        ("2026-10-22", DayOffKind::Final, "final"),
+        ("2026-10-17", DayOffKind::Midterm, "midterm"),
+    ] {
+        assert_eq!(cell(&grid, key).day_off, Some(kind), "{key}");
+        assert_eq!(day_off_key(cell(&grid, key).day_off), fill, "{key}");
+    }
+    let marked = ["2026-10-06", "2026-10-14", "2026-10-22", "2026-10-17"];
+    for c in grid.iter().filter(|c| !marked.contains(&c.key.as_str())) {
+        assert_eq!(c.day_off, None, "{}", c.key);
+        assert_eq!(day_off_key(c.day_off), "", "{}", c.key);
+    }
+    assert!(cell(&grid, "2026-10-17").is_weekend);
+}
+
+/// R74 (T74): the legend lists Holiday, Mid exam, Final exam, in that order, with the fill
+/// keys the calendar cells use.
+#[test]
+fn t74_legend_lists_holiday_mid_exam_final_exam() {
+    let legend = day_off_legend();
+
+    let texts: Vec<&str> = legend.iter().map(|item| item.text.as_str()).collect();
+    let keys: Vec<&str> = legend.iter().map(|item| item.key.as_str()).collect();
+    assert_eq!(texts, ["Holiday", "Mid exam", "Final exam"]);
+    assert_eq!(keys, ["holiday", "midterm", "final"]);
+}
+
+/// R74: the day panel line names the kind and then the label, or the kind name when there is
+/// no label; no day off gives an empty line.
+#[test]
+fn r74_day_panel_day_off_text_per_kind() {
+    let break_day = day_off(d(2026, 10, 6), Some("Break"), DayOffKind::Holiday);
+    let week_7 = day_off(d(2026, 10, 14), Some("Week 7"), DayOffKind::Midterm);
+    let final_day = day_off(d(2026, 10, 22), None, DayOffKind::Final);
+
+    assert_eq!(day_panel_day_off_text(None), "");
+    assert_eq!(day_panel_day_off_text(Some(&break_day)), "Holiday: Break");
+    assert_eq!(day_panel_day_off_text(Some(&week_7)), "Mid exam: Week 7");
+    assert_eq!(
+        day_panel_day_off_text(Some(&final_day)),
+        "Final exam: Final exam"
+    );
+}
+
+/// R74: a day off without a label shows its kind name on the calendar cell text.
+#[test]
+fn r74_holiday_text_unlabeled_uses_kind_name() {
+    let days = [
+        day_off(d(2026, 10, 14), None, DayOffKind::Midterm),
+        day_off(d(2026, 10, 6), None, DayOffKind::Holiday),
+    ];
+
+    assert_eq!(holiday_text(&days, d(2026, 10, 14)), "Mid exam");
+    assert_eq!(holiday_text(&days, d(2026, 10, 6)), "Holiday");
+    assert_eq!(holiday_text(&days, d(2026, 10, 7)), "");
+}
+
+/// R73, D13: `as_day_off` sets the kind on every day; a blank label on the Mid exams and Final
+/// exams cards becomes the default label, a given label stays, and Holidays keep no label.
+#[test]
+fn r73_as_day_off_sets_kind_and_default_labels() {
+    let blank = || {
+        vec![
+            holiday(d(2026, 10, 14), None),
+            holiday(d(2026, 10, 15), Some("Week 7")),
+        ]
+    };
+
+    assert_eq!(
+        as_day_off(blank(), DayOffKind::Midterm),
+        [
+            day_off(d(2026, 10, 14), Some("Mid exam"), DayOffKind::Midterm),
+            day_off(d(2026, 10, 15), Some("Week 7"), DayOffKind::Midterm),
+        ]
+    );
+    assert_eq!(
+        as_day_off(blank(), DayOffKind::Final),
+        [
+            day_off(d(2026, 10, 14), Some("Final exam"), DayOffKind::Final),
+            day_off(d(2026, 10, 15), Some("Week 7"), DayOffKind::Final),
+        ]
+    );
+    assert_eq!(
+        as_day_off(blank(), DayOffKind::Holiday),
+        [
+            day_off(d(2026, 10, 14), None, DayOffKind::Holiday),
+            day_off(d(2026, 10, 15), Some("Week 7"), DayOffKind::Holiday),
+        ]
+    );
+}
+
+/// R73: each card lists only the days of its kind, sorted by date, one row per day.
+#[test]
+fn r73_day_off_rows_filter_by_kind() {
+    let days = [
+        day_off(d(2026, 12, 22), Some("Finals"), DayOffKind::Final),
+        day_off(d(2026, 10, 15), None, DayOffKind::Midterm),
+        day_off(d(2026, 10, 6), Some("Break"), DayOffKind::Holiday),
+        day_off(d(2026, 10, 14), Some("Week 7"), DayOffKind::Midterm),
+        day_off(d(2026, 12, 21), Some("Finals"), DayOffKind::Final),
+    ];
+
+    assert_eq!(
+        day_off_rows(&days, DayOffKind::Holiday),
+        [holiday_row(&days[2])]
+    );
+    assert_eq!(
+        day_off_rows(&days, DayOffKind::Midterm),
+        [holiday_row(&days[3]), holiday_row(&days[1])]
+    );
+    assert_eq!(
+        day_off_rows(&days, DayOffKind::Final),
+        [holiday_row(&days[4]), holiday_row(&days[0])]
+    );
+    assert!(day_off_rows(&[], DayOffKind::Final).is_empty());
+}
+
+/// R71, D11, D12: merging keeps an existing day off of another kind next to the added one
+/// (existing first), so core can reject the date; the same kind on the same date takes the
+/// added entry.
+#[test]
+fn r71_merge_keeps_other_kind_on_same_date() {
+    let existing = vec![
+        day_off(d(2026, 10, 20), Some("Later"), DayOffKind::Holiday),
+        day_off(d(2026, 10, 14), Some("Break"), DayOffKind::Holiday),
+    ];
+    let added = vec![day_off(d(2026, 10, 14), None, DayOffKind::Midterm)];
+
+    assert_eq!(
+        merge_holidays(&existing, &added),
+        [
+            day_off(d(2026, 10, 14), Some("Break"), DayOffKind::Holiday),
+            day_off(d(2026, 10, 14), None, DayOffKind::Midterm),
+            day_off(d(2026, 10, 20), Some("Later"), DayOffKind::Holiday),
+        ]
+    );
+
+    let renamed = vec![day_off(
+        d(2026, 10, 14),
+        Some("Renamed"),
+        DayOffKind::Holiday,
+    )];
+    assert_eq!(
+        merge_holidays(&existing, &renamed),
+        [
+            day_off(d(2026, 10, 14), Some("Renamed"), DayOffKind::Holiday),
+            day_off(d(2026, 10, 20), Some("Later"), DayOffKind::Holiday),
+        ]
+    );
+}
+
+/// R89a, D18: the save and remove toast texts of each kind.
+#[test]
+fn r89a_day_off_toast_texts() {
+    assert_eq!(day_off_saved_text(DayOffKind::Holiday), "Holidays saved.");
+    assert_eq!(
+        day_off_removed_text(DayOffKind::Holiday),
+        "Holiday removed."
+    );
+    assert_eq!(day_off_saved_text(DayOffKind::Midterm), "Mid exams saved.");
+    assert_eq!(
+        day_off_removed_text(DayOffKind::Midterm),
+        "Mid exam removed."
+    );
+    assert_eq!(day_off_saved_text(DayOffKind::Final), "Final exams saved.");
+    assert_eq!(
+        day_off_removed_text(DayOffKind::Final),
+        "Final exam removed."
+    );
+>>>>>>> c949924 (M15: viewmodel tests T74)
 }
