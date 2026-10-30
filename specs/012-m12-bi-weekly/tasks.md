@@ -24,4 +24,4 @@ Tests (tester) come before implementation (builder). Decisions are in `decisions
 - [x] T012 `SessionView.biweekly`, "Every other week" label, "Move to next week" button, controller wiring (R58)
 
 ## Phase 5: gate
-- [ ] T013 Gate, theme grep, rebase onto main, gate again
+- [x] T013 Gate, theme grep, rebase onto main, gate again
