@@ -206,6 +206,9 @@ T011 screenshots listed per task.
   OQ-2, the builder applies it in this task. Done-check: Gate, Grep, no open high-severity item,
   approval recorded. **Human visual check required.** Commit `M17: critique fixes, screenshots
   approved`. Needs T011
+  - [x] Builder part: high-severity and cheap layout/token fixes applied, screenshots retaken, 10
+    supplementary screens added; see "Decisions and fixes" in checklists/design-review.md.
+  - [ ] Router and human part: approval and OQ-1 to OQ-4 answers recorded.
 
 ---
 
