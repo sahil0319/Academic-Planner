@@ -125,6 +125,8 @@ component ComboField inherits VerticalLayout {
     in-out property <int> index;
     in property <string> error;
 
+    // Width comes from the parent layout (stretch), never from the content or the error line.
+    preferred-width: 0;
     spacing: Theme.space-xs;
 
     Text {

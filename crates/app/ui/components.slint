@@ -229,6 +229,8 @@ export component DangerButton inherits OutlineButton {
 
 // R84: Carbon text box shared by `Field` and `TimeField`: field fill, border-strong bottom
 // rule, inset ring on focus (focus colour) or when invalid (error colour, which wins).
+// Width comes from the surrounding layout only: Slint reports a no-wrap `TextInput` minimum and
+// preferred width as its text width, so both are zeroed below and long text scrolls inside the clip.
 component FieldBox inherits Rectangle {
     in-out property <string> text <=> input.text;
     in property <bool> invalid;
@@ -237,11 +239,14 @@ component FieldBox inherits Rectangle {
     height: Theme.input-height;
     border-radius: Theme.radius-none;
     background: Theme.field;
+    clip: true;
 
     HorizontalLayout {
         padding-left: Theme.space-lg;
         padding-right: Theme.space-lg;
         input := TextInput {
+            min-width: 0;
+            preferred-width: 0;
             vertical-alignment: center;
             color: Theme.on-surface;
             font-family: Theme.font-body;
@@ -272,6 +277,8 @@ export component Field inherits VerticalLayout {
     in property <string> error;
     callback edited(string);
 
+    // Width comes from the parent layout (stretch), never from the content or the error line.
+    preferred-width: 0;
     spacing: Theme.space-xs;
 
     Text {
@@ -308,6 +315,8 @@ export component ComboField inherits VerticalLayout {
     in property <string> error;
     callback selected();
 
+    // Width comes from the parent layout (stretch), never from the content or the error line.
+    preferred-width: 0;
     spacing: Theme.space-xs;
 
     Text {
@@ -440,6 +449,8 @@ export component TimeField inherits VerticalLayout {
     in property <string> error;
     callback edited(string);
 
+    // Width comes from the parent layout (stretch), never from the content or the error line.
+    preferred-width: 0;
     spacing: Theme.space-xs;
 
     Text {
