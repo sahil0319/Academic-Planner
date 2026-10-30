@@ -76,7 +76,7 @@ Stories (for labels):
 
 ## Phase 2: Core (builder) — US1, US2
 
-- [ ] T003 [US1] Add `crates/core/src/migrations/003_day_off_kind.sql` with exactly
+- [x] T003 [US1] Add `crates/core/src/migrations/003_day_off_kind.sql` with exactly
   `ALTER TABLE holiday ADD COLUMN kind TEXT NOT NULL DEFAULT 'holiday' CHECK (kind IN
   ('holiday','midterm','final'));` and a header comment (R71, R72; spec migration 004
   renumbered, D1); append it to `MIGRATIONS` in `crates/core/src/db.rs`. In

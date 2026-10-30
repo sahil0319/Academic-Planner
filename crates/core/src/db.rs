@@ -31,6 +31,8 @@ const MIGRATIONS: &[&str] = &[
     include_str!("migrations/003_week_parity.sql"),
     // Migration 004 is data only: it swaps the retired placeholder attendance bands (R93).
     include_str!("migrations/004_default_bands.sql"),
+    // Migration 005 adds holiday.kind for mid and final exam periods (R71).
+    include_str!("migrations/005_day_off_kind.sql"),
 ];
 
 /// R93: replaces attendance bands that are exactly the retired placeholder table with the
@@ -141,7 +143,9 @@ impl Planner {
         Ok(term)
     }
 
-    /// Replaces the holidays of a term with `days`, in one transaction.
+    /// R71, R72, D4: replaces every day off of the term (all kinds) with `days`, in one
+    /// transaction. R71: a date listed twice is `Error::Validation`, checked before any write; the
+    /// message names the kind stored for that date, else the kind of its first entry in `days`.
     pub fn set_holidays(&mut self, term_id: i64, days: &[Holiday]) -> Result<()> {
         let tx = self.conn.transaction()?;
         let exists: bool = tx.query_row(
@@ -155,12 +159,19 @@ impl Planner {
                 id: term_id,
             });
         }
+        check_one_kind_per_date(&tx, term_id, days)?;
         tx.execute("DELETE FROM holiday WHERE term_id = ?1", [term_id])?;
         {
-            let mut insert =
-                tx.prepare("INSERT INTO holiday (term_id, date, label) VALUES (?1, ?2, ?3)")?;
+            let mut insert = tx.prepare(
+                "INSERT INTO holiday (term_id, date, label, kind) VALUES (?1, ?2, ?3, ?4)",
+            )?;
             for day in days {
-                insert.execute(params![term_id, fmt_date(day.date), day.label])?;
+                insert.execute(params![
+                    term_id,
+                    fmt_date(day.date),
+                    day.label,
+                    day.kind.as_db()
+                ])?;
             }
         }
         tx.commit()?;
@@ -638,16 +649,45 @@ pub(crate) fn load_term(conn: &Connection, id: i64) -> Result<Term> {
         .optional()?
         .ok_or(Error::NotFound { entity: "term", id })?;
     let mut stmt =
-        conn.prepare("SELECT date, label FROM holiday WHERE term_id = ?1 ORDER BY date")?;
+        conn.prepare("SELECT date, label, kind FROM holiday WHERE term_id = ?1 ORDER BY date")?;
     let holidays = stmt
         .query_map([id], |r| {
             Ok(Holiday {
                 date: col_date(r, 0)?,
                 label: r.get(1)?,
+                kind: decode(r, 2, "kind", DayOffKind::from_db)?,
             })
         })?
         .collect::<rusqlite::Result<_>>()?;
     Ok(Term { holidays, ..term })
+}
+
+/// R71: rejects a date listed twice in `days`. The message names the kind stored for the date in
+/// this term, else the kind of the date's first entry in `days`.
+fn check_one_kind_per_date(conn: &Connection, term_id: i64, days: &[Holiday]) -> Result<()> {
+    let mut seen: Vec<(NaiveDate, DayOffKind)> = Vec::new();
+    for day in days {
+        if let Some(&(_, first)) = seen.iter().find(|(d, _)| *d == day.date) {
+            let stored: Option<String> = conn
+                .query_row(
+                    "SELECT kind FROM holiday WHERE term_id = ?1 AND date = ?2",
+                    params![term_id, fmt_date(day.date)],
+                    |r| r.get(0),
+                )
+                .optional()?;
+            let kind = stored
+                .as_deref()
+                .and_then(DayOffKind::from_db)
+                .unwrap_or(first);
+            return Err(Error::Validation(format!(
+                "{} is already a {}",
+                day.date.format("%B %-d, %Y"),
+                kind.noun()
+            )));
+        }
+        seen.push((day.date, day.kind));
+    }
+    Ok(())
 }
 
 pub(crate) const COURSE_COLS: &str =
@@ -931,6 +971,35 @@ impl WeekParity {
             "odd" => Some(WeekParity::Odd),
             "even" => Some(WeekParity::Even),
             _ => None,
+        }
+    }
+}
+
+impl DayOffKind {
+    /// R71: the `holiday.kind` text.
+    pub(crate) fn as_db(self) -> &'static str {
+        match self {
+            DayOffKind::Holiday => "holiday",
+            DayOffKind::Midterm => "midterm",
+            DayOffKind::Final => "final",
+        }
+    }
+
+    pub(crate) fn from_db(s: &str) -> Option<Self> {
+        match s {
+            "holiday" => Some(DayOffKind::Holiday),
+            "midterm" => Some(DayOffKind::Midterm),
+            "final" => Some(DayOffKind::Final),
+            _ => None,
+        }
+    }
+
+    /// R71 message noun.
+    pub(crate) fn noun(self) -> &'static str {
+        match self {
+            DayOffKind::Holiday => "holiday",
+            DayOffKind::Midterm => "mid exam day",
+            DayOffKind::Final => "final exam day",
         }
     }
 }

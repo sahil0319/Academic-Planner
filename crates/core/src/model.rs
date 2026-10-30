@@ -70,7 +70,7 @@ pub struct Term {
     pub end_date: NaiveDate,
     /// R1: at most one term is active.
     pub is_active: bool,
-    /// Holidays of this term, sorted by date.
+    /// Days off of this term (every kind), sorted by date.
     pub holidays: Vec<Holiday>,
 }
 
@@ -83,11 +83,21 @@ pub struct PastTermSummary {
     pub gpa: Option<f64>,
 }
 
-/// A day without classes (`holiday` table).
+/// R71: the kind of a day off. Every kind skips classes (R72).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum DayOffKind {
+    #[default]
+    Holiday,
+    Midterm,
+    Final,
+}
+
+/// R71: a day without classes (`holiday` table): a holiday, a mid exam day, or a final exam day.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Holiday {
     pub date: NaiveDate,
     pub label: Option<String>,
+    pub kind: DayOffKind,
 }
 
 /// Input for `create_course` / `update_course`.
