@@ -4,7 +4,7 @@
 import { ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { ImportLine, ImportLineKind } from "types.slint";
-import { FocusRing, PrimaryButton, SecondaryButton, Field, SectionCard } from "components.slint";
+import { FocusRing, PrimaryButton, SecondaryButton, Field } from "components.slint";
 
 export global ImportState {
     // The panel is shown.
@@ -50,152 +50,173 @@ component ResultLine inherits Text {
     font-weight: kind == ImportLineKind.heading || kind == ImportLineKind.summary || kind == ImportLineKind.item ? Theme.body-emphasis-weight : Theme.body-md-weight;
 }
 
-export component ImportPanel inherits SectionCard {
-    title: "Import courses and timetable";
+// R84a: the panel is a SectionCard-style card (surface, space-lg padding) with its own title row:
+// the title on the left and Close on the top-right. Preview and Apply stay in the bottom row.
+export component ImportPanel inherits Rectangle {
+    background: Theme.surface;
+    border-radius: Theme.radius-none;
 
-    Text {
-        text: "Paste the import text below.";
-        color: Theme.on-surface-muted;
-        font-family: Theme.font-body;
-        font-size: Theme.body-md-size;
-    }
+    VerticalLayout {
+        padding: Theme.space-lg;
+        spacing: Theme.space-sm;
 
-    // R84: multi-line paste box in the Carbon field style of `Field`: field fill, control-edge
-    // border-strong bottom rule, inset focus ring.
-    Rectangle {
-        height: 8 * Theme.row-height;
-        border-radius: Theme.radius-none;
-        background: Theme.field;
-        clip: true;
-
-        // Hidden carriers for the clipboard (research D17): select-all, copy, clear-selection.
-        // They live here because this Rectangle is not a layout, so they take no space.
-        template-source := TextInput {
-            visible: false;
-            read-only: true;
-            width: 0;
-            height: 0;
-            text: ImportState.template-text;
-        }
-        prompt-source := TextInput {
-            visible: false;
-            read-only: true;
-            width: 0;
-            height: 0;
-            text: ImportState.prompt-text;
-        }
-
-        ScrollView {
-            VerticalLayout {
-                padding-left: Theme.space-lg;
-                padding-right: Theme.space-lg;
-                padding-top: Theme.space-sm;
-                padding-bottom: Theme.space-sm;
-                paste := TextInput {
-                    text <=> ImportState.text;
-                    wrap: word-wrap;
-                    color: Theme.on-surface;
-                    font-family: Theme.font-body;
-                    font-size: Theme.body-md-size;
-                    edited => {
-                        ImportState.text-edited(self.text);
-                    }
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            Text {
+                text: "Import courses and timetable";
+                color: Theme.on-surface;
+                font-family: Theme.font-heading;
+                font-size: Theme.headline-md-size;
+                font-weight: Theme.headline-md-weight;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+            }
+            SecondaryButton {
+                text: "Close";
+                clicked => {
+                    ImportState.close();
                 }
             }
         }
 
+        Text {
+            text: "Paste the import text below.";
+            color: Theme.on-surface-muted;
+            font-family: Theme.font-body;
+            font-size: Theme.body-md-size;
+        }
+
+        // R84: multi-line paste box in the Carbon field style of `Field`: field fill, control-edge
+        // border-strong bottom rule, inset focus ring.
         Rectangle {
-            y: parent.height - self.height;
-            height: Theme.control-edge-width;
-            background: Theme.border-strong;
+            height: 8 * Theme.row-height;
+            border-radius: Theme.radius-none;
+            background: Theme.field;
+            clip: true;
+
+            // Hidden carriers for the clipboard (research D17): select-all, copy, clear-selection.
+            // They live here because this Rectangle is not a layout, so they take no space.
+            template-source := TextInput {
+                visible: false;
+                read-only: true;
+                width: 0;
+                height: 0;
+                text: ImportState.template-text;
+            }
+            prompt-source := TextInput {
+                visible: false;
+                read-only: true;
+                width: 0;
+                height: 0;
+                text: ImportState.prompt-text;
+            }
+
+            ScrollView {
+                VerticalLayout {
+                    padding-left: Theme.space-lg;
+                    padding-right: Theme.space-lg;
+                    padding-top: Theme.space-sm;
+                    padding-bottom: Theme.space-sm;
+                    paste := TextInput {
+                        text <=> ImportState.text;
+                        wrap: word-wrap;
+                        color: Theme.on-surface;
+                        font-family: Theme.font-body;
+                        font-size: Theme.body-md-size;
+                        edited => {
+                            ImportState.text-edited(self.text);
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                y: parent.height - self.height;
+                height: Theme.control-edge-width;
+                background: Theme.border-strong;
+            }
+
+            if paste.has-focus: FocusRing { }
         }
 
-        if paste.has-focus: FocusRing { }
-    }
-
-    HorizontalLayout {
-        spacing: Theme.space-sm;
-        alignment: start;
-        SecondaryButton {
-            text: "Copy template";
-            clicked => {
-                template-source.select-all();
-                template-source.copy();
-                template-source.clear-selection();
-                ImportState.template-copied();
-            }
-        }
-        SecondaryButton {
-            text: "Copy AI prompt";
-            clicked => {
-                prompt-source.select-all();
-                prompt-source.copy();
-                prompt-source.clear-selection();
-                ImportState.prompt-copied();
-            }
-        }
-        VerticalLayout {
-            alignment: center;
-            Text {
-                text: ImportState.copy-status;
-                color: Theme.on-surface-muted;
-                font-family: Theme.font-body;
-                font-size: Theme.body-md-size;
-            }
-        }
-    }
-
-    Field {
-        label: "Effective date (DD-MM-YYYY)";
-        text <=> ImportState.date-text;
-        error: ImportState.date-error;
-        edited(value) => {
-            ImportState.date-edited(value);
-        }
-    }
-
-    HorizontalLayout {
-        spacing: Theme.space-sm;
-        alignment: start;
-        SecondaryButton {
-            text: "Preview";
-            enabled: ImportState.can-preview;
-            clicked => {
-                ImportState.preview();
-            }
-        }
-        PrimaryButton {
-            text: "Apply";
-            enabled: ImportState.can-apply;
-            clicked => {
-                ImportState.apply();
-            }
-        }
-        SecondaryButton {
-            text: "Close";
-            clicked => {
-                ImportState.close();
-            }
-        }
-    }
-
-    if ImportState.message != "": Text {
-        text: ImportState.message;
-        color: Theme.error;
-        wrap: word-wrap;
-        font-family: Theme.font-body;
-        font-size: Theme.body-sm-size;
-        font-weight: Theme.body-sm-weight;
-    }
-
-    if ImportState.lines.length > 0: ScrollView {
-        height: 12 * Theme.row-height;
-        VerticalLayout {
+        HorizontalLayout {
+            spacing: Theme.space-sm;
             alignment: start;
-            spacing: Theme.space-xs;
-            for line in ImportState.lines: ResultLine {
-                text: line.text;
-                kind: line.kind;
+            SecondaryButton {
+                text: "Copy template";
+                clicked => {
+                    template-source.select-all();
+                    template-source.copy();
+                    template-source.clear-selection();
+                    ImportState.template-copied();
+                }
+            }
+            SecondaryButton {
+                text: "Copy AI prompt";
+                clicked => {
+                    prompt-source.select-all();
+                    prompt-source.copy();
+                    prompt-source.clear-selection();
+                    ImportState.prompt-copied();
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                Text {
+                    text: ImportState.copy-status;
+                    color: Theme.on-surface-muted;
+                    font-family: Theme.font-body;
+                    font-size: Theme.body-md-size;
+                }
+            }
+        }
+
+        Field {
+            label: "Effective date (DD-MM-YYYY)";
+            text <=> ImportState.date-text;
+            error: ImportState.date-error;
+            edited(value) => {
+                ImportState.date-edited(value);
+            }
+        }
+
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            alignment: start;
+            SecondaryButton {
+                text: "Preview";
+                enabled: ImportState.can-preview;
+                clicked => {
+                    ImportState.preview();
+                }
+            }
+            PrimaryButton {
+                text: "Apply";
+                enabled: ImportState.can-apply;
+                clicked => {
+                    ImportState.apply();
+                }
+            }
+        }
+
+        if ImportState.message != "": Text {
+            text: ImportState.message;
+            color: Theme.error;
+            wrap: word-wrap;
+            font-family: Theme.font-body;
+            font-size: Theme.body-sm-size;
+            font-weight: Theme.body-sm-weight;
+        }
+
+        if ImportState.lines.length > 0: ScrollView {
+            height: 12 * Theme.row-height;
+            VerticalLayout {
+                alignment: start;
+                spacing: Theme.space-xs;
+                for line in ImportState.lines: ResultLine {
+                    text: line.text;
+                    kind: line.kind;
+                }
             }
         }
     }
