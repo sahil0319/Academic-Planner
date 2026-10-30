@@ -1,0 +1,225 @@
+// Progress page (docs/spec.md §13.8, R61-R65; DESIGN.md "Progress card"). Read-only: no callbacks.
+// Every string, fraction, order, and status is formatted in src/viewmodel.rs; bindings only.
+import { Theme } from "theme.slint";
+import { ProgressCardRow } from "types.slint";
+import { PageTitle, EmptyState, StatusChip } from "components.slint";
+
+export global ProgressState {
+    // Error text from a failed refresh; empty hides the line.
+    in property <string> message;
+    // False when there is no active term: the page shows only the empty state.
+    in property <bool> has-term: true;
+    // R61: the empty-state text (no term, or no courses).
+    in property <string> empty-text;
+    // R61: "Term GPA 3.67 (projected)".
+    in property <string> gpa-text;
+    // R61: "1 on track · 1 to watch · 1 at risk".
+    in property <string> counts-text;
+    // R61: cards, already ordered by status then course code.
+    in property <[ProgressCardRow]> cards;
+}
+
+// R62: the attendance bar. The track fills the width; the fill and the target marker are placed
+// from fractions of the track width.
+component ProgressBar inherits Rectangle {
+    in property <float> fill;
+    in property <bool> has-marker;
+    in property <float> marker-at;
+
+    height: Theme.progress-height;
+    background: Theme.progress-track;
+    border-radius: Theme.radius-none;
+
+    Rectangle {
+        x: 0;
+        width: root.width * root.fill;
+        height: root.height;
+        background: Theme.progress-fill;
+        border-radius: Theme.radius-none;
+    }
+
+    if root.has-marker: Rectangle {
+        x: (root.width - self.width) * root.marker-at;
+        width: Theme.progress-target-width;
+        height: root.height;
+        background: Theme.progress-target;
+        border-radius: Theme.radius-none;
+    }
+}
+
+// One figure column: a caption, a numeral figure, and a detail line.
+component FigureColumn inherits VerticalLayout {
+    in property <string> label;
+    in property <string> figure;
+    in property <string> detail;
+
+    horizontal-stretch: 1;
+    spacing: Theme.space-xs;
+
+    Text {
+        text: root.label;
+        color: Theme.on-surface-muted;
+        font-family: Theme.font-body;
+        font-size: Theme.label-sm-size;
+        font-weight: Theme.label-sm-weight;
+    }
+    Text {
+        text: root.figure;
+        color: Theme.on-surface;
+        font-family: Theme.font-body;
+        font-size: Theme.numeral-md-size;
+        font-weight: Theme.numeral-md-weight;
+    }
+    Text {
+        text: root.detail;
+        color: Theme.on-surface-muted;
+        wrap: word-wrap;
+        font-family: Theme.font-body;
+        font-size: Theme.body-sm-size;
+        font-weight: Theme.body-sm-weight;
+    }
+}
+
+// R61-R65: one course card on surface, square, with space-lg padding.
+component ProgressCard inherits Rectangle {
+    in property <ProgressCardRow> card;
+
+    background: Theme.surface;
+    border-radius: Theme.radius-none;
+
+    VerticalLayout {
+        padding: Theme.space-lg;
+        spacing: Theme.space-md;
+
+        HorizontalLayout {
+            height: Theme.row-height;
+            spacing: Theme.space-sm;
+            Text {
+                text: root.card.code;
+                color: Theme.on-surface;
+                vertical-alignment: center;
+                font-family: Theme.font-body;
+                font-size: Theme.body-emphasis-size;
+                font-weight: Theme.body-emphasis-weight;
+            }
+            Text {
+                text: root.card.name;
+                color: Theme.on-surface;
+                vertical-alignment: center;
+                overflow: elide;
+                horizontal-stretch: 1;
+                font-family: Theme.font-body;
+                font-size: Theme.body-emphasis-size;
+                font-weight: Theme.body-emphasis-weight;
+            }
+            VerticalLayout {
+                alignment: center;
+                StatusChip {
+                    chip: root.card.chip;
+                    text: root.card.status-label;
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: Theme.space-xl;
+            FigureColumn {
+                label: "Attendance";
+                figure: root.card.attendance-figure;
+                detail: root.card.target-text;
+            }
+            FigureColumn {
+                label: "Marks";
+                figure: root.card.marks-figure;
+                detail: root.card.marks-line;
+            }
+        }
+
+        HorizontalLayout {
+            spacing: Theme.space-md;
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                ProgressBar {
+                    fill: root.card.bar-fill;
+                    has-marker: root.card.has-marker;
+                    marker-at: root.card.marker-at;
+                }
+            }
+            Text {
+                text: root.card.attendance-line;
+                color: Theme.on-surface;
+                vertical-alignment: center;
+                font-family: Theme.font-body;
+                font-size: Theme.body-md-size;
+                font-weight: Theme.body-md-weight;
+            }
+        }
+
+        if root.card.miss-line != "": Text {
+            text: root.card.miss-line;
+            color: Theme.on-surface;
+            wrap: word-wrap;
+            font-family: Theme.font-body;
+            font-size: Theme.body-md-size;
+            font-weight: Theme.body-md-weight;
+        }
+
+        if root.card.best-grade-line != "": Text {
+            text: root.card.best-grade-line;
+            color: Theme.on-surface;
+            wrap: word-wrap;
+            font-family: Theme.font-body;
+            font-size: Theme.body-md-size;
+            font-weight: Theme.body-md-weight;
+        }
+    }
+}
+
+export component ProgressPage inherits VerticalLayout {
+    spacing: Theme.space-lg;
+    alignment: start;
+
+    PageTitle {
+        text: "Progress";
+    }
+
+    if ProgressState.message != "": Text {
+        text: ProgressState.message;
+        color: Theme.error;
+        wrap: word-wrap;
+        font-family: Theme.font-body;
+        font-size: Theme.body-md-size;
+        font-weight: Theme.body-md-weight;
+    }
+
+    if !ProgressState.has-term || ProgressState.cards.length == 0: EmptyState {
+        text: ProgressState.empty-text;
+    }
+
+    if ProgressState.has-term && ProgressState.cards.length > 0: VerticalLayout {
+        spacing: Theme.space-lg;
+
+        HorizontalLayout {
+            spacing: Theme.space-xl;
+            Text {
+                text: ProgressState.gpa-text;
+                color: Theme.on-surface;
+                font-family: Theme.font-body;
+                font-size: Theme.body-md-size;
+                font-weight: Theme.body-md-weight;
+            }
+            Text {
+                text: ProgressState.counts-text;
+                color: Theme.on-surface-muted;
+                font-family: Theme.font-body;
+                font-size: Theme.body-md-size;
+                font-weight: Theme.body-md-weight;
+            }
+        }
+
+        for row in ProgressState.cards: ProgressCard {
+            card: row;
+        }
+    }
+}

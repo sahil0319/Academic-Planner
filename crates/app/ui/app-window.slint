@@ -11,6 +11,7 @@ import { Theme } from "theme.slint";
 import { AppState } from "types.slint";
 import { NavItem, PageTitle, AppearanceSwitch } from "components.slint";
 import { DashboardPage, DashboardState } from "dashboard.slint";
+import { ProgressPage, ProgressState } from "progress.slint";
 import { TimetablePage, TimetableState } from "timetable.slint";
 import { CoursesPage, CoursesState } from "courses.slint";
 import { AssessmentsPage, AssessmentsState } from "assessments.slint";
@@ -37,10 +38,12 @@ export {
     GradeRowView,
     ImportLine,
     ImportLineKind,
+    ProgressCardRow,
 } from "types.slint";
 export { ToastView }
 export {
     DashboardState,
+    ProgressState,
     TimetableState,
     CoursesState,
     AssessmentsState,
@@ -95,6 +98,14 @@ export component AppWindow inherits Window {
                     clicked => {
                         AppState.current-page = 0;
                         AppState.page-selected(0);
+                    }
+                }
+                NavItem {
+                    text: "Progress";
+                    active: AppState.current-page == 7;
+                    clicked => {
+                        AppState.current-page = 7;
+                        AppState.page-selected(7);
                     }
                 }
                 NavItem {
@@ -207,6 +218,7 @@ export component AppWindow inherits Window {
                         if AppState.current-page == 4: SettingsPage { }
                         if AppState.current-page == 5: AboutPage { }
                         if AppState.current-page == 6: RulesPage { }
+                        if AppState.current-page == 7: ProgressPage { }
                     }
                 }
             }

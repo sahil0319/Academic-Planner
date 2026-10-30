@@ -100,7 +100,7 @@ export struct SummaryView {
 }
 
 export global AppState {
-    // 0 Dashboard, 1 Timetable, 2 Courses, 3 Assessments, 4 Settings, 5 About, 6 Rules (M9)
+    // 0 Dashboard, 1 Timetable, 2 Courses, 3 Assessments, 4 Settings, 5 About, 6 Rules (M9), 7 Progress (M13)
     in-out property <int> current-page;
     // FR-008: non-empty means only the error screen is shown.
     in property <string> startup-error;
@@ -167,4 +167,23 @@ export enum ImportLineKind { heading, error, summary, section, item, detail, war
 export struct ImportLine {
     text: string,
     kind: ImportLineKind,
+}
+
+// M13 (R61-R65): one Progress card as display text; Rust fills it from `ProgressCardView` in
+// src/viewmodel.rs. The bar fill and the target marker are fractions of the bar width, 0 to 1.
+export struct ProgressCardRow {
+    code: string,
+    name: string,
+    status-label: string,
+    chip: Chip,
+    attendance-figure: string,
+    attendance-line: string,
+    target-text: string,
+    bar-fill: float,
+    has-marker: bool,
+    marker-at: float,
+    miss-line: string,
+    marks-figure: string,
+    marks-line: string,
+    best-grade-line: string,
 }
