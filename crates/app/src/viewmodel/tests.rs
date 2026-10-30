@@ -3868,4 +3868,164 @@ fn r61_empty_text() {
         progress_counts_text(&[]),
         "0 on track · 0 to watch · 0 at risk"
     );
+=======
+// ---- M12: bi-weekly slot form (R56, R58) ----
+
+/// Term start used by the T61 tests: a Monday. 2026-01-12 is the Monday of week 2 (even).
+fn t61_term_start() -> NaiveDate {
+    d(2026, 1, 5)
+}
+
+fn t61_today() -> NaiveDate {
+    d(2026, 1, 12)
+}
+
+/// R56, T61: bi-weekly and "Class this week" ticked on an even week stores Even.
+#[test]
+fn t61_class_this_week_ticked_stores_current_parity() {
+    assert_eq!(
+        slot_parity_from_form(t61_term_start(), t61_today(), true, true),
+        Some(WeekParity::Even)
+    );
+}
+
+/// R56, T61: bi-weekly with "Class this week" not ticked stores the other parity.
+#[test]
+fn t61_class_this_week_unticked_stores_other_parity() {
+    assert_eq!(
+        slot_parity_from_form(t61_term_start(), t61_today(), true, false),
+        Some(WeekParity::Odd)
+    );
+}
+
+/// R56, T61: an unticked bi-weekly box stores no parity, whatever "Class this week" says.
+#[test]
+fn t61_weekly_form_stores_no_parity() {
+    for class_this_week in [true, false] {
+        assert_eq!(
+            slot_parity_from_form(t61_term_start(), t61_today(), false, class_this_week),
+            None
+        );
+    }
+}
+
+/// R56, T61: editing an odd slot on 01-12 pre-fills bi-weekly ticked, "Class this week" not.
+#[test]
+fn t61_edit_odd_slot_prefills_not_this_week() {
+    assert_eq!(
+        slot_form_from_parity(t61_term_start(), t61_today(), Some(WeekParity::Odd)),
+        (true, false)
+    );
+}
+
+/// R56, T61: editing an even slot on 01-12 pre-fills both boxes ticked.
+#[test]
+fn t61_edit_even_slot_prefills_this_week() {
+    assert_eq!(
+        slot_form_from_parity(t61_term_start(), t61_today(), Some(WeekParity::Even)),
+        (true, true)
+    );
+}
+
+/// R56, T61: editing a weekly slot pre-fills bi-weekly unticked and "Class this week" ticked.
+#[test]
+fn t61_edit_weekly_slot_prefills_defaults() {
+    assert_eq!(
+        slot_form_from_parity(t61_term_start(), t61_today(), None),
+        (false, true)
+    );
+}
+
+/// R56, T61: form to parity to form returns the same boxes for all four combinations, except
+/// that an unticked bi-weekly box always comes back with "Class this week" ticked.
+#[test]
+fn t61_form_round_trip() {
+    for (biweekly, class_this_week) in [(true, true), (true, false), (false, true), (false, false)]
+    {
+        let parity =
+            slot_parity_from_form(t61_term_start(), t61_today(), biweekly, class_this_week);
+        let back = slot_form_from_parity(t61_term_start(), t61_today(), parity);
+        let expected = if biweekly {
+            (true, class_this_week)
+        } else {
+            (false, true)
+        };
+        assert_eq!(back, expected);
+    }
+}
+
+/// R54, R56, T61: a term starting on a Wednesday counts its own week as week 1 (odd), so the
+/// following Monday is week 2 (even).
+#[test]
+fn t61_wednesday_start_term_counts_own_week_as_week_one() {
+    let start = d(2026, 1, 7);
+    assert_eq!(
+        slot_parity_from_form(start, d(2026, 1, 7), true, true),
+        Some(WeekParity::Odd)
+    );
+    assert_eq!(
+        slot_parity_from_form(start, d(2026, 1, 9), true, true),
+        Some(WeekParity::Odd)
+    );
+    assert_eq!(
+        slot_parity_from_form(start, d(2026, 1, 12), true, true),
+        Some(WeekParity::Even)
+    );
+    assert_eq!(
+        slot_form_from_parity(start, d(2026, 1, 12), Some(WeekParity::Odd)),
+        (true, false)
+    );
+}
+
+/// R56, T61: `parse_slot_form` copies the week parity into the input unchanged.
+#[test]
+fn t61_parse_slot_form_passes_week_parity_through() {
+    for parity in [None, Some(WeekParity::Odd), Some(WeekParity::Even)] {
+        let input = parse_slot_form(
+            Some(1),
+            1,
+            TimeText {
+                digits: "900",
+                pm: false,
+            },
+            TimeText {
+                digits: "1030",
+                pm: false,
+            },
+            "",
+            "01-09-2026",
+            "",
+            parity,
+        )
+        .unwrap();
+        assert_eq!(input.week_parity, parity);
+    }
+}
+
+/// R58, T61: a slot row is flagged bi-weekly exactly when the slot has a week parity.
+#[test]
+fn t61_slot_row_biweekly_flag() {
+    let courses = [course(1, "CSE101")];
+    let mut s = slot(None, None);
+    assert!(!slot_row(&s, &courses).biweekly);
+    s.week_parity = Some(WeekParity::Odd);
+    assert!(slot_row(&s, &courses).biweekly);
+    s.week_parity = Some(WeekParity::Even);
+    assert!(slot_row(&s, &courses).biweekly);
+}
+
+/// R58, T61: a session row carries the session view's bi-weekly flag.
+#[test]
+fn t61_session_row_biweekly_flag() {
+    let mut view = pending_view(1, d(2026, 1, 12));
+    assert!(!session_row(&view).biweekly);
+    view.biweekly = true;
+    assert!(session_row(&view).biweekly);
+}
+
+/// R58, T61: the label next to the time of a bi-weekly session or slot.
+#[test]
+fn t61_every_other_week_label() {
+    assert_eq!(EVERY_OTHER_WEEK, "Every other week");
+>>>>>>> 9522010 (M12: app T61 tests)
 }
