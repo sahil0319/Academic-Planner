@@ -12,7 +12,7 @@ use planner_core::{
     AttendanceSummary, ComponentKind, Course, CourseInput, CourseMarks, Dashboard, FinalOutlook,
     GpaStatus, GpaSummary, GradeRow, Holiday, MakeupInput, Needed, RuleComponent,
     RuleComponentInput, RuleSet, SessionView, Settings, Slot, SlotInput, Status, TermInput,
-    ThemeMode,
+    ThemeMode, WeekParity,
 };
 
 use crate::updater::InstallKind;
@@ -460,7 +460,38 @@ pub fn parse_course_form(
     }
 }
 
+/// R58: label shown next to the time of a bi-weekly session or slot.
+#[allow(dead_code)] // M12 stub: remove once the UI uses it.
+pub const EVERY_OTHER_WEEK: &str = "Every other week";
+
+/// R56: the stored parity for the slot form. Weekly (`biweekly` false) gives `None`. Bi-weekly
+/// gives `term_week_parity(term_start, today)` when `class_this_week`, else the other parity.
+#[allow(dead_code)] // M12 stub: remove once the controller uses it.
+pub fn slot_parity_from_form(
+    term_start: NaiveDate,
+    today: NaiveDate,
+    biweekly: bool,
+    class_this_week: bool,
+) -> Option<WeekParity> {
+    let _ = (term_start, today, biweekly, class_this_week);
+    todo!("R56")
+}
+
+/// R56: pre-fills the slot form from a stored parity, as `(biweekly, class_this_week)`.
+/// Weekly (`None`) gives `(false, true)`.
+#[allow(dead_code)] // M12 stub: remove once the controller uses it.
+pub fn slot_form_from_parity(
+    term_start: NaiveDate,
+    today: NaiveDate,
+    parity: Option<WeekParity>,
+) -> (bool, bool) {
+    let _ = (term_start, today, parity);
+    todo!("R56")
+}
+
+/// R56: `week_parity` comes from [`slot_parity_from_form`] and is copied into the input.
 /// Checks `course`, `weekday`, `start`, `end`, `valid_from`, `valid_to`. R2: end <= start is core's.
+#[allow(clippy::too_many_arguments)]
 pub fn parse_slot_form(
     course_id: Option<i64>,
     weekday: i32,
@@ -469,6 +500,7 @@ pub fn parse_slot_form(
     room: &str,
     valid_from: &str,
     valid_to: &str,
+    week_parity: Option<WeekParity>,
 ) -> Result<SlotInput, FormErrors> {
     let mut errors = FormErrors::default();
     let course_id = errors.check(
@@ -501,7 +533,7 @@ pub fn parse_slot_form(
             room: optional_text(room),
             valid_from,
             valid_to,
-            week_parity: None,
+            week_parity,
         }),
         _ => Err(errors),
     }
@@ -693,6 +725,8 @@ pub struct SessionRow {
     pub chip: ChipKind,
     pub can_mark: bool,
     pub note: String,
+    /// R58: the session belongs to a bi-weekly slot.
+    pub biweekly: bool,
 }
 
 /// R11, R12: builds a session row; the status label is core's `display_status` with its date
@@ -710,6 +744,7 @@ pub fn session_row(view: &SessionView) -> SessionRow {
         chip: chip_kind(s.status),
         can_mark: can_mark_attendance(view),
         note: s.note.clone().unwrap_or_default(),
+        biweekly: view.biweekly,
     }
 }
 
@@ -819,6 +854,8 @@ pub struct SlotRow {
     pub course: String,
     pub room: String,
     pub valid: String,
+    /// R58: the slot has a week parity.
+    pub biweekly: bool,
 }
 
 /// Course is the matching code, or an em dash when not found.
@@ -842,6 +879,7 @@ pub fn slot_row(slot: &Slot, courses: &[Course]) -> SlotRow {
         course,
         room: or_dash(slot.room.as_deref()),
         valid,
+        biweekly: slot.week_parity.is_some(),
     }
 }
 

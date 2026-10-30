@@ -619,6 +619,7 @@ fn parse_slot_form_valid() {
         " B12 ",
         "01-09-2026",
         "20-12-2026",
+        None,
     )
     .unwrap();
     assert_eq!(
@@ -653,6 +654,7 @@ fn parse_slot_form_empty_valid_to_is_none() {
         "",
         "01-09-2026",
         "",
+        None,
     )
     .unwrap();
     assert_eq!(input.valid_to, None);
@@ -676,6 +678,7 @@ fn parse_slot_form_reports_all_errors_at_once() {
         "",
         "x",
         "y",
+        None,
     )
     .unwrap_err();
     assert_eq!(err.get("course"), "Choose a course");
@@ -703,6 +706,7 @@ fn parse_slot_form_requires_valid_from() {
         "",
         "",
         "",
+        None,
     )
     .unwrap_err();
     assert_eq!(err.get("valid_from"), DATE_ERR);
@@ -726,6 +730,7 @@ fn parse_slot_form_passes_end_before_start_to_core() {
         "",
         "01-09-2026",
         "",
+        None,
     )
     .unwrap();
     assert_eq!(input.start_time, t(10, 30));
@@ -1130,6 +1135,7 @@ fn session_row_for_past_pending_session() {
             chip: ChipKind::Pending,
             can_mark: true,
             note: "bring laptop".to_string(),
+            biweekly: false,
         }
     );
 }
@@ -1281,6 +1287,7 @@ fn slot_row_with_valid_to() {
             course: "CSE101".to_string(),
             room: "C3".to_string(),
             valid: "From September 1, 2026 to December 20, 2026".to_string(),
+            biweekly: false,
         }
     );
 }

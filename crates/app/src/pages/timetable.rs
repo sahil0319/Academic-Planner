@@ -424,6 +424,7 @@ fn save_slot(app: &App, window: &AppWindow) {
         &g.get_slot_room(),
         &g.get_slot_from(),
         &g.get_slot_to(),
+        None,
     );
     let editing = g.get_slot_editing();
     let effective = if editing {
