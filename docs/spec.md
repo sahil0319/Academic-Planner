@@ -293,6 +293,7 @@ Each milestone ends with the **gate**: `cargo fmt --check && cargo clippy --work
 | **M15** | Mid exam and final exam periods, separate from holidays (§13.10) | Gate passes; T71–T74 pass |
 | **M16** | Public holidays of the user's country from Google's public holiday calendar (§13.11) | Gate passes; T75–T79 pass; human sees their country's holidays on the dashboard |
 | **M17** | Carbon restyle from DESIGN.md v2, light and dark, IBM Plex Sans (§13.12) | Gate passes; theme grep check and DESIGN.md lint pass; `impeccable` critique of every page in both themes has no open high-severity items; human approves screenshots |
+| **M18** | Rules page: confirm saves, check the Saved rules list (§13.13) | Gate passes; T80–T83 pass; human sees the confirmation in the app |
 
 **Parallelism:** after M1 the API is frozen as stubs, so one agent can do M2–M3 (core) while another builds M4 (UI) against the stubs. Merge before the M4 smoke test.
 
@@ -432,7 +433,7 @@ Never run Spec Kit on the whole app at once. Per-milestone features keep `tasks.
 - `progress.json`: `{"milestone": "M2", "phase": "implement", "tasks": {"T001": "done", ...}}`, using Spec Kit task IDs. The agent updates it after each task, not at the end.
 - `checkpoint.md`, at most 15 lines: current milestone, last green gate (commit hash), next task, open questions. A new session reads **only** `AGENTS.md` + `checkpoint.md` + the current `specs/<milestone>/tasks.md`. This replaces re-reading chat history and is the cheapest way to resume after `/clear` or an expired prompt cache.
 
-## 13. After v0.1.1: M7–M17 (human decisions 2026-10-29; M11–M17 2026-10-30)
+## 13. After v0.1.1: M7–M18 (human decisions 2026-10-29; M11–M18 2026-10-30)
 
 Build in order: **M7 → M8 → M9 → M10**. The updater ships first so every later feature reaches installed copies with one click. Rules continue the R-numbering (R26–R50) and tests continue the T-numbering (§13.5). Everything in §1–§12 still applies.
 
@@ -798,3 +799,26 @@ The whole UI takes the look of DESIGN.md version 2: IBM Carbon, as in agentic-pa
 - **R84** Components follow DESIGN.md v2: square corners everywhere except status chips; 32px buttons and fields; 40px rows; Carbon fields (field fill, bottom rule, inset focus ring); nav items with a 3px primary bar on the active item; danger button style for destructive confirms (course delete, restore, archive term); GitHub button in surface-inverse; square appearance switch; square calendar cells with the calendar fills; banners and the success note with a 3px left rule.
 - **R85** Sidebar width 240px, nav order Dashboard, Progress, Timetable, Courses, Assessments, Rules, Settings, About. Window default size unchanged.
 - **R86** Workflow: full Spec Kit flow (§12). The design skills (`impeccable`) are allowed in M17 as in M4 (human decision). Screenshots of every page in light and dark go to `specs/<m17>/screenshots/` for the critique and the human's approval.
+
+### 13.13 M18: Rules page save confirmation (human report 2026-10-30; spec only until the human starts it)
+
+Light flow like M11: no Spec Kit plan/checklist/analyze artifacts; T-tests first, then the gate. No schema or core change.
+
+**Review of the report.** The human saw no sign that a save worked on the Rules page and suspected the "Saved rules" list kept old values. Code review shows the list is rebuilt from the rule set core returns after a save (`load_form` in `crates/app/src/pages/rules.rs`), so the values were not hard-coded and the human confirmed it did update. Two real gaps remain, and both are fixed here:
+1. A successful save gives no feedback. The form stays open and, when nothing changed in the numbers, looks the same as before. The grade scale save has the same gap.
+2. Failures during or around a save are easy to miss: when a row fails to parse (for example a blank or non-numeric band), only that row shows an error, which can be scrolled out of view next to the Save button; and if the form cannot be reloaded after a successful save, its error text is overwritten by the next line of code and never shown.
+
+**Rules**
+- **R87** "Saved rules" always shows the stored rule set and never the pending edits. After a successful save it is rebuilt from the rule set core returns, and it changes when a weight, band, item count, best count, item maximum, final flag, name, or the order of components changed. The line text is built by a function in `viewmodel.rs` (`rule_set_lines`) with unit tests, moved out of `pages/rules.rs`.
+- **R88** Rule set save success: the form stays open, a success note "Rule set saved." shows directly above the Save and Cancel buttons, and every page refreshes (as now). The note stays until the next action: an edit of any field, adding, removing, or moving a component or band, Cancel, opening another rule set or a new one, or a failed save. It is the same kind of note as the "Term saved." note of R67 (reuse that component if M14 is built; otherwise add it, using `Theme.*` colors only). Saving a second time with no changes shows the note again.
+- **R89** Grade scale save success: a success note "Grade scale saved." shows under the grade scale table until the next edit of a scale row or the next failed scale save.
+- **R90** Failed save: no success note. If any component or band row has a parse error, a line above the Save button says "Fix the rows marked in red before saving." (core's validation text is still shown inline as in R34). If the form cannot be reloaded after a successful save, the error text is shown, not cleared.
+
+**Tests**
+
+| ID | Given | Then |
+|---|---|---|
+| T80 (app) | rule set with bands 95→100, 90→80; `rule_set_lines` on it, then on the same set after band 90→80 became 90→70 and the weight 10 became 15 | lines list each component once with its summary, each band indented under its attendance component; the second result differs exactly in those two lines |
+| T81 (app) | open a rule set, change a band, Save; then edit a field; Save twice in a row | after Save: note "Rule set saved." and Saved rules show the new band; after the edit: note gone; second Save: note shows again |
+| T82 (app) | band min "abc"; weights summing to 95 | no success note; hint "Fix the rows marked in red before saving." for the first; core's validation text inline and no note for the second; Saved rules unchanged in both |
+| T83 (app) | edit a grade row and Save; then edit another row | note "Grade scale saved." after the save; gone after the edit |
