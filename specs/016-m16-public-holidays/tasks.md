@@ -78,7 +78,7 @@ Stories (for labels):
   SETTING_PUBLIC_HOLIDAY_COUNTRY: &str = "public_holiday_country"` beside the other `SETTING_*`
   constants (D17, D18). Doc comments cite R76, R77. T77, T78, `api_surface.rs`, and `migrations.rs`
   pass. Commit: `M16: public holiday table and core API`.
-- [ ] T004 [US1] `crates/core/src/backup.rs`: doc comment only (R80): the export writes every
+- [x] T004 [US1] `crates/core/src/backup.rs`: doc comment only (R80): the export writes every
   `setting` row so `public_holiday_country` is included, `public_holiday` is neither exported nor in
   the restore `DELETE` list. No logic change; if a test fails the builder stops and tells the router.
   Confirm `SCHEMA_VERSION` is 6 and `DAY_OFF_KIND_VERSION` still 5 (D19). All `m3_*`, `m9_*`, `m12_*`,

@@ -275,6 +275,9 @@ fn apply_error(e: rusqlite::Error) -> Error {
 
 /// R22, R41: replaces the content of the data tables with the backup rows. A version 1
 /// backup (`version < 2`) has no grading data: the grading tables get the seed defaults.
+///
+/// R80: `public_holiday` is a cache and is not in the `DELETE` list below, so a restore leaves
+/// its rows alone. The `setting` table is restored whole, so `public_holiday_country` comes back.
 fn apply(tx: &Transaction, b: &Backup, version: i64) -> rusqlite::Result<()> {
     // Foreign keys are checked at commit, so a makeup may precede the session it replaces.
     tx.execute_batch("PRAGMA defer_foreign_keys = ON")?;
@@ -558,6 +561,8 @@ impl Planner {
             )?
             .into_iter()
             .collect(),
+            // R80: every `setting` row is exported, `public_holiday_country` included; the
+            // `public_holiday` cache table is never exported.
             settings: rows(&tx, "SELECT key, value FROM setting ORDER BY key", |r| {
                 Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
             })?
