@@ -709,22 +709,21 @@ pub fn expand_holiday_range(
         .collect())
 }
 
-/// R71, D11, D12: one entry per date and kind, sorted by date. For a date and kind in both lists
-/// the added one wins; an entry of another kind on the same date is kept next to it (existing
-/// first), so core rejects the add with its R71 text and the card shows it inline.
-pub fn merge_holidays(existing: &[Holiday], added: &[Holiday]) -> Vec<Holiday> {
-    let mut merged: Vec<Holiday> = Vec::new();
-    for h in existing.iter().chain(added) {
-        match merged
-            .iter_mut()
-            .find(|m| m.date == h.date && m.kind == h.kind)
-        {
-            Some(slot) => *slot = h.clone(),
-            None => merged.push(h.clone()),
+/// R71, D9: adds the days of `added` that are not a day off yet. A date already in `existing`
+/// (any kind) is skipped and stays unchanged, so core's duplicate rejection never fires for a
+/// range over existing days. Returns the merged list sorted by date and the number skipped.
+pub fn merge_holidays(existing: &[Holiday], added: &[Holiday]) -> (Vec<Holiday>, usize) {
+    let mut merged = existing.to_vec();
+    let mut skipped = 0;
+    for h in added {
+        if merged.iter().any(|m| m.date == h.date) {
+            skipped += 1;
+        } else {
+            merged.push(h.clone());
         }
     }
     merged.sort_by_key(|h| h.date);
-    merged
+    (merged, skipped)
 }
 
 /// Removes only `date`; the others stay unchanged and sorted.
@@ -1515,6 +1514,30 @@ pub fn day_off_saved_text(kind: DayOffKind) -> String {
         DayOffKind::Midterm => "Mid exams saved.".to_string(),
         DayOffKind::Final => "Final exams saved.".to_string(),
     }
+}
+
+/// R89a, D9: the toast after adding a range. Nothing skipped keeps the saved text; otherwise
+/// `Added 8 mid exam days; 2 were already days off.`
+pub fn day_off_added_text(kind: DayOffKind, added: usize, skipped: usize) -> String {
+    if skipped == 0 {
+        return day_off_saved_text(kind);
+    }
+    let (one, many) = match kind {
+        DayOffKind::Holiday => ("holiday", "holidays"),
+        DayOffKind::Midterm => ("mid exam day", "mid exam days"),
+        DayOffKind::Final => ("final exam day", "final exam days"),
+    };
+    let were = if skipped == 1 {
+        "1 was already a day off".to_string()
+    } else {
+        format!("{skipped} were already days off")
+    };
+    format!("Added {}; {were}.", count_text(added, one, many))
+}
+
+/// D9: inline error when every day of the added range is already a day off.
+pub fn day_off_all_existing_text() -> String {
+    "All of those days are already days off.".to_string()
 }
 
 /// R89a, D18: `Holiday removed.`, `Mid exam removed.`, or `Final exam removed.`

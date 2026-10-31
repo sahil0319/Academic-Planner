@@ -1027,9 +1027,10 @@ fn expand_holiday_range_end_before_start_errors() {
     assert_eq!(got, Err(HOLIDAY_RANGE_ERR.to_string()));
 }
 
-/// §6: overlapping dates keep one holiday per date; the added label wins; result is sorted.
+/// §6, D9: a date already listed is skipped and left unchanged (label kept); the rest is added;
+/// the result is sorted and the skip count is returned.
 #[test]
-fn merge_holidays_overlap_added_label_wins_and_sorted() {
+fn merge_holidays_overlap_existing_kept_and_sorted() {
     let existing = vec![
         holiday(d(2026, 12, 24), Some("Old")),
         holiday(d(2026, 11, 2), Some("Other")),
@@ -1038,12 +1039,13 @@ fn merge_holidays_overlap_added_label_wins_and_sorted() {
         holiday(d(2026, 12, 25), Some("Break")),
         holiday(d(2026, 12, 24), Some("Break")),
     ];
-    let got = merge_holidays(&existing, &added);
+    let (got, skipped) = merge_holidays(&existing, &added);
+    assert_eq!(skipped, 1);
     assert_eq!(
         got,
         vec![
             holiday(d(2026, 11, 2), Some("Other")),
-            holiday(d(2026, 12, 24), Some("Break")),
+            holiday(d(2026, 12, 24), Some("Old")),
             holiday(d(2026, 12, 25), Some("Break")),
         ]
     );
@@ -1056,7 +1058,8 @@ fn merge_holidays_with_nothing_added_keeps_existing_sorted() {
         holiday(d(2026, 12, 25), None),
         holiday(d(2026, 11, 2), None),
     ];
-    let got = merge_holidays(&existing, &[]);
+    let (got, skipped) = merge_holidays(&existing, &[]);
+    assert_eq!(skipped, 0);
     assert_eq!(
         got,
         vec![
@@ -4487,37 +4490,99 @@ fn r73_day_off_rows_filter_by_kind() {
     assert!(day_off_rows(&[], DayOffKind::Final).is_empty());
 }
 
-/// R71, D11, D12: merging keeps an existing day off of another kind next to the added one
-/// (existing first), so core can reject the date; the same kind on the same date takes the
-/// added entry.
+/// R71, D9: an existing day off of any kind makes the same date in the added range a skip; the
+/// existing entry stays unchanged and nothing is overwritten.
 #[test]
-fn r71_merge_keeps_other_kind_on_same_date() {
+fn t_range_over_existing_day_off_skips_it() {
     let existing = vec![
-        day_off(d(2026, 10, 20), Some("Later"), DayOffKind::Holiday),
-        day_off(d(2026, 10, 14), Some("Break"), DayOffKind::Holiday),
+        day_off(d(2026, 12, 20), Some("Later"), DayOffKind::Holiday),
+        day_off(d(2026, 12, 16), Some("Public"), DayOffKind::Holiday),
     ];
-    let added = vec![day_off(d(2026, 10, 14), None, DayOffKind::Midterm)];
+    let added: Vec<Holiday> = (14..=25)
+        .map(|n| day_off(d(2026, 12, n), None, DayOffKind::Midterm))
+        .collect();
 
+    let (merged, skipped) = merge_holidays(&existing, &added);
+    assert_eq!(skipped, 2);
+    assert_eq!(merged.len(), 12);
+    assert!(merged.windows(2).all(|w| w[0].date < w[1].date));
     assert_eq!(
-        merge_holidays(&existing, &added),
-        [
-            day_off(d(2026, 10, 14), Some("Break"), DayOffKind::Holiday),
-            day_off(d(2026, 10, 14), None, DayOffKind::Midterm),
-            day_off(d(2026, 10, 20), Some("Later"), DayOffKind::Holiday),
-        ]
+        merged.iter().find(|h| h.date == d(2026, 12, 16)),
+        Some(&day_off(
+            d(2026, 12, 16),
+            Some("Public"),
+            DayOffKind::Holiday
+        ))
     );
-
-    let renamed = vec![day_off(
-        d(2026, 10, 14),
-        Some("Renamed"),
-        DayOffKind::Holiday,
-    )];
     assert_eq!(
-        merge_holidays(&existing, &renamed),
-        [
-            day_off(d(2026, 10, 14), Some("Renamed"), DayOffKind::Holiday),
-            day_off(d(2026, 10, 20), Some("Later"), DayOffKind::Holiday),
-        ]
+        merged.iter().find(|h| h.date == d(2026, 12, 20)),
+        Some(&day_off(
+            d(2026, 12, 20),
+            Some("Later"),
+            DayOffKind::Holiday
+        ))
+    );
+    assert_eq!(
+        merged
+            .iter()
+            .filter(|h| h.kind == DayOffKind::Midterm)
+            .count(),
+        10
+    );
+}
+
+/// D9: when every day of the range already exists, nothing is added and all are skipped, so the
+/// card shows the all-existing error.
+#[test]
+fn t_range_all_existing_is_an_error() {
+    let existing = vec![
+        day_off(d(2026, 12, 16), Some("A"), DayOffKind::Holiday),
+        day_off(d(2026, 12, 17), None, DayOffKind::Final),
+    ];
+    let added = vec![
+        day_off(d(2026, 12, 16), None, DayOffKind::Midterm),
+        day_off(d(2026, 12, 17), None, DayOffKind::Midterm),
+    ];
+    let (merged, skipped) = merge_holidays(&existing, &added);
+    assert_eq!(skipped, added.len());
+    assert_eq!(merged, existing);
+    assert_eq!(
+        day_off_all_existing_text(),
+        "All of those days are already days off."
+    );
+}
+
+/// R89a, D9: nothing skipped keeps the saved text; otherwise the added and skipped counts get
+/// the right singular or plural and the kind name.
+#[test]
+fn t_skip_count_text_plurals() {
+    assert_eq!(
+        day_off_added_text(DayOffKind::Midterm, 8, 0),
+        "Mid exams saved."
+    );
+    assert_eq!(
+        day_off_added_text(DayOffKind::Midterm, 8, 2),
+        "Added 8 mid exam days; 2 were already days off."
+    );
+    assert_eq!(
+        day_off_added_text(DayOffKind::Midterm, 1, 1),
+        "Added 1 mid exam day; 1 was already a day off."
+    );
+    assert_eq!(
+        day_off_added_text(DayOffKind::Final, 3, 1),
+        "Added 3 final exam days; 1 was already a day off."
+    );
+    assert_eq!(
+        day_off_added_text(DayOffKind::Final, 1, 4),
+        "Added 1 final exam day; 4 were already days off."
+    );
+    assert_eq!(
+        day_off_added_text(DayOffKind::Holiday, 1, 2),
+        "Added 1 holiday; 2 were already days off."
+    );
+    assert_eq!(
+        day_off_added_text(DayOffKind::Holiday, 5, 1),
+        "Added 5 holidays; 1 was already a day off."
     );
 }
 

@@ -377,8 +377,8 @@ fn clear_day_off_fields(page: &SettingsState<'_>, kind: DayOffKind) {
 }
 
 /// Human decision §6, R71, R73: adds one date or an inclusive range (one day off of `kind` per
-/// day, the range label winning on overlap) to the active term; R4, R6, R72: then syncs. An R71
-/// error (the date already has another kind) shows inline in that card and keeps its fields.
+/// day; a day that already is a day off is skipped, D9) to the active term; R4, R6, R72: then syncs. A core
+/// error, or a range of only existing days, shows inline in that card and keeps its fields.
 fn add_day_off(app: &App, kind: DayOffKind) {
     let Some(window) = app.window() else {
         return;
@@ -416,14 +416,28 @@ fn add_day_off(app: &App, kind: DayOffKind) {
             return;
         }
     };
-    let merged = vm::merge_holidays(&term.holidays, &added);
+    let (merged, skipped) = vm::merge_holidays(&term.holidays, &added);
+    if skipped == added.len() {
+        set_day_off_errors(
+            &page,
+            kind,
+            none(),
+            none(),
+            vm::day_off_all_existing_text().into(),
+        );
+        return;
+    }
     let saved = app.planner_mut().set_holidays(term.id, &merged);
     match saved {
         Err(e) => set_day_off_errors(&page, kind, none(), none(), vm::error_text(&e).into()),
         Ok(()) => {
             set_day_off_errors(&page, kind, none(), none(), none());
             clear_day_off_fields(&page, kind);
-            changed_then_toast(app, true, &vm::day_off_saved_text(kind));
+            changed_then_toast(
+                app,
+                true,
+                &vm::day_off_added_text(kind, added.len() - skipped, skipped),
+            );
         }
     }
 }
