@@ -1,7 +1,7 @@
 ---
 name: planner
 description: Runs the Spec Kit design steps for one milestone (plan, checklist, tasks, analyze) from docs/spec.md and the milestone's specs/ folder. Writes only Spec Kit artifacts, never code.
-model: opus
+model: sonnet
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 ---
 
