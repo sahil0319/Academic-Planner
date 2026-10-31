@@ -1,6 +1,6 @@
 {
-  "milestone": "all milestones merged; waiting for human review",
-  "phase": "awaiting-human-review",
+  "milestone": "M21-M25 specified (2026-11-01); waiting for human to start M21",
+  "phase": "awaiting-human-start",
   "tasks": {
     "M11": "done (v0.2.1 tagged)",
     "M12 spec": "done",
@@ -30,6 +30,11 @@
     "M18a toast sweep (R89a, T91)": "done, merged (454334d)",
     "font bump 15px": "done, merged (d717c59)",
     "M20 build": "done, merged (5c31e11)",
-    "input collapse bug (0.3.0)": "fixed on main (114c5e3), release 0.3.1 pending human go"
+    "input collapse bug (0.3.0)": "fixed on main (114c5e3), release 0.3.1 pending human go",
+    "M21 spec (marks basis, rule assignment)": "done 2026-11-01 (\u00a713.16)",
+    "M22 spec (sync-ready data)": "done 2026-11-01 (\u00a713.17)",
+    "M23 spec (sync engine)": "done 2026-11-01 (\u00a713.18)",
+    "M24 spec (Google sign-in + Drive)": "done 2026-11-01 (\u00a713.19)",
+    "M25 spec (Android)": "sketch only (\u00a713.20); detailed spec after the spike"
   }
 }

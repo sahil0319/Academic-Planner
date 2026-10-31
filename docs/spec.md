@@ -296,6 +296,11 @@ Each milestone ends with the **gate**: `cargo fmt --check && cargo clippy --work
 | **M18** | Toast notifications system-wide (5 s timer bar, cross button); Rules page save confirmation; build right after M17 (§13.13) | Gate passes; T80–T85 (incl. T84b) and T91 pass; DESIGN.md lint passes; human sees the toasts in the app |
 | **M19** | Default attendance bands: the human's table for rule sets not configured yet (§13.14) | Gate passes; T86–T90 pass; human sees the new defaults in the app |
 | **M20** | Export courses and routine as a JSON that another user can import (§13.15) | Gate passes; T92–T96 pass; human round-trips an export through Import |
+| **M21** | Marks basis per rule set (per credit or fixed total) and course assignment on the Rules page (§13.16) | Gate passes; T97–T106 pass; human sees the Marks control and Courses checklist on the Rules page |
+| **M22** | Sync-ready data: uuids, edit stamps, deletion records (§13.17) | Gate passes; T107–T112 pass; the app looks and behaves the same |
+| **M23** | Sync engine in core plus the app runner with a fake transport (§13.18) | Gate passes; T113–T122 pass |
+| **M24** | Google sign-in and Drive hidden-folder transport, Account and sync card (§13.19) | Gate passes; T123–T128 pass; human signs in and syncs two databases both ways |
+| **M25** | Android spike, then the Android app (§13.20, sketch) | Spike go / no-go decided by the human |
 
 **Parallelism:** after M1 the API is frozen as stubs, so one agent can do M2–M3 (core) while another builds M4 (UI) against the stubs. Merge before the M4 smoke test.
 
@@ -435,7 +440,7 @@ Never run Spec Kit on the whole app at once. Per-milestone features keep `tasks.
 - `progress.json`: `{"milestone": "M2", "phase": "implement", "tasks": {"T001": "done", ...}}`, using Spec Kit task IDs. The agent updates it after each task, not at the end.
 - `checkpoint.md`, at most 15 lines: current milestone, last green gate (commit hash), next task, open questions. A new session reads **only** `AGENTS.md` + `checkpoint.md` + the current `specs/<milestone>/tasks.md`. This replaces re-reading chat history and is the cheapest way to resume after `/clear` or an expired prompt cache.
 
-## 13. After v0.1.1: M7–M20 (human decisions 2026-10-29; M11–M20 2026-10-30 and 2026-10-31)
+## 13. After v0.1.1: M7–M25 (human decisions 2026-10-29; M11–M20 2026-10-30 and 2026-10-31; M21–M25 2026-11-01)
 
 Build in order: **M7 → M8 → M9 → M10**. The updater ships first so every later feature reaches installed copies with one click. Rules continue the R-numbering (R26–R50) and tests continue the T-numbering (§13.5). Everything in §1–§12 still applies.
 
@@ -889,3 +894,172 @@ pub fn export_courses_json(&self, course_ids: Option<&[i64]>, today: NaiveDate) 
 | T95 | export whose course uses a custom rule set name; preview in a planner without it | error at `courses[0].rule_set` naming the rule set; nothing written |
 | T96 (app) | 0, 1, and 3 courses exported by copy and by save | toast "Copied 1 course to the clipboard." / "Saved 3 courses to {path}."; 0 courses gives the inline "No courses to export." and no toast |
 
+
+### 13.16 M21: marks basis per rule set and course assignment on the Rules page (human decisions 2026-11-01; spec only until the human starts it)
+
+A rule set chooses how a course's total marks are counted, and the Rules page lists which courses follow each rule set. Percentages, letters, and GPA do not depend on the basis (projected % is secured ÷ assessed, so the total cancels); only the displayed marks, needed-in-final scores, and the Progress card text change.
+
+**Migration 007** (next free number; R26 pre-migration copy applies)
+
+```sql
+ALTER TABLE rule_set ADD COLUMN marks_basis TEXT NOT NULL DEFAULT 'per_credit' CHECK (marks_basis IN ('per_credit','fixed'));
+ALTER TABLE rule_set ADD COLUMN fixed_total REAL CHECK (fixed_total IS NULL OR fixed_total > 0);
+-- marks_basis = 'fixed' requires fixed_total NOT NULL: enforced in core (R102), not in SQL.
+```
+
+**Rules**
+- **R101** (amends R33) Total marks of a graded course: rule set basis `per_credit` → 100 × credits (today's behavior); basis `fixed` → the rule set's `fixed_total` (default 100 when the user switches to fixed), whatever the credits. A component's marks = weight_pct / 100 × total. A graded course still needs `credits` (they weight the GPA, R40) and a `rule_set_id`. An `items` component with `item_max` NULL is out of the component's marks, so a 30% final is "out of 90" for 3 credits per credit and "out of 30" under fixed 100. R35–R40 are otherwise unchanged and read the total from here.
+- **R102** (amends R34) Saving a rule set: basis `fixed` requires `fixed_total` > 0 (`Error::Validation`); basis `per_credit` stores `fixed_total` as NULL. Existing and seeded rule sets are `per_credit`, so no existing number changes.
+- **R103** Rules page, each rule set: a **Marks** control with a dropdown "Per credit (100 × credits)" / "Fixed total" and, for fixed, a number field (default 100). A hint line under it comes from `viewmodel.rs`, for example "3 credits → 300 marks" or "Any credits → 100 marks".
+- **R104** Rules page, each rule set: a **Courses** checklist of the non-archived courses of the active term (label "CODE Name"). A course ticked here follows this rule set. A course that follows another rule set shows "now in {name}" and moves on Save. A ticked course with no credits shows "no credits: not graded yet". Unticking a course that follows this set clears its rule set and the row says "will be left out of marks and GPA" (R33). Courses outside that scope (archived, other terms) are never listed and never changed by this checklist.
+- **R105** The checklist saves together with the rule set, in the same transaction and with the same validation (R34): if the rule set is invalid, no assignment changes. `RuleSetInput` gains `course_ids: Option<Vec<i64>>`; `None` leaves assignments alone (import, seeding, tests). With `Some(ids)`, in-scope courses in `ids` get this rule set and in-scope courses that follow this set but are not in `ids` get none. An unknown id is `Error::NotFound`.
+- **R106** `duplicate_rule_set(id, name)` copies the rule set with all components and bands, the same basis and total, and no courses. The name must be unique (R34); the Rules page **Duplicate** button asks for a name, prefilled "{name} (copy)", with " (2)", " (3)" appended when taken.
+- **R107** The course form keeps its rule set dropdown and writes the same `rule_set_id`. Both places always agree after a save or refresh. The marks card (R37), the Progress card (R64), and the needed-in-final table (R38) show "of {total}" from R101.
+- **R108** Backup (amends R21/R41): rule set rows carry `marks_basis` and `fixed_total`; `schema_version` becomes 7. Restoring an older backup makes every rule set `per_credit`. The courses import and export (R42, R96) are unchanged; they name rule sets only.
+
+**API additions**
+
+```rust
+// RuleSetInput gains: marks_basis: MarksBasis, fixed_total: Option<f64>, course_ids: Option<Vec<i64>>
+pub enum MarksBasis { PerCredit, Fixed }
+pub fn duplicate_rule_set(&mut self, id: i64, name: &str) -> Result<RuleSet>;   // R106
+```
+
+**Tests**
+
+| ID | Given | Then |
+|---|---|---|
+| T97 | 3-credit Theory, final 50%: basis per credit, then fixed 100, then fixed 200 | total marks 300 / 100 / 200; final marks 150 / 50 / 100 |
+| T98 | 3-credit Theory, basis fixed 100, seeded bands: attendance 92%, quizzes 12/11/13/14, mid 20, no final | Attendance 8.0 of 10; Quizzes 13.0 of 15; Mid 20.0 of 25; needed final A+ 39.0 of 50, A 34.0 of 50 (the same fractions as T39) |
+| T99 | 2-credit course, fixed total 50, final 50% | final marks 25; per credit would be 100 |
+| T100 | save with basis fixed and total missing / 0; save per credit with total 40 | first two `Error::Validation`; per credit stores NULL |
+| T101 | a version-6 database with graded courses and scores | after migration every rule set is `per_credit`; every course_marks result is identical; the R26 copy exists |
+| T102 | courses A, B in Theory, C in Lab; save Lab with `[B, C]`; then Lab with `[]`; A archived and D in another term, both in Theory | B moved to Lab, A (archived) and D unchanged; after `[]` B and C have no rule set; the archived and other-term courses are never touched |
+| T103 | save a rule set whose weights sum to 95 with `course_ids`; unknown id in `course_ids` | `Error::Validation` / `Error::NotFound`; no course changed |
+| T104 | duplicate Theory as "Theory fixed" and as "Theory" | copy equals the original (components, bands, basis) with no courses; second call `Error::Validation` |
+| T105 | same course data under per credit and fixed 100 | projected %, letter, and term GPA identical; only marks differ |
+| T106 (app) | hint texts for per credit 3 credits, fixed 100, fixed 50; checklist row texts for "now in Lab", no credits, unticking | texts as in R103 and R104, from `viewmodel.rs` |
+
+### 13.17 M22: sync-ready data (human decisions 2026-11-01; spec only until the human starts it)
+
+Preparation for syncing between devices (M23, M24, Android). This milestone changes storage only; the app looks and behaves the same. Local integer ids stay the primary keys, so no query changes shape. Each synced row gains a stable global identity and a last-edit stamp, and deletions leave a trace.
+
+**Migration 008** (next free number; R26 pre-migration copy applies)
+
+```sql
+-- uuid (TEXT NOT NULL, unique index) and updated_at (TEXT NOT NULL, UTC) added to:
+--   term, course, slot, assessment, rule_set, rule_component   (identity: uuid)
+--   session           (uuid only for makeup rows, NULL for regular rows)
+-- updated_at (no uuid) added to: holiday, attendance_band, grade_scale, setting
+-- existing rows: uuid = lower(hex(randomblob(16))) formatted as 8-4-4-4-12; updated_at = '1970-01-01T00:00:00.000Z'
+CREATE TABLE deleted_row (
+  kind        TEXT NOT NULL,   -- term | course | slot | session | assessment | rule_set | rule_component | holiday | attendance_band | grade_scale
+  key         TEXT NOT NULL,   -- uuid, or the natural key (R109)
+  deleted_at  TEXT NOT NULL,   -- UTC, same format as updated_at
+  PRIMARY KEY (kind, key)
+);
+```
+
+**Rules**
+- **R109** Identity across devices: `term`, `course`, `slot`, `assessment`, `rule_set`, `rule_component`, and makeup `session` rows are identified by `uuid`. A regular `session` is identified by (its slot's uuid, `date`), so two devices that generate the same class get the same identity without exchanging anything. Natural keys: `holiday` = (term uuid, date), `attendance_band` = (component uuid, min_pct), `grade_scale` = letter, `setting` = key. A synced reference to another row is stored in the snapshot by uuid (M23); local foreign keys stay integers.
+- **R110** Seeded rows share fixed identity: the seeded rule sets named "Theory" and "Lab" and their seeded components get constant well-known uuids (listed in the migration and in a core constant), on every install and every upgrade, so two devices never create duplicate defaults. Rows the user created have random uuids. The migration assigns the constants by exact seeded name only; a renamed or deleted seed gets a random uuid.
+- **R111** Edit stamps: `updated_at` is a UTC instant `YYYY-MM-DDTHH:MM:SS.sssZ`. Every insert and update of a synced row sets it to the UTC time the app passes in; core never reads the clock (§1 stays in force; clippy still bans `Utc::now`). This is the only place time zones appear: all dates and times of classes, assessments, and terms stay naive local (§1). Mutations that change several rows stamp each changed row. Changes made by session generation (R4–R7) stamp the sessions they create. How the time reaches core (a parameter on each mutation or a setter called by the app before each action) is a planning decision; the T-tests below pin the behavior.
+- **R112** Deletions: deleting a row that has an identity (course R51, assessment, slot, makeup session, rule set, rule component, term day off, attendance band) writes one `deleted_row` entry with the row's key and the UTC time passed in. Deleting a parent (for example a course) writes an entry for the parent only; its children are deleted with it at merge (R119). Sessions removed by sync (R5) are derived data and write no entry.
+- **R113** Not synced and not stamped: `reminder_log`, `public_holiday` (cache), `deleted_row` itself, and the device settings `theme`, `notifications_enabled`, `check_updates_on_start`, `device_id`, `device_name`, and every `sync_*` key (M24). Synced settings: `class_reminder_minutes`, `upcoming_window_days`, `public_holiday_country`. Writing a local-only setting changes no `updated_at`.
+- **R114** `device_id`: a random uuid created at the first open after this migration and stored in the setting `device_id`; `device_name` defaults to the OS host name and can be edited in M24. A restored backup (R22) keeps this device's own `device_id`.
+- **R115** Restore wins: restoring a backup (R22) stamps every restored row with the restore time passed in and writes a `deleted_row` entry for every identity that existed before the restore and is absent in the backup. After the next sync (M23) the restored state therefore overrides other devices instead of being overwritten by them.
+- **R116** Backup (amends R21/R41/R60): rows carry `uuid` and `updated_at` and the document carries `deleted_rows`; `schema_version` becomes 8. Restoring a version ≤ 7 backup assigns fresh random uuids (seeded rows get their constants, R110) and the restore time as the stamp. CSV formats (R23) are unchanged.
+
+**Tests**
+
+| ID | Given | Then |
+|---|---|---|
+| T107 | a version-7 database with terms, courses, slots, sessions, assessments, custom and seeded rule sets | after migration every identity row has a unique, well-formed uuid, `updated_at` = epoch, integer ids and all foreign keys unchanged, seeded Theory and Lab have the constant uuids; the R26 copy exists; regular sessions have no uuid, makeup sessions do |
+| T108 | edit a course with clock 10:00, again with clock 11:00; edit another course with 10:30 | first course ends at 11:00, second at 10:30; slots, sessions, and other tables unchanged |
+| T109 | delete a course that has slots, sessions, and assessments with clock 12:00; delete a makeup session; let sync remove a pending regular session (R5) | `deleted_row` has the course and the makeup session at 12:00 and nothing for the children or the R5 session |
+| T110 | set `theme`, `notifications_enabled`, then `upcoming_window_days`, `public_holiday_country` | the first two change no stamp; the last two stamp their setting rows; `reminder_log` and `public_holiday` carry no stamps |
+| T111 | back up, change data, restore with clock 13:00; also restore a version-7 backup | restored rows carry 13:00; rows that vanished have `deleted_row` entries; own `device_id` kept; the old backup gets fresh uuids |
+| T112 | two fresh databases, each seeded; compare rule sets | Theory and Lab have equal uuids and component uuids on both; a regular session key is (slot uuid, date) and a makeup session has its own uuid |
+
+### 13.18 M23: sync engine (human decisions 2026-11-01; spec only until the human starts it)
+
+Merging the data of two or more devices, with no network. Core merges snapshots; the app crate runs the loop through a transport trait. A fake transport makes everything testable with in-memory databases. Needs M22.
+
+**Model.** Each device writes only its own snapshot file and reads the others', so there are no write conflicts on the store. A merge folds other devices' snapshots into the local database by row-level last-writer-wins.
+
+**Snapshot** (`SyncState`, JSON): `{"format":"academic-planner-sync","snapshot_version":1,"schema_version":8,"device_id":"…","device_name":"…","exported_at":"…Z","rows":{"term":[…],"course":[…],…},"deleted_rows":[…]}`. Rows carry their uuid or natural key, `updated_at`, all synced columns, and references to parents by uuid (`term_uuid`, `course_uuid`, `slot_uuid`, `rule_set_uuid`, `component_uuid`). It holds the whole synced state (R113 lists what is left out).
+
+**Rules**
+- **R117** `export_sync_state(now_utc)` builds the snapshot in one read transaction. `merge_sync_states(remote, now_utc, today)` folds a list of other devices' snapshots into the database in one transaction. Both live in `core`; neither reads the clock.
+- **R118** Last writer wins per row: for the same identity (R109) the row with the greater `updated_at` wins and replaces the other whole; no field-level merging. Equal stamps: the greater `device_id` string wins, so every device picks the same row.
+- **R119** Delete vs edit: a `deleted_row` entry with `deleted_at` ≥ the row's `updated_at` deletes the row; a row edited after the deletion survives and the entry is dropped. Deleting a row at merge deletes its children (a course takes its slots, sessions, and assessments; a rule set takes components and bands; a term takes its days off and courses), and a course that followed a deleted rule set ends with no rule set (stamped).
+- **R120** Unique conflicts (course code in a term, rule set name, component name in a rule set) between two different identities: the older row (lower `updated_at`, then lower device id) keeps its data and its name gets " (2)", " (3)" appended, stamped. Nothing is dropped, and the merge report lists each rename.
+- **R121** Active term: after a merge exactly one term is active (R1): the active term with the greatest stamp; the others are set inactive and stamped with `now_utc`.
+- **R122** Derived data: after the merge, `sync_sessions(today)` runs (R4–R7). A remote regular session matches the local one with the same (slot uuid, date) and merges by R118, so attendance set on two devices for different classes both survive, and for the same class the later mark wins. A remote regular session whose slot does not exist is dropped. Merged data must still satisfy every schema constraint; a row that would violate one (for example a session with end ≤ start) is skipped and reported, never written.
+- **R123** Convergence: merging is deterministic, idempotent, and order independent. After any set of devices has merged each other's latest snapshots (in any order, repeated), the synced content is identical on every device. A merge that changes nothing writes nothing and restamps nothing.
+- **R124** Safety: the merge is one transaction. Before the first merge on a database that has data (any row beyond the seeds), a copy is written to `{db_dir}/backups/pre-sync-{n}.sqlite` (same naming rule as R26).
+- **R125** Version gate: a snapshot whose `schema_version` or `snapshot_version` differs from this app's is skipped and reported with the device name ("Update the app on {device} to keep syncing"); nothing from it is merged.
+- **R126** Orphans: a row whose parent uuid exists neither in the snapshots nor locally is skipped and counted in the report, not an error.
+- **R127** Settings merge per key by R118; device-only keys (R113) are never exported or merged.
+- **R128** App crate runner. `trait SyncTransport { fn list(&self) -> Result<Vec<RemoteFile>>; fn download(&self, id: &str) -> Result<Vec<u8>>; fn upload_own(&self, bytes: &[u8]) -> Result<()>; }` with `RemoteFile { id, device_id, device_name, modified }`. `run_sync` lists the other devices' files, downloads them, merges (R117), then exports and uploads this device's snapshot last. The network calls hold no database lock: export and merge are short transactions and the UI stays responsive. A failed download or merge leaves the database as it was; a failed upload keeps the merge and retries on the next run. A fake transport (in memory) is used by tests; M24 supplies the Google one.
+- **R129** Automatic runs (human decision 2026-11-01): once after launch (in the background, after the window shows), about 5 seconds after the last local change (debounced), every 5 minutes while the app runs, and again when the app returns to the foreground. One run at a time; a change during a run schedules another. A failure is silent apart from the status text and retries at the next trigger with backoff (1, 2, 5 minutes, then 5 minutes). A routine success shows no toast. The scheduler decision is a pure function (`next_sync_action(state, event, now)`) with unit tests.
+
+**API additions**
+
+```rust
+pub struct SyncState { /* serde, R117 */ }
+pub struct MergeReport { pub added: usize, pub updated: usize, pub deleted: usize, pub renamed: Vec<String>, pub skipped: Vec<String> }
+pub fn export_sync_state(&self, now_utc: DateTime<Utc>) -> Result<SyncState>;
+pub fn merge_sync_states(&mut self, remote: &[SyncState], now_utc: DateTime<Utc>, today: NaiveDate) -> Result<MergeReport>;
+```
+
+**Tests**
+
+| ID | Given | Then |
+|---|---|---|
+| T113 | planner A: term, course, two slots, assessment, rule set; empty planner B (seeded only); merge A's snapshot into B | B has the same term, course, slots, assessment, and rule set; sessions generated locally with the same (slot uuid, date) keys; B's seeded Theory and Lab are not duplicated |
+| T114 | A and B edit the same course name offline at 10:00 and 11:00; then with equal stamps | 11:00 wins on both after merging both ways; with equal stamps the greater device id wins on both |
+| T115 | A deletes a course at 12:00 while B edited it at 11:00, then again with B's edit at 13:00 | first: the course (with slots, sessions, assessments) is gone on both; second: the course survives on both with B's edit |
+| T116 | A marks Monday attended, B marks Wednesday absent; then both mark Monday (A attended 10:00, B absent 11:00) | both marks survive on both; for Monday B's absent wins |
+| T117 | A and B each add a course CSE101 to the same term, different uuids | both survive: the older keeps CSE101, the other becomes "CSE101 (2)"; the report lists the rename |
+| T118 | A activates term X at 10:00, B activates term Y at 11:00 | after merging both ways Y is the only active term on both |
+| T119 | three planners, random sequences of edits, deletes, attendance marks, merged pairwise in random orders and repeated (fixed seeds) | identical synced content on all three; a second merge of the same snapshots reports nothing and changes no stamp |
+| T120 | a snapshot with schema_version 99 and one with an orphan assessment (no parent course) | first skipped with the device named; second skipped and counted; nothing else changes |
+| T121 (app) | `run_sync` with the fake transport: download fails; merge succeeds then upload fails; second run | download failure leaves the database unchanged; upload failure keeps the merge and the next run uploads; the own file is the only file written |
+| T122 (app) | `next_sync_action` for launch, change (twice within 5 s), 5-minute tick, foreground, failure then success, change during a run | one run per debounce window; runs never overlap; backoff 1, 2, 5, 5 minutes; a change during a run schedules exactly one more |
+
+### 13.19 M24: Google sign-in and Drive transport (human decisions 2026-11-01; spec only until the human starts it)
+
+Sync between the user's own devices through their Google Drive hidden app folder. The app has no server and never holds the user's data. Needs M23.
+
+**Rules**
+- **R130** Optional: the app works fully signed out, exactly as before M24, and makes no Google request unless the user is signed in or is signing in. Sync is off until the user signs in.
+- **R131** Sign in: OAuth 2.0 authorization code flow with PKCE (RFC 7636) for installed apps. The app opens the system browser, receives the result on a loopback redirect `http://127.0.0.1:{free port}`, checks the `state` value, and exchanges the code. Scopes: `https://www.googleapis.com/auth/drive.appdata`, `openid`, `email`. The attempt times out after 3 minutes and can be cancelled. Denied access shows "Sign-in was cancelled."
+- **R132** Tokens: the refresh token is stored in the operating system keychain (service `academic-planner`); the access token is held in memory only. Tokens never go to the database, backups, snapshots, logs, or error text. If the keychain is unavailable, sign-in is refused with a clear message; there is no plain-file fallback.
+- **R133** Drive layout: all files live in `appDataFolder`, which no other app and no Drive web page shows. One file per device, `planner-state-{device_id}.json` (the R117 snapshot). Operations: list (`spaces=appDataFolder`, fields id, name, modifiedTime, appProperties), download (`alt=media`), create or update (multipart upload). The device's friendly name travels in the snapshot and in `appProperties`.
+- **R134** Errors: 429 and 5xx retry up to 3 times with backoff; 401 refreshes the access token once, and if that fails the status becomes "Sign in again"; any other failure keeps local data untouched and shows "Couldn't sync. Will retry." (R128, R129). Nothing blocks the app.
+- **R135** Settings → **Account and sync** card. Signed out: one sentence on what sync does and where data goes, and **Sign in with Google**. Signed in: the account email, the device name (editable), a status line ("Synced 2 minutes ago", "Syncing…", "Offline. Will retry.", "Sign in again"), **Sync now**, the other devices (name, last synced), **Sign out** (removes the token and stops syncing; local data and cloud files stay), and **Delete cloud data…** (inline confirm; deletes every file in the app folder, then signs out; local data stays). A small status line also shows in the sidebar footer while signed in. All texts come from `viewmodel.rs` with unit tests. Sign-in and sync failures stay inline (R88); Sign out and Delete cloud data success show toasts (R89a).
+- **R136** First sync with data on both sides: when this device has data (R124) and the cloud already holds another device's file, an inline panel asks before merging: "This device and the cloud both have data. Merging combines them, and you may see duplicates (for example two terms). A backup is saved first." with **Merge** and **Cancel**. A blank device (seeds only) merges without asking.
+- **R137** Build configuration: the Google OAuth client id and secret (desktop clients; Google treats the secret as non-confidential) are read at build time from `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`; CI passes them from repository secrets. A build without them shows "Sync is not set up in this build" and nothing else changes. Human setup, documented in `docs/sync/setup.md`: create a Google Cloud project, enable the Drive API, configure the OAuth consent screen (External, publish to production so refresh tokens do not expire after 7 days; the app-data scope is non-sensitive, verify this at setup), create a Desktop client, add the two repository secrets.
+- **R138** Amendments on build: §1 Network row adds Google sign-in and Drive; §10 no longer lists cloud sync/accounts and mobile as out of scope; the README privacy section states what sync stores and where; `THIRD-PARTY-NOTICES` covers the new crates (for example `keyring`, `oauth2` or hand-written PKCE, `tiny_http` for the loopback).
+
+**Tests**
+
+| ID | Given | Then |
+|---|---|---|
+| T123 | the RFC 7636 appendix B verifier | challenge equals the RFC's value; generated verifiers are 43–128 URL-safe characters |
+| T124 | auth URL build; loopback requests with a code, with `error=access_denied`, with a wrong `state` | URL has client id, redirect, scopes, `code_challenge_method=S256`, `state`; parser returns the code / "cancelled" / a state-mismatch error |
+| T125 | saved sample Drive responses: list with 2 files, create, update, 401, 429, 500 | request builders produce the right URLs, query, and multipart bodies; parsers return files with device ids; errors map to the R134 categories |
+| T126 | sign in with a fake token store, sync, then scan the database, a backup JSON, a snapshot, and the log output | the token strings appear nowhere but the fake store |
+| T127 (app) | status, devices, and confirm texts for each state (signed out, syncing, offline, sign in again, first-merge panel, delete-cloud confirm) | texts from `viewmodel.rs` as in R135 and R136 |
+| T128 (app) | the Google transport against a mock HTTP server on 127.0.0.1: list, download, upload, a 401 then a successful refresh, a 500 then success | requests and retries as in R133 and R134; no real network used |
+
+**Human gates:** do the R137 Google setup; sign in on the Mac with a real account; use two database files (`ACADEMIC_PLANNER_DB`) as two devices and check that an edit, a delete, and an attendance mark travel both ways; edit the same course on both while offline; Sign out; Delete cloud data; confirm in Google Account → Third-party apps that the app asks only for its own hidden folder.
+
+### 13.20 M25 onward: Android app (sketch; the detailed spec comes after the spike; human decisions 2026-11-01)
+
+Goal: the same app on Android, syncing with the Mac through M24. Order is fixed: M21 → M22 → M23 → M24 → M25. Distribution (personal APK or Play Store) is an open question for the human.
+
+- **M25 spike (go / no-go):** an `android` feature builds `core` and a Slint library crate (`cdylib` with `android_main`) with the NDK and shows only the Dashboard on an emulator and one real phone. Questions it must answer: does Slint's Android backend render IBM Plex and the theme, does text input work with the soft keyboard, does the APK build in CI. The spike is revertable and changes no rule. Go / no-go criteria are written in its spec.
+- **Then (to be specified):** mobile layout shell (bottom navigation, touch targets of at least 48 dp, single-column pages, a calendar that fits 360 dp; a mobile section in DESIGN.md); the remaining pages; platform glue (database path in the app's private files dir, file save and open through the Storage Access Framework, clipboard, class and assessment notifications that fire when the app is closed through AlarmManager and the notification permission, Google sign-in on Android with the token in Android Keystore, bundled root certificates for `reqwest`); CI build and signing with an Android keystore; release.
+- Rejected alternatives (kept for the record): a native Kotlin UI over `core`, Tauri mobile, and a web or PWA version. The human prefers one Slint codebase unless the spike fails.
