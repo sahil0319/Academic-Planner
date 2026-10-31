@@ -6,7 +6,7 @@ use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::rc::{Rc, Weak};
 
-use planner_core::{Error, Settings};
+use planner_core::{DayOffKind, Error, Settings};
 use slint::{ComponentHandle, SharedString};
 
 use crate::controller::App;
@@ -55,12 +55,19 @@ pub fn refresh(app: &App) {
             };
             page.set_archive_enabled(enabled);
             page.set_archive_hint(hint.into());
-            let rows = term
-                .map(|t| t.holidays.iter().map(vm::holiday_row).collect::<Vec<_>>())
-                .unwrap_or_default();
-            page.set_holidays(bridge::model(
-                rows.iter().map(bridge::holiday_row).collect(),
-            ));
+            // R73: one list per kind of day off (empty without a term).
+            let days = term.map(|t| t.holidays).unwrap_or_default();
+            let rows_of = |kind| {
+                bridge::model(
+                    vm::day_off_rows(&days, kind)
+                        .iter()
+                        .map(bridge::holiday_row)
+                        .collect(),
+                )
+            };
+            page.set_holidays(rows_of(DayOffKind::Holiday));
+            page.set_midterms(rows_of(DayOffKind::Midterm));
+            page.set_finals(rows_of(DayOffKind::Final));
         }
         Err(e) => page.set_message(vm::error_text(&e).into()),
     }
@@ -120,7 +127,9 @@ pub fn wire(app: &Rc<App>) {
     page.on_archive_term(with(app, archive_term));
     page.on_archive_confirm(with(app, archive_confirm));
     page.on_archive_cancel(with(app, archive_cancel));
-    page.on_add_holiday(with(app, add_holiday));
+    page.on_add_holiday(with(app, |app| add_day_off(app, DayOffKind::Holiday)));
+    page.on_add_midterm(with(app, |app| add_day_off(app, DayOffKind::Midterm)));
+    page.on_add_final(with(app, |app| add_day_off(app, DayOffKind::Final)));
     let weak = Rc::downgrade(app);
     page.on_remove_holiday(move |date| {
         if let Some(app) = weak.upgrade() {
@@ -292,55 +301,133 @@ fn archive_cancel(app: &App) {
     }
 }
 
-/// Human decision §6: adds one date or an inclusive range (one holiday per day, the range label
-/// winning on overlap) to the active term; R4, R6: then syncs.
-fn add_holiday(app: &App) {
-    let Some(window) = app.window() else {
-        return;
-    };
-    let page = window.global::<SettingsState>();
-    let term = match app.planner().active_term() {
-        Ok(Some(term)) => term,
-        Ok(None) => {
-            page.set_hol_form_error(vm::error_text(&Error::NoActiveTerm).into());
-            return;
+/// R73: the form values of one day off card: first day, last day, and label text.
+fn day_off_fields(
+    page: &SettingsState<'_>,
+    kind: DayOffKind,
+) -> (SharedString, SharedString, SharedString) {
+    match kind {
+        DayOffKind::Holiday => (
+            page.get_hol_start(),
+            page.get_hol_end(),
+            page.get_hol_label(),
+        ),
+        DayOffKind::Midterm => (
+            page.get_mid_start(),
+            page.get_mid_end(),
+            page.get_mid_label(),
+        ),
+        DayOffKind::Final => (
+            page.get_fin_start(),
+            page.get_fin_end(),
+            page.get_fin_label(),
+        ),
+    }
+}
+
+/// R73: sets the three error lines (first day, last day, form) of one day off card.
+fn set_day_off_errors(
+    page: &SettingsState<'_>,
+    kind: DayOffKind,
+    start: SharedString,
+    end: SharedString,
+    form: SharedString,
+) {
+    match kind {
+        DayOffKind::Holiday => {
+            page.set_hol_start_error(start);
+            page.set_hol_end_error(end);
+            page.set_hol_form_error(form);
         }
-        Err(e) => {
-            page.set_hol_form_error(vm::error_text(&e).into());
-            return;
+        DayOffKind::Midterm => {
+            page.set_mid_start_error(start);
+            page.set_mid_end_error(end);
+            page.set_mid_form_error(form);
         }
-    };
-    let added = vm::parse_holiday_form(
-        &page.get_hol_start(),
-        &page.get_hol_end(),
-        &page.get_hol_label(),
-    );
-    let added = match added {
-        Ok(added) => added,
-        Err(errors) => {
-            page.set_hol_start_error(errors.get("start").into());
-            page.set_hol_end_error(errors.get("end").into());
-            page.set_hol_form_error(SharedString::new());
-            return;
-        }
-    };
-    page.set_hol_start_error(SharedString::new());
-    page.set_hol_end_error(SharedString::new());
-    let merged = vm::merge_holidays(&term.holidays, &added);
-    let saved = app.planner_mut().set_holidays(term.id, &merged);
-    match saved {
-        Err(e) => page.set_hol_form_error(vm::error_text(&e).into()),
-        Ok(()) => {
-            page.set_hol_form_error(SharedString::new());
-            page.set_hol_start(SharedString::new());
-            page.set_hol_end(SharedString::new());
-            page.set_hol_label(SharedString::new());
-            changed_then_toast(app, true, &vm::holidays_saved_text());
+        DayOffKind::Final => {
+            page.set_fin_start_error(start);
+            page.set_fin_end_error(end);
+            page.set_fin_form_error(form);
         }
     }
 }
 
-/// Human decision §6: removes one holiday date from the active term; R6: then syncs.
+/// R73: empties the three form fields of one day off card.
+fn clear_day_off_fields(page: &SettingsState<'_>, kind: DayOffKind) {
+    let empty = SharedString::new;
+    match kind {
+        DayOffKind::Holiday => {
+            page.set_hol_start(empty());
+            page.set_hol_end(empty());
+            page.set_hol_label(empty());
+        }
+        DayOffKind::Midterm => {
+            page.set_mid_start(empty());
+            page.set_mid_end(empty());
+            page.set_mid_label(empty());
+        }
+        DayOffKind::Final => {
+            page.set_fin_start(empty());
+            page.set_fin_end(empty());
+            page.set_fin_label(empty());
+        }
+    }
+}
+
+/// Human decision §6, R71, R73: adds one date or an inclusive range (one day off of `kind` per
+/// day, the range label winning on overlap) to the active term; R4, R6, R72: then syncs. An R71
+/// error (the date already has another kind) shows inline in that card and keeps its fields.
+fn add_day_off(app: &App, kind: DayOffKind) {
+    let Some(window) = app.window() else {
+        return;
+    };
+    let page = window.global::<SettingsState>();
+    let none = SharedString::new;
+    let term = match app.planner().active_term() {
+        Ok(Some(term)) => term,
+        Ok(None) => {
+            set_day_off_errors(
+                &page,
+                kind,
+                none(),
+                none(),
+                vm::error_text(&Error::NoActiveTerm).into(),
+            );
+            return;
+        }
+        Err(e) => {
+            set_day_off_errors(&page, kind, none(), none(), vm::error_text(&e).into());
+            return;
+        }
+    };
+    let (start, end, label) = day_off_fields(&page, kind);
+    let added = match vm::parse_holiday_form(&start, &end, &label) {
+        Ok(added) => vm::as_day_off(added, kind),
+        Err(errors) => {
+            set_day_off_errors(
+                &page,
+                kind,
+                errors.get("start").into(),
+                errors.get("end").into(),
+                none(),
+            );
+            return;
+        }
+    };
+    let merged = vm::merge_holidays(&term.holidays, &added);
+    let saved = app.planner_mut().set_holidays(term.id, &merged);
+    match saved {
+        Err(e) => set_day_off_errors(&page, kind, none(), none(), vm::error_text(&e).into()),
+        Ok(()) => {
+            set_day_off_errors(&page, kind, none(), none(), none());
+            clear_day_off_fields(&page, kind);
+            changed_then_toast(app, true, &vm::day_off_saved_text(kind));
+        }
+    }
+}
+
+/// Human decision §6, R73: removes one day off (of any kind) from the active term; R6: then
+/// syncs. The toast names the removed kind (R89a).
 fn remove_holiday(app: &App, key: &str) {
     let term = match app.planner().active_term() {
         Ok(Some(term)) => term,
@@ -348,20 +435,20 @@ fn remove_holiday(app: &App, key: &str) {
         Err(e) => return message(app, &vm::error_text(&e)),
     };
     // The row passes its stored ISO date (`HolidayRow::key`), independent of the display format.
-    let Some(date) = term
+    let Some(removed) = term
         .holidays
         .iter()
-        .map(|h| h.date)
-        .find(|d| d.format("%Y-%m-%d").to_string() == key)
+        .find(|h| h.date.format("%Y-%m-%d").to_string() == key)
     else {
-        return message(app, "This holiday no longer exists");
+        return message(app, "This day off no longer exists");
     };
-    let remaining = vm::remove_holiday(&term.holidays, date);
+    let kind = removed.kind;
+    let remaining = vm::remove_holiday(&term.holidays, removed.date);
     let saved = app.planner_mut().set_holidays(term.id, &remaining);
     match saved {
         Err(e) => message(app, &vm::error_text(&e)),
         Ok(()) => {
-            changed_then_toast(app, true, &vm::holiday_removed_text());
+            changed_then_toast(app, true, &vm::day_off_removed_text(kind));
         }
     }
 }

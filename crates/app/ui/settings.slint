@@ -1,5 +1,5 @@
-// Settings page (docs/spec.md §6, contracts/ui-bridge.md "SettingsState"): term, holidays,
-// reminder settings, backup, restore, CSV export, and the database path. Bindings only; every
+// Settings page (docs/spec.md §6, contracts/ui-bridge.md "SettingsState"): term, holidays, mid exams,
+// final exams, reminder settings, backup, restore, CSV export, and the database path. Bindings only; every
 // data-derived string comes from Rust (src/pages/settings.rs via src/viewmodel.rs).
 import { Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
@@ -45,6 +45,21 @@ export global SettingsState {
     in property <string> hol-start-error;
     in property <string> hol-end-error;
     in property <string> hol-form-error;
+    // R73: Mid exams and Final exams cards, same shape as the Holidays card.
+    in property <[HolidayRow]> midterms;
+    in-out property <string> mid-start;
+    in-out property <string> mid-end;
+    in-out property <string> mid-label;
+    in property <string> mid-start-error;
+    in property <string> mid-end-error;
+    in property <string> mid-form-error;
+    in property <[HolidayRow]> finals;
+    in-out property <string> fin-start;
+    in-out property <string> fin-end;
+    in-out property <string> fin-label;
+    in property <string> fin-start-error;
+    in property <string> fin-end-error;
+    in property <string> fin-form-error;
 
     // Settings form (§3 settings).
     in-out property <string> reminder;
@@ -68,6 +83,8 @@ export global SettingsState {
     callback archive-confirm();
     callback archive-cancel();
     callback add-holiday();
+    callback add-midterm();
+    callback add-final();
     callback remove-holiday(string);
     callback save-settings();
     callback backup();
@@ -102,6 +119,90 @@ component MutedText inherits Text {
     font-family: Theme.font-body;
     font-size: Theme.body-md-size;
     font-weight: Theme.body-md-weight;
+}
+
+// R73: one day-off card (Holidays, Mid exams, Final exams): one row per day with Remove, then
+// the date, last day, and label fields, the inline form error, and the add button.
+component DayOffCard inherits SectionCard {
+    in property <[HolidayRow]> rows;
+    in property <string> empty-text;
+    in property <string> add-text;
+    in-out property <string> first-day;
+    in-out property <string> last-day;
+    in-out property <string> label;
+    in property <string> first-error;
+    in property <string> last-error;
+    in property <string> form-error;
+    callback add();
+    callback remove(string);
+
+    if root.rows.length == 0: EmptyState {
+        text: root.empty-text;
+    }
+
+    if root.rows.length > 0: VerticalLayout {
+        for row in root.rows: ListRow {
+            Text {
+                text: row.date;
+                vertical-alignment: center;
+                color: Theme.on-surface;
+                font-family: Theme.font-body;
+                font-size: Theme.body-md-size;
+                font-weight: Theme.body-md-weight;
+            }
+
+            Text {
+                text: row.label;
+                horizontal-stretch: 1;
+                vertical-alignment: center;
+                color: Theme.on-surface-muted;
+                font-family: Theme.font-body;
+                font-size: Theme.body-md-size;
+                font-weight: Theme.body-md-weight;
+            }
+
+            SecondaryButton {
+                text: "Remove";
+                clicked => {
+                    root.remove(row.key);
+                }
+            }
+        }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.space-md;
+        Field {
+            label: "Date or first day (DD-MM-YYYY)";
+            text <=> root.first-day;
+            error: root.first-error;
+        }
+
+        Field {
+            label: "Last day, optional (DD-MM-YYYY)";
+            text <=> root.last-day;
+            error: root.last-error;
+        }
+
+        Field {
+            label: "Label, optional";
+            text <=> root.label;
+        }
+    }
+
+    if root.form-error != "": FormError {
+        text: root.form-error;
+    }
+
+    HorizontalLayout {
+        alignment: start;
+        PrimaryButton {
+            text: root.add-text;
+            clicked => {
+                root.add();
+            }
+        }
+    }
 }
 
 export component SettingsPage inherits VerticalLayout {
@@ -297,75 +398,64 @@ export component SettingsPage inherits VerticalLayout {
         }
     }
 
-    SectionCard {
+    DayOffCard {
         title: "Holidays";
-
-        if SettingsState.holidays.length == 0: EmptyState {
-            text: "No holidays yet. Add a date or a range below with Add holiday; no classes are scheduled on holidays.";
+        rows: SettingsState.holidays;
+        empty-text: "No holidays yet. Add a date or a range below with Add holiday; no classes are scheduled on holidays.";
+        add-text: "Add holiday";
+        first-day <=> SettingsState.hol-start;
+        last-day <=> SettingsState.hol-end;
+        label <=> SettingsState.hol-label;
+        first-error: SettingsState.hol-start-error;
+        last-error: SettingsState.hol-end-error;
+        form-error: SettingsState.hol-form-error;
+        add => {
+            SettingsState.add-holiday();
         }
-
-        if SettingsState.holidays.length > 0: VerticalLayout {
-            for row in SettingsState.holidays: ListRow {
-                Text {
-                    text: row.date;
-                    vertical-alignment: center;
-                    color: Theme.on-surface;
-                    font-family: Theme.font-body;
-                    font-size: Theme.body-md-size;
-                    font-weight: Theme.body-md-weight;
-                }
-
-                Text {
-                    text: row.label;
-                    horizontal-stretch: 1;
-                    vertical-alignment: center;
-                    color: Theme.on-surface-muted;
-                    font-family: Theme.font-body;
-                    font-size: Theme.body-md-size;
-                    font-weight: Theme.body-md-weight;
-                }
-
-                SecondaryButton {
-                    text: "Remove";
-                    clicked => {
-                        SettingsState.remove-holiday(row.key);
-                    }
-                }
-            }
+        remove(key) => {
+            SettingsState.remove-holiday(key);
         }
+    }
 
-        HorizontalLayout {
-            spacing: Theme.space-md;
-            Field {
-                label: "Date or first day (DD-MM-YYYY)";
-                text <=> SettingsState.hol-start;
-                error: SettingsState.hol-start-error;
-            }
-
-            Field {
-                label: "Last day, optional (DD-MM-YYYY)";
-                text <=> SettingsState.hol-end;
-                error: SettingsState.hol-end-error;
-            }
-
-            Field {
-                label: "Label, optional";
-                text <=> SettingsState.hol-label;
-            }
+    DayOffCard {
+        title: "Mid exams";
+        has-swatch: true;
+        swatch: Theme.calendar-midterm;
+        rows: SettingsState.midterms;
+        empty-text: "No mid exams yet. Add a date or a range below with Add mid exam; no classes are scheduled on exam days.";
+        add-text: "Add mid exam";
+        first-day <=> SettingsState.mid-start;
+        last-day <=> SettingsState.mid-end;
+        label <=> SettingsState.mid-label;
+        first-error: SettingsState.mid-start-error;
+        last-error: SettingsState.mid-end-error;
+        form-error: SettingsState.mid-form-error;
+        add => {
+            SettingsState.add-midterm();
         }
-
-        if SettingsState.hol-form-error != "": FormError {
-            text: SettingsState.hol-form-error;
+        remove(key) => {
+            SettingsState.remove-holiday(key);
         }
+    }
 
-        HorizontalLayout {
-            alignment: start;
-            PrimaryButton {
-                text: "Add holiday";
-                clicked => {
-                    SettingsState.add-holiday();
-                }
-            }
+    DayOffCard {
+        title: "Final exams";
+        has-swatch: true;
+        swatch: Theme.calendar-final;
+        rows: SettingsState.finals;
+        empty-text: "No final exams yet. Add a date or a range below with Add final exam; no classes are scheduled on exam days.";
+        add-text: "Add final exam";
+        first-day <=> SettingsState.fin-start;
+        last-day <=> SettingsState.fin-end;
+        label <=> SettingsState.fin-label;
+        first-error: SettingsState.fin-start-error;
+        last-error: SettingsState.fin-end-error;
+        form-error: SettingsState.fin-form-error;
+        add => {
+            SettingsState.add-final();
+        }
+        remove(key) => {
+            SettingsState.remove-holiday(key);
         }
     }
 

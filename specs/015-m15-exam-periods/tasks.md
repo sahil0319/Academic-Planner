@@ -115,7 +115,7 @@ Stories (for labels):
   optional swatch (`has-swatch`, `swatch`) before the title, `Theme.swatch-size`,
   `Theme.radius-none`, `Theme.space-sm` gap; unchanged look without it.
   Commit: `M15: calendar day off key and card swatch`.
-- [ ] T007 [US3] Settings cards (R73) in `crates/app/ui/settings.slint` and
+- [x] T007 [US3] Settings cards (R73) in `crates/app/ui/settings.slint` and
   `crates/app/src/pages/settings.rs`, as plan.md "Slint" and "Page wiring": `DayOffCard`
   component; `SettingsState` additions (`midterms`, `finals`, `mid-*`, `fin-*` fields and errors,
   `add-midterm`, `add-final`); Holidays card rebuilt on `DayOffCard` with today's texts and no
