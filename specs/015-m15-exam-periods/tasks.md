@@ -129,7 +129,7 @@ Stories (for labels):
 
 ## Phase 5: Dashboard (builder) — US4
 
-- [ ] T008 [US4] Dashboard calendar (R74) in `crates/app/ui/dashboard.slint` and
+- [x] T008 [US4] Dashboard calendar (R74) in `crates/app/ui/dashboard.slint` and
   `crates/app/src/pages/dashboard.rs`: `DayCell` fill by `day-off` key (today, then
   `Theme.calendar-holiday` / `Theme.calendar-midterm` / `Theme.calendar-final`, then weekend),
   comment updated; `export struct LegendItem { key: string, text: string }` in

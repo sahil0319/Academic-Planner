@@ -182,9 +182,16 @@ fn fill_calendar(app: &App, state: &DashboardState<'_>, now: NaiveDateTime) -> R
         })
         .collect::<Result<Vec<_>, _>>()?;
     state.set_panel_title(viewmodel::day_panel_title(selected, today).into());
+    // R74: the day panel line names the kind of day off; the legend lists the three kinds.
     state.set_panel_holiday(
-        viewmodel::day_panel_holiday_text(&viewmodel::holiday_text(&holidays, selected)).into(),
+        viewmodel::day_panel_day_off_text(viewmodel::day_off_on(&holidays, selected)).into(),
     );
+    state.set_day_off_legend(bridge::model(
+        viewmodel::day_off_legend()
+            .iter()
+            .map(bridge::legend_item)
+            .collect(),
+    ));
     state.set_panel_empty_text(viewmodel::day_panel_empty_text(selected, today).into());
     state.set_panel_sessions(bridge::rows(&day_rows, |(row, can_shift)| {
         bridge::session_row_with_shift(row, *can_shift)

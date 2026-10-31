@@ -7,6 +7,7 @@ import {
     StatusAction,
     CalendarDay,
     CalendarWeek,
+    LegendItem,
     AppState,
 } from "types.slint";
 import {
@@ -56,7 +57,10 @@ export global DashboardState {
     in property <[CalendarWeek]> calendar;
     // Day panel: "Today's classes" for today, else "Monday, October 26, 2026".
     in property <string> panel-title;
-    // "Holiday: Midterm week" when the selected day is a holiday, else "".
+    // R74: the legend entries of the day-off fills (key and name): Holiday, Mid exam, Final exam.
+    in property <[LegendItem]> day-off-legend;
+    // "Holiday: Midterm week", "Mid exam: Week 7", or "Final exam: Final exam" when the selected
+    // day is a day off, else "".
     in property <string> panel-holiday;
     // Shown when the selected day has no sessions and no assessments due.
     in property <string> panel-empty-text;
@@ -165,9 +169,9 @@ component AssessmentLine inherits ListRow {
 }
 
 // R84: one mini calendar day (DESIGN.md "Mini calendar", research D7): a square cell with the
-// number. Fill priority: today (primary fill, on-primary number), then holiday or exam period
-// (calendar-holiday), then weekend (surface-hover), else none. A weekend holiday shows the holiday
-// fill. Selected: a focus-ring-width inset focus outline, plus an on-primary inner ring when the
+// number. Fill priority: today (primary fill, on-primary number), then the day off by kind
+// (calendar-holiday, calendar-midterm, calendar-final; R74), then weekend (surface-hover), else
+// none. A weekend day off shows the day off fill. Selected: a focus-ring-width inset focus outline, plus an on-primary inner ring when the
 // selected day is today. A day with an assessment due shows a calendar-marker square in error under
 // the number. Class days carry no marker. The accessible label spells out the date, the holiday,
 // and the counts.
@@ -184,7 +188,9 @@ component DayCell inherits Rectangle {
     height: Theme.calendar-cell;
     border-radius: Theme.radius-none;
     background: root.item.is-today ? (touch.has-hover ? Theme.primary-hover : Theme.primary)
-        : root.item.holiday != "" ? Theme.calendar-holiday
+        : root.item.day-off == "holiday" ? Theme.calendar-holiday
+        : root.item.day-off == "midterm" ? Theme.calendar-midterm
+        : root.item.day-off == "final" ? Theme.calendar-final
         : root.item.is-weekend || touch.has-hover ? Theme.surface-hover
         : transparent;
     accessible-role: button;
@@ -247,6 +253,19 @@ component DayCell inherits Rectangle {
     if root.item.is-selected || focus-scope.has-focus: FocusRing {
         filled: root.item.is-today;
     }
+}
+
+// R74: legend swatch of one day-off kind; the fill is chosen by the same key as the calendar cell.
+component DayOffSwatch inherits Rectangle {
+    in property <string> key;
+
+    width: Theme.swatch-size;
+    height: Theme.swatch-size;
+    border-radius: Theme.radius-none;
+    background: root.key == "holiday" ? Theme.calendar-holiday
+        : root.key == "midterm" ? Theme.calendar-midterm
+        : root.key == "final" ? Theme.calendar-final
+        : transparent;
 }
 
 // Legend entry under the mini calendar.
@@ -426,57 +445,62 @@ component CalendarSection inherits HorizontalLayout {
             }
         }
 
-        // R84: fills and the due marker are explained in words, never by color alone (DESIGN.md "Mini
-        // calendar"). Slint has no flow layout; the three fixed entries fit one line.
-        HorizontalLayout {
-            alignment: start;
-            spacing: Theme.space-md;
+        // R84, R74: fills and the due marker are explained in words, never by color alone (DESIGN.md
+        // "Mini calendar"). Slint has no flow layout: the day-off entries (from Rust) fill line 1,
+        // Weekend and Assessment due fill line 2.
+        VerticalLayout {
+            spacing: Theme.space-xs;
             HorizontalLayout {
-                spacing: Theme.space-xs;
-                VerticalLayout {
-                    alignment: center;
-                    Rectangle {
-                        width: Theme.swatch-size;
-                        height: Theme.swatch-size;
-                        border-radius: Theme.radius-none;
-                        background: Theme.calendar-holiday;
+                alignment: start;
+                spacing: Theme.space-md;
+                for entry in DashboardState.day-off-legend: HorizontalLayout {
+                    spacing: Theme.space-xs;
+                    VerticalLayout {
+                        alignment: center;
+                        DayOffSwatch {
+                            key: entry.key;
+                        }
                     }
-                }
-                LegendText {
-                    text: "Holiday / exam";
-                    vertical-alignment: center;
+                    LegendText {
+                        text: entry.text;
+                        vertical-alignment: center;
+                    }
                 }
             }
             HorizontalLayout {
-                spacing: Theme.space-xs;
-                VerticalLayout {
-                    alignment: center;
-                    Rectangle {
-                        width: Theme.swatch-size;
-                        height: Theme.swatch-size;
-                        border-radius: Theme.radius-none;
-                        background: Theme.surface-hover;
+                alignment: start;
+                spacing: Theme.space-md;
+                HorizontalLayout {
+                    spacing: Theme.space-xs;
+                    VerticalLayout {
+                        alignment: center;
+                        Rectangle {
+                            width: Theme.swatch-size;
+                            height: Theme.swatch-size;
+                            border-radius: Theme.radius-none;
+                            background: Theme.surface-hover;
+                        }
+                    }
+                    LegendText {
+                        text: "Weekend";
+                        vertical-alignment: center;
                     }
                 }
-                LegendText {
-                    text: "Weekend";
-                    vertical-alignment: center;
-                }
-            }
-            HorizontalLayout {
-                spacing: Theme.space-xs;
-                VerticalLayout {
-                    alignment: center;
-                    Rectangle {
-                        width: Theme.calendar-marker;
-                        height: Theme.calendar-marker;
-                        border-radius: Theme.radius-none;
-                        background: Theme.error;
+                HorizontalLayout {
+                    spacing: Theme.space-xs;
+                    VerticalLayout {
+                        alignment: center;
+                        Rectangle {
+                            width: Theme.calendar-marker;
+                            height: Theme.calendar-marker;
+                            border-radius: Theme.radius-none;
+                            background: Theme.error;
+                        }
                     }
-                }
-                LegendText {
-                    text: "Assessment due";
-                    vertical-alignment: center;
+                    LegendText {
+                        text: "Assessment due";
+                        vertical-alignment: center;
+                    }
                 }
             }
         }

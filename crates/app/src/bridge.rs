@@ -10,9 +10,9 @@ use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use crate::viewmodel::{self as vm, ChipKind};
 use crate::{
     AppWindow, AssessmentRow, BandRow, CalendarDay, CalendarWeek, Chip, ComponentRow, CourseRow,
-    DayGroup, GradeRowView, HolidayRow, ImportLine, ImportLineKind, MarkRow, NeededRowView,
-    Palette, PastTermRow, ProgressCardRow, RuleSetRow, SessionRow, SlotRow, StatusAction,
-    SummaryView, Theme,
+    DayGroup, GradeRowView, HolidayRow, ImportLine, ImportLineKind, LegendItem, MarkRow,
+    NeededRowView, Palette, PastTermRow, ProgressCardRow, RuleSetRow, SessionRow, SlotRow,
+    StatusAction, SummaryView, Theme,
 };
 
 /// R-D18: Slint `int` is `i32`; an id that does not fit is reported, never truncated.
@@ -161,6 +161,14 @@ pub fn calendar_day(c: &vm::CalendarDay) -> CalendarDay {
         holiday: c.holiday.as_str().into(),
         day_off: vm::day_off_key(c.day_off).into(),
         label: c.label.as_str().into(),
+    }
+}
+
+/// R74: one legend entry of the day-off fills (A14).
+pub fn legend_item(i: &vm::LegendItem) -> LegendItem {
+    LegendItem {
+        key: i.key.as_str().into(),
+        text: i.text.as_str().into(),
     }
 }
 

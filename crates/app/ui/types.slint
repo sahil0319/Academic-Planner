@@ -63,6 +63,12 @@ export struct CalendarDay {
     label: string,
 }
 
+// R74: one legend entry of the day-off fills: the fill key and the kind name.
+export struct LegendItem {
+    key: string,
+    text: string,
+}
+
 // Seven calendar cells, Monday to Sunday.
 export struct CalendarWeek {
     days: [CalendarDay],
