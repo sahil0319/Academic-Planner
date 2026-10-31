@@ -3,7 +3,7 @@
 use std::rc::Rc;
 
 use chrono::NaiveDateTime;
-use planner_core::{Assessment, AssessmentFilter, SessionView};
+use planner_core::{Assessment, AssessmentFilter, PublicHoliday, SessionView};
 use slint::{ComponentHandle, SharedString};
 
 use crate::bridge;
@@ -102,6 +102,9 @@ fn fill_calendar(app: &App, state: &DashboardState<'_>, now: NaiveDateTime) -> R
     };
     let first = viewmodel::grid_start(month);
     let last = viewmodel::grid_end(month);
+    // R77, R78, D33: the cached public holidays of the visible grid (and the selected day).
+    let public_holidays =
+        super::public_holidays::cached_between(app, first.min(selected), last.max(selected))?;
     let (grid_views, selected_views, assessments, holidays) = {
         let planner = app.planner();
         // §6 mini calendar change, R14: the active term's holidays; none without a term.
@@ -131,7 +134,7 @@ fn fill_calendar(app: &App, state: &DashboardState<'_>, now: NaiveDateTime) -> R
         .filter(|a| (first..=last).contains(&a.due_at.date()))
         .cloned()
         .collect();
-    let cells = viewmodel::month_grid(
+    let mut cells = viewmodel::month_grid(
         month,
         today,
         selected,
@@ -139,6 +142,8 @@ fn fill_calendar(app: &App, state: &DashboardState<'_>, now: NaiveDateTime) -> R
         &viewmodel::due_days(&in_grid),
         &holidays,
     );
+    // R78: the public holiday fill, label, and legend entry.
+    viewmodel::mark_public_holidays(&mut cells, &public_holidays);
     state.set_month_title(viewmodel::month_title(month).into());
     let initials: Vec<String> = viewmodel::weekday_initials()
         .iter()
@@ -182,12 +187,19 @@ fn fill_calendar(app: &App, state: &DashboardState<'_>, now: NaiveDateTime) -> R
         })
         .collect::<Result<Vec<_>, _>>()?;
     state.set_panel_title(viewmodel::day_panel_title(selected, today).into());
-    // R74: the day panel line names the kind of day off; the legend lists the three kinds.
+    // R74, R78: the day panel lines name the kind of day off and the public holiday; the legend
+    // lists the day off kinds and Public holiday.
+    let on_selected: Vec<PublicHoliday> = public_holidays
+        .iter()
+        .filter(|p| p.date == selected)
+        .cloned()
+        .collect();
+    state.set_panel_public_holiday(viewmodel::day_panel_public_holiday_text(&on_selected).into());
     state.set_panel_holiday(
         viewmodel::day_panel_day_off_text(viewmodel::day_off_on(&holidays, selected)).into(),
     );
     state.set_day_off_legend(bridge::model(
-        viewmodel::day_off_legend()
+        viewmodel::calendar_legend()
             .iter()
             .map(bridge::legend_item)
             .collect(),

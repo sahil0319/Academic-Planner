@@ -57,11 +57,15 @@ export global DashboardState {
     in property <[CalendarWeek]> calendar;
     // Day panel: "Today's classes" for today, else "Monday, October 26, 2026".
     in property <string> panel-title;
-    // R74: the legend entries of the day-off fills (key and name): Holiday, Mid exam, Final exam.
+    // R74, R78: the legend entries of the fills (key and name): Holiday, Mid exam, Final exam,
+    // Public holiday.
     in property <[LegendItem]> day-off-legend;
     // "Holiday: Midterm week", "Mid exam: Week 7", or "Final exam: Final exam" when the selected
     // day is a day off, else "".
     in property <string> panel-holiday;
+    // R78: "Public holiday: Eid" (several names joined with "; ") when the selected day has one,
+    // else "". Shown under the day off line.
+    in property <string> panel-public-holiday;
     // Shown when the selected day has no sessions and no assessments due.
     in property <string> panel-empty-text;
     // R3, R16: the selected day's sessions of non-archived courses, by start time.
@@ -170,8 +174,9 @@ component AssessmentLine inherits ListRow {
 
 // R84: one mini calendar day (DESIGN.md "Mini calendar", research D7): a square cell with the
 // number. Fill priority: today (primary fill, on-primary number), then the day off by kind
-// (calendar-holiday, calendar-midterm, calendar-final; R74), then weekend (surface-hover), else
-// none. A weekend day off shows the day off fill. Selected: a focus-ring-width inset focus outline, plus an on-primary inner ring when the
+// (calendar-holiday, calendar-midterm, calendar-final; R74), then a public holiday
+// (calendar-public-holiday; R78), then weekend (surface-hover), else none. A weekend day off shows
+// the day off fill. Selected: a focus-ring-width inset focus outline, plus an on-primary inner ring when the
 // selected day is today. A day with an assessment due shows a calendar-marker square in error under
 // the number. Class days carry no marker. The accessible label spells out the date, the holiday,
 // and the counts.
@@ -191,6 +196,7 @@ component DayCell inherits Rectangle {
         : root.item.day-off == "holiday" ? Theme.calendar-holiday
         : root.item.day-off == "midterm" ? Theme.calendar-midterm
         : root.item.day-off == "final" ? Theme.calendar-final
+        : root.item.day-off == "public-holiday" ? Theme.calendar-public-holiday
         : root.item.is-weekend || touch.has-hover ? Theme.surface-hover
         : transparent;
     accessible-role: button;
@@ -255,7 +261,8 @@ component DayCell inherits Rectangle {
     }
 }
 
-// R74: legend swatch of one day-off kind; the fill is chosen by the same key as the calendar cell.
+// R74, R78: legend swatch of one fill (day off kind or public holiday); the fill is chosen by the
+// same key as the calendar cell.
 component DayOffSwatch inherits Rectangle {
     in property <string> key;
 
@@ -265,6 +272,7 @@ component DayOffSwatch inherits Rectangle {
     background: root.key == "holiday" ? Theme.calendar-holiday
         : root.key == "midterm" ? Theme.calendar-midterm
         : root.key == "final" ? Theme.calendar-final
+        : root.key == "public-holiday" ? Theme.calendar-public-holiday
         : transparent;
 }
 
@@ -445,23 +453,24 @@ component CalendarSection inherits HorizontalLayout {
             }
         }
 
-        // R84, R74: fills and the due marker are explained in words, never by color alone (DESIGN.md
-        // "Mini calendar"). Slint has no flow layout: the day-off entries (from Rust) fill line 1,
-        // Weekend and Assessment due fill line 2.
+        // R84, R74, R78: fills and the due marker are explained in words, never by color alone
+        // (DESIGN.md "Mini calendar"). Slint has no flow layout: the day-off entries (from Rust)
+        // fill line 1; Public holiday (the last entry), Weekend, and Assessment due fill line 2.
         VerticalLayout {
             spacing: Theme.space-xs;
             HorizontalLayout {
                 alignment: start;
                 spacing: Theme.space-md;
+                // Public holiday is the last entry, so the hidden wrapper is a trailing one.
                 for entry in DashboardState.day-off-legend: HorizontalLayout {
                     spacing: Theme.space-xs;
-                    VerticalLayout {
+                    if entry.key != "public-holiday": VerticalLayout {
                         alignment: center;
                         DayOffSwatch {
                             key: entry.key;
                         }
                     }
-                    LegendText {
+                    if entry.key != "public-holiday": LegendText {
                         text: entry.text;
                         vertical-alignment: center;
                     }
@@ -470,6 +479,19 @@ component CalendarSection inherits HorizontalLayout {
             HorizontalLayout {
                 alignment: start;
                 spacing: Theme.space-md;
+                if DashboardState.day-off-legend.length > 3: HorizontalLayout {
+                    spacing: Theme.space-xs;
+                    VerticalLayout {
+                        alignment: center;
+                        DayOffSwatch {
+                            key: DashboardState.day-off-legend[3].key;
+                        }
+                    }
+                    LegendText {
+                        text: DashboardState.day-off-legend[3].text;
+                        vertical-alignment: center;
+                    }
+                }
                 HorizontalLayout {
                     spacing: Theme.space-xs;
                     VerticalLayout {
@@ -524,6 +546,15 @@ component CalendarSection inherits HorizontalLayout {
 
         if DashboardState.panel-holiday != "": Text {
             text: DashboardState.panel-holiday;
+            wrap: word-wrap;
+            color: Theme.on-surface-muted;
+            font-family: Theme.font-body;
+            font-size: Theme.body-sm-size;
+            font-weight: Theme.body-sm-weight;
+        }
+
+        if DashboardState.panel-public-holiday != "": Text {
+            text: DashboardState.panel-public-holiday;
             wrap: word-wrap;
             color: Theme.on-surface-muted;
             font-family: Theme.font-body;

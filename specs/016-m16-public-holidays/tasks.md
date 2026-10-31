@@ -139,7 +139,7 @@ Stories (for labels):
 
 ## Phase 6: Dashboard (builder) — US4
 
-- [ ] T011 [US4] Dashboard (R78) in `crates/app/ui/dashboard.slint` and
+- [x] T011 [US4] Dashboard (R78) in `crates/app/ui/dashboard.slint` and
   `crates/app/src/pages/dashboard.rs`: `DayCell` and `DayOffSwatch` fill `"public-holiday"` ->
   `Theme.calendar-public-holiday` (after the three day off kinds, before the weekend; today first);
   update the comments; legend binds the four-entry `day-off-legend` (D31; Public holiday, Weekend,
