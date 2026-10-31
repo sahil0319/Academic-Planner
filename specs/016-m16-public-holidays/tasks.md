@@ -113,7 +113,7 @@ Stories (for labels):
 
 ## Phase 4: View model (builder) — US3, US4
 
-- [ ] T009 [US3] [US4] In `crates/app/src/viewmodel.rs` add exactly the plan.md "App view model"
+- [x] T009 [US3] [US4] In `crates/app/src/viewmodel.rs` add exactly the plan.md "App view model"
   items: `HolidayFetch`, `public_holiday_status_text`, `public_holiday_retry_visible`,
   `country_options`, `country_index`, `country_from_index`, `PublicHolidayRow`,
   `public_holiday_rows`, `AddPlan`, `plan_add_public_holidays`, `public_holidays_added_text`,

@@ -159,7 +159,8 @@ pub fn calendar_day(c: &vm::CalendarDay) -> CalendarDay {
         has_due: c.has_due,
         is_weekend: c.is_weekend,
         holiday: c.holiday.as_str().into(),
-        day_off: vm::day_off_key(c.day_off).into(),
+        // R74, R78: the fill key is the day off kind, else `public-holiday`.
+        day_off: vm::cell_fill_key(c).into(),
         label: c.label.as_str().into(),
     }
 }

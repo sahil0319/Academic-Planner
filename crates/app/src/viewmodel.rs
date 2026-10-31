@@ -11,10 +11,12 @@ use planner_core::{
     term_week_parity, Assessment, AssessmentFilter, AssessmentInput, AssessmentKind, Assumption,
     AttendanceBand, AttendanceSummary, ComponentKind, Course, CourseInput, CourseMarks, Dashboard,
     DayOffKind, FinalOutlook, GpaStatus, GpaSummary, GradeRow, Holiday, MakeupInput, Needed,
-    PastTermSummary, RuleComponent, RuleComponentInput, RuleSet, SessionView, Settings, Slot,
-    SlotInput, Status, Term, TermInput, ThemeMode, WeekParity,
+    PastTermSummary, PublicHoliday, RuleComponent, RuleComponentInput, RuleSet, SessionView,
+    Settings, Slot, SlotInput, Status, Term, TermInput, ThemeMode, WeekParity,
 };
 
+use crate::holidays::calendars::{calendars_by_name, Calendar};
+use crate::holidays::locale::Country;
 use crate::updater::InstallKind;
 
 #[cfg(test)]
@@ -1705,6 +1707,9 @@ pub struct CalendarDay {
     pub holiday: String,
     /// R74: the kind of day off on the date, if any; picks the cell fill.
     pub day_off: Option<DayOffKind>,
+    /// R78, D30: names of the public holidays on the date, joined with `; `; `""` when none or
+    /// until [`mark_public_holidays`] runs.
+    pub public_holiday: String,
     pub label: String,
 }
 
@@ -1785,6 +1790,7 @@ pub fn month_grid(
                 is_weekend: matches!(date.weekday(), Weekday::Sat | Weekday::Sun),
                 holiday,
                 day_off: day_off_on(holidays, date).map(|h| h.kind),
+                public_holiday: String::new(),
                 label,
             }
         })
@@ -1833,6 +1839,186 @@ pub fn day_panel_day_off_text(day: Option<&Holiday>) -> String {
         DayOffKind::Holiday => day_panel_holiday_text(&text),
         kind => format!("{}: {text}", day_off_kind_name(kind)),
     }
+}
+
+// ---- Public holidays (M16, R76-R79) ----
+
+/// R77, D29: where the public holiday refresh stands (UI state, never stored).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HolidayFetch {
+    /// No request yet, or none needed (country Off, no active term).
+    Idle,
+    /// A request is running on the worker thread.
+    Loading,
+    /// The last request worked, on this date.
+    Updated(NaiveDate),
+    /// The last request failed; cached rows stay (R77).
+    Failed,
+}
+
+/// R77, D29: the status line of the Public holidays card: `""`, `Loading public holidays…`,
+/// `Updated today` or `Updated <date>`, or `Couldn't load public holidays`.
+pub fn public_holiday_status_text(state: HolidayFetch, today: NaiveDate) -> String {
+    match state {
+        HolidayFetch::Idle => String::new(),
+        HolidayFetch::Loading => "Loading public holidays\u{2026}".to_string(),
+        HolidayFetch::Updated(day) if day == today => "Updated today".to_string(),
+        HolidayFetch::Updated(day) => format!("Updated {}", format_date(day)),
+        HolidayFetch::Failed => "Couldn't load public holidays".to_string(),
+    }
+}
+
+/// R77, D29: Retry shows only after a failed fetch.
+pub fn public_holiday_retry_visible(state: HolidayFetch) -> bool {
+    state == HolidayFetch::Failed
+}
+
+/// R76, D21: the country choice: `Off`, then the built-in countries sorted by name.
+pub fn country_options() -> Vec<String> {
+    std::iter::once("Off".to_string())
+        .chain(calendars_by_name().into_iter().map(|c| c.name.clone()))
+        .collect()
+}
+
+/// R76: the index of `country` in [`country_options`]; a code outside the table is `Off` (0).
+pub fn country_index(country: &Country) -> i32 {
+    let Country::Code(code) = country else {
+        return 0;
+    };
+    calendars_by_name()
+        .iter()
+        .position(|c| &c.code == code)
+        .and_then(|i| i32::try_from(i + 1).ok())
+        .unwrap_or(0)
+}
+
+/// R76: the country at `index` in [`country_options`]; an index out of range is `Off`.
+pub fn country_from_index(index: i32) -> Country {
+    let by_name: Vec<&Calendar> = calendars_by_name();
+    usize::try_from(index)
+        .ok()
+        .and_then(|i| i.checked_sub(1))
+        .and_then(|i| by_name.get(i))
+        .map_or(Country::Off, |c| Country::Code(c.code.clone()))
+}
+
+/// R79: one public holiday as a Settings row.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PublicHolidayRow {
+    /// `YYYY-MM-DD|name`, the row's identity for the tick; never shown.
+    pub key: String,
+    pub date: String,
+    pub name: String,
+}
+
+/// R79: Settings rows in the order given; the date shows as [`format_date`].
+pub fn public_holiday_rows(days: &[PublicHoliday]) -> Vec<PublicHolidayRow> {
+    days.iter()
+        .map(|p| PublicHolidayRow {
+            key: format!("{}|{}", p.date.format("%Y-%m-%d"), p.name),
+            date: format_date(p.date),
+            name: p.name.clone(),
+        })
+        .collect()
+}
+
+/// R79, D34: the outcome of Add selected as holidays.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AddPlan {
+    /// `existing` plus the additions, sorted by date.
+    pub merged: Vec<Holiday>,
+    pub added: usize,
+    pub skipped: usize,
+}
+
+/// R71, R79, D34: each ticked public holiday whose date is not yet a day off of any kind (also
+/// one added earlier in this call) becomes a `Holiday` labelled with the public name; the other
+/// ticks are skipped. `ticked` is expected sorted by date, then name.
+pub fn plan_add_public_holidays(existing: &[Holiday], ticked: &[PublicHoliday]) -> AddPlan {
+    let mut merged = existing.to_vec();
+    let (mut added, mut skipped) = (0, 0);
+    for p in ticked {
+        if day_off_on(&merged, p.date).is_some() {
+            skipped += 1;
+        } else {
+            merged.push(Holiday {
+                date: p.date,
+                label: Some(p.name.clone()),
+                kind: DayOffKind::Holiday,
+            });
+            added += 1;
+        }
+    }
+    merged.sort_by_key(|h| h.date);
+    AddPlan {
+        merged,
+        added,
+        skipped,
+    }
+}
+
+/// R79, R89a: toast text: `Added 1 holiday.`, `Added 3 holidays.`, with
+/// ` N skipped, already a day off.` when some ticks were skipped.
+pub fn public_holidays_added_text(added: usize, skipped: usize) -> String {
+    let mut text = format!("Added {}.", count_text(added, "holiday", "holidays"));
+    if skipped > 0 {
+        text.push_str(&format!(" {skipped} skipped, already a day off."));
+    }
+    text
+}
+
+/// R79, R89: inline error when Add selected has nothing ticked.
+pub fn public_holiday_tick_text() -> String {
+    "Tick at least one public holiday.".to_string()
+}
+
+/// R78, D32: day panel line: `""` for none, else `Public holiday: <name>`; several names on the
+/// date are joined with `; `.
+pub fn day_panel_public_holiday_text(days: &[PublicHoliday]) -> String {
+    if days.is_empty() {
+        return String::new();
+    }
+    let names: Vec<&str> = days.iter().map(|p| p.name.as_str()).collect();
+    format!("Public holiday: {}", names.join("; "))
+}
+
+/// R78, D30: sets `public_holiday` (names joined with `; `) and adds `, public holiday <names>`
+/// to the label of each cell whose date has a public holiday, so the fill is never the only cue.
+pub fn mark_public_holidays(cells: &mut [CalendarDay], days: &[PublicHoliday]) {
+    for cell in cells {
+        let Some(date) = parse_date_key(&cell.key) else {
+            continue;
+        };
+        let names: Vec<&str> = days
+            .iter()
+            .filter(|p| p.date == date)
+            .map(|p| p.name.as_str())
+            .collect();
+        if names.is_empty() {
+            continue;
+        }
+        cell.public_holiday = names.join("; ");
+        cell.label = format!("{}, public holiday {}", cell.label, cell.public_holiday);
+    }
+}
+
+/// R74, R78, D10: the fill key of a cell: the day off kind key, else `public-holiday` when the
+/// date has one, else `""`. Today and weekend are decided in Slint.
+pub fn cell_fill_key(cell: &CalendarDay) -> &'static str {
+    match day_off_key(cell.day_off) {
+        "" if !cell.public_holiday.is_empty() => "public-holiday",
+        key => key,
+    }
+}
+
+/// R78, D31: the day off legend plus `Public holiday` last.
+pub fn calendar_legend() -> Vec<LegendItem> {
+    let mut legend = day_off_legend();
+    legend.push(LegendItem {
+        key: "public-holiday".to_string(),
+        text: "Public holiday".to_string(),
+    });
+    legend
 }
 
 /// R16: empty text of the day panel; today keeps the Today's classes sentence.
