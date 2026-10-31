@@ -17,7 +17,8 @@ template and an AI prompt in [docs/import](docs/import/)) sets up a whole semest
 document, and the About page checks for and installs updates. Courses you no longer need can be
 selected and deleted together from the Courses page. A Progress page shows how each course is going,
 classes can meet every other week, mid and final exam periods and your country's public holidays can
-be added to the term, and saving or deleting shows a short pop-up confirmation.
+be added to the term, saving or deleting shows a short pop-up confirmation, and your courses and timetable can be exported
+as JSON for another person to import.
 
 What's new in each version is in the [release notes](docs/releases/).
 
