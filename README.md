@@ -2,25 +2,68 @@
 
 Academic Planner is a local-first, open-source desktop app for university courses, weekly
 timetables, assessments, and manually logged attendance. It has a native user interface built with
-Slint (no WebView), needs no account and no server, and keeps all your data in one file on your own
-computer. You enter your term, holidays, courses, and weekly class times; the app fills in the
-term's classes, you mark each one as attended, absent, or cancelled, and it shows your attendance
-percentage per course and which courses are below your target. The dashboard has a mini calendar
-that highlights holidays, exam periods, and weekends and marks days with an assessment due. Dates
-are typed as DD-MM-YYYY and shown as "October 26, 2026". The app has light and dark appearances
-(or follows your system) from a switch in the top-right corner. While the app is open, it can show
-a desktop notification before each class and before assessments that have a reminder set. Times
-are shown and typed in 12-hour form (type `930` and choose PM). Courses can have credits, and a
-Rules page holds your grading rules, so the app can track your marks, show the score you need in
-the final for each grade, and compute your term GPA. A courses-and-timetable JSON import (with a
-template and an AI prompt in [docs/import](docs/import/)) sets up a whole semester from a pasted
-document, and the About page checks for and installs updates. Courses you no longer need can be
-selected and deleted together from the Courses page. A Progress page shows how each course is going,
-classes can meet every other week, mid and final exam periods and your country's public holidays can
-be added to the term, saving or deleting shows a short pop-up confirmation, and your courses and timetable can be exported
-as JSON for another person to import.
+Slint (no WebView). It needs no account and no server, and it keeps all your data in one file on
+your own computer.
 
-What's new in each version is in the [release notes](docs/releases/).
+What's new in each version is in the [release notes](docs/releases/). To install the app, see
+[Download and install](#download-and-install).
+
+[Features](#features) | [Getting started](#getting-started) | [Screenshots](#screenshots) |
+[Download and install](#download-and-install) | [Updates](#updates) |
+[Your data](#where-your-data-lives) | [Privacy](#privacy-and-network-use) |
+[Build from source](#build-from-source) | [License](#license)
+
+## Features
+
+**Timetable and attendance**
+- Enter your weekly class times. The app fills in the term's classes for you.
+- Classes can meet every other week. "Move to next week" shifts one occurrence.
+- Mark each class as attended, absent, or cancelled, or reschedule it. You can also add makeup classes.
+- See your attendance percentage per course against your target, and how many classes you can still miss.
+- A banner on the dashboard lists courses that are below their target.
+
+**Courses and grading**
+- Give each course credits and a rule set. A rule set has weighted components and attendance bands, with a default attendance scale.
+- Enter marks for assessments. The app shows your projected grade and your term GPA.
+- For each grade, see the score you need in the final.
+- Edit the grade scale on the Rules page.
+
+**Terms and days off**
+- Set up a term. The dashboard shows the term and its current week, for example "Week 3 of 17".
+- Archive a finished term. It moves to the Past terms list with its attendance and GPA.
+- Add holidays, mid exam periods, and final exam periods. Classes are skipped on those days.
+- Load your country's public holidays from Google's public holiday calendar and choose which ones to add.
+
+**Progress page**
+- One card per course: attendance against target, classes you can still miss, marks, and projected grade.
+- Courses at risk are listed first.
+
+**Reminders**
+- Desktop notifications before classes and before assessments that have a reminder set.
+- They appear only while the app is open.
+
+**Import, export, and backup**
+- Import courses and a weekly timetable from JSON. A template and an AI prompt are in [docs/import](docs/import/).
+- Export your courses and timetable to JSON (Copy JSON or Save JSON) to share with another person.
+- Back up all your data to one JSON file and restore it later.
+- Export attendance and assessments to CSV for a spreadsheet app.
+
+**Look and feel**
+- Light, dark, or system appearance, from a switch in the top-right corner.
+- IBM Plex Sans text and 12-hour times (type `930` and choose PM).
+- Type dates as DD-MM-YYYY. They are shown as "October 26, 2026".
+- A short pop-up confirms saving, adding, importing, and deleting.
+- The About page checks for and installs updates.
+
+## Getting started
+
+1. Install the app (see [Download and install](#download-and-install)) and open it.
+2. Go to **Settings** and create your term: a name, a start date, and an end date.
+3. Add your holidays and exam periods in Settings, if you know them.
+4. Go to **Courses** and add your courses, or use **Import** to set up a whole semester from JSON.
+5. Add the weekly class times for each course. The timetable fills in for the term.
+6. As classes happen, mark each one on the **Dashboard** or **Timetable** as attended, absent, or cancelled.
+7. Check **Progress** to see how each course is going. Set your grading rules on the **Rules** page.
 
 ## Screenshots
 
@@ -93,8 +136,44 @@ Academic Planner checks GitHub Releases for a newer published version: once when
 "Check for updates" on the About page. Nothing is downloaded or installed until you click
 "Install" and confirm. Every update is signature-checked before it is installed, and updating
 never changes your data. Installs from the `.deb` package (and builds run from source) open the
-release page instead, so you can download the new version yourself. This update check is the
-only time the app uses the network.
+release page instead, so you can download the new version yourself. See also
+[Privacy and network use](#privacy-and-network-use).
+
+## Where your data lives
+
+All data is in one SQLite file, `planner.sqlite`, in your user data folder. It is never stored in
+the install folder, so reinstalling or updating the app does not touch it.
+
+| System | Folder |
+|---|---|
+| macOS | `~/Library/Application Support/Academic-Planner/` |
+| Windows | `%APPDATA%\Academic Planner\data\` |
+| Linux | `~/.local/share/academicplanner/` (or `$XDG_DATA_HOME/academicplanner/` if set) |
+
+The Settings page shows the exact path of the database file. To use a different database file (for
+development and testing), set the `ACADEMIC_PLANNER_DB` environment variable to its path.
+
+## Backup, restore, and export
+
+On the Settings page, "Backup…" saves all your data as one JSON file. "Restore…" opens a backup and,
+after you confirm with "Replace all data", replaces all current data with it; before it does, the
+app copies the current database to `backups/pre-restore-YYYYMMDD-HHMM.sqlite` in the folder that
+holds the database, and if the restore fails your data is left unchanged. "Export CSV…" writes
+`attendance.csv` and `assessments.csv` to a folder you choose, for use in a spreadsheet app.
+
+## Privacy and network use
+
+All your data stays on your computer, in one file. The app has no accounts and no analytics.
+
+The app uses the internet in only two cases:
+
+- **Update check.** It asks GitHub Releases for a newer version, once at start-up if "Check for
+  updates when the app starts" is on (About page), or when you click "Check for updates". See
+  [Updates](#updates).
+- **Public holidays.** It loads your country's holidays from Google's public holiday calendar, once
+  at start-up and when you change the country. Your country comes from your computer's region
+  setting. To turn this off, choose "Off" as the country in Settings. Nothing is loaded if you have
+  no active term.
 
 ## Build from source
 
@@ -126,28 +205,6 @@ cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && ca
 ```
 
 The full specification is in [docs/spec.md](docs/spec.md).
-
-## Where your data lives
-
-All data is in one SQLite file, `planner.sqlite`, in your user data folder. It is never stored in
-the install folder, so reinstalling or updating the app does not touch it.
-
-| System | Folder |
-|---|---|
-| macOS | `~/Library/Application Support/Academic-Planner/` |
-| Windows | `%APPDATA%\Academic Planner\data\` |
-| Linux | `~/.local/share/academicplanner/` (or `$XDG_DATA_HOME/academicplanner/` if set) |
-
-The Settings page shows the exact path of the database file. To use a different database file (for
-development and testing), set the `ACADEMIC_PLANNER_DB` environment variable to its path.
-
-## Backup, restore, and export
-
-On the Settings page, "Backup…" saves all your data as one JSON file. "Restore…" opens a backup and,
-after you confirm with "Replace all data", replaces all current data with it; before it does, the
-app copies the current database to `backups/pre-restore-YYYYMMDD-HHMM.sqlite` in the folder that
-holds the database, and if the restore fails your data is left unchanged. "Export CSV…" writes
-`attendance.csv` and `assessments.csv` to a folder you choose, for use in a spreadsheet app.
 
 ## License
 
