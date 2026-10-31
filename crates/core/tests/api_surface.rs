@@ -94,4 +94,11 @@ fn api_signatures_match_spec_section_5() {
         label: None,
         kind: DayOffKind::Midterm,
     };
+
+    // M16 (§13.11)
+    let _ = PublicHoliday {
+        date: NaiveDate::default(),
+        name: String::new(),
+    };
+    let _: fn(&mut Planner, &str, &[PublicHoliday]) -> Result<()> = Planner::set_public_holidays;
 }

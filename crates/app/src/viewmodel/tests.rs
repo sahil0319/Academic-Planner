@@ -4,7 +4,10 @@
 use std::path::PathBuf;
 
 use super::*;
-use planner_core::{DayOffKind, Error, GpaStatus, NeededRow};
+use planner_core::{DayOffKind, Error, GpaStatus, NeededRow, PublicHoliday};
+
+use crate::holidays::calendars::{calendar_for, calendars, calendars_by_name};
+use crate::holidays::locale::Country;
 
 const DATE_ERR: &str = "Use DD-MM-YYYY, e.g. 29-10-2026";
 const TIME_ERR: &str = "Enter the time as digits, e.g. 930 (hour 1–12, minutes 00–59)";
@@ -4538,6 +4541,7 @@ fn r89a_day_off_toast_texts() {
     );
 }
 
+<<<<<<< HEAD
 // ---- M18a sweep: a toast for every save, add, apply, delete, and archive (R89a, T91) ----
 
 /// R89a (T91): the course form says Added for a new course and Saved for an edit.
@@ -4684,3 +4688,257 @@ fn t91_every_persisting_handler_toasts() {
         }
     }
 }
+=======
+fn public_holiday(date: NaiveDate, name: &str) -> PublicHoliday {
+    PublicHoliday {
+        date,
+        name: name.to_string(),
+    }
+}
+
+/// R71, R79 (T78): a ticked public holiday on a free day becomes a Holiday labelled with the
+/// public name; one on a day that is already a day off is skipped; the existing day off stays.
+#[test]
+fn t78_plan_add_skips_existing_day_off() {
+    let midterm = day_off(d(2026, 10, 14), Some("Week 7"), DayOffKind::Midterm);
+    let ticked = [
+        public_holiday(d(2026, 10, 14), "Day A"),
+        public_holiday(d(2026, 10, 20), "Day B"),
+    ];
+
+    let plan = plan_add_public_holidays(std::slice::from_ref(&midterm), &ticked);
+
+    assert_eq!(plan.added, 1);
+    assert_eq!(plan.skipped, 1);
+    assert_eq!(
+        plan.merged,
+        vec![midterm, holiday(d(2026, 10, 20), Some("Day B"))]
+    );
+}
+
+/// R71, R79 (T78): a day off of any kind (Holiday, Mid exam, Final exam) makes the tick skipped,
+/// and `merged` is sorted by date.
+#[test]
+fn t78_plan_add_skips_every_day_off_kind() {
+    let existing = [
+        day_off(d(2026, 10, 22), Some("Break"), DayOffKind::Holiday),
+        day_off(d(2026, 12, 10), None, DayOffKind::Final),
+    ];
+    let ticked = [
+        public_holiday(d(2026, 10, 22), "Day A"),
+        public_holiday(d(2026, 11, 3), "Day C"),
+        public_holiday(d(2026, 12, 10), "Day D"),
+    ];
+
+    let plan = plan_add_public_holidays(&existing, &ticked);
+
+    assert_eq!((plan.added, plan.skipped), (1, 2));
+    assert_eq!(
+        plan.merged,
+        vec![
+            existing[0].clone(),
+            holiday(d(2026, 11, 3), Some("Day C")),
+            existing[1].clone(),
+        ]
+    );
+}
+
+/// R71, R79, D34: two ticked rows on one date add the first and skip the second.
+#[test]
+fn t78_plan_add_counts_a_repeated_date_once() {
+    let ticked = [
+        public_holiday(d(2026, 10, 20), "Day B"),
+        public_holiday(d(2026, 10, 20), "Day C"),
+    ];
+
+    let plan = plan_add_public_holidays(&[], &ticked);
+
+    assert_eq!((plan.added, plan.skipped), (1, 1));
+    assert_eq!(plan.merged, vec![holiday(d(2026, 10, 20), Some("Day B"))]);
+}
+
+/// R79, R89a (D11, D34): toast texts for one, many, skipped, and none added.
+#[test]
+fn r79_added_text_singular_plural_and_skipped() {
+    assert_eq!(public_holidays_added_text(1, 0), "Added 1 holiday.");
+    assert_eq!(public_holidays_added_text(3, 0), "Added 3 holidays.");
+    assert_eq!(
+        public_holidays_added_text(2, 1),
+        "Added 2 holidays. 1 skipped, already a day off."
+    );
+    assert_eq!(
+        public_holidays_added_text(1, 2),
+        "Added 1 holiday. 2 skipped, already a day off."
+    );
+    assert_eq!(
+        public_holidays_added_text(0, 2),
+        "Added 0 holidays. 2 skipped, already a day off."
+    );
+}
+
+/// R79, R89 (D11): the inline error when Add selected has nothing ticked.
+#[test]
+fn r79_tick_hint_text() {
+    assert_eq!(
+        public_holiday_tick_text(),
+        "Tick at least one public holiday."
+    );
+}
+
+/// R77, D29: status text per fetch state; Retry shows only after a failure.
+#[test]
+fn r77_status_text_per_state() {
+    let today = d(2026, 10, 31);
+
+    assert_eq!(public_holiday_status_text(HolidayFetch::Idle, today), "");
+    assert_eq!(
+        public_holiday_status_text(HolidayFetch::Loading, today),
+        "Loading public holidays…"
+    );
+    assert_eq!(
+        public_holiday_status_text(HolidayFetch::Updated(today), today),
+        "Updated today"
+    );
+    assert_eq!(
+        public_holiday_status_text(HolidayFetch::Updated(d(2026, 10, 30)), today),
+        format!("Updated {}", format_date(d(2026, 10, 30)))
+    );
+    assert_eq!(
+        public_holiday_status_text(HolidayFetch::Failed, today),
+        "Couldn't load public holidays"
+    );
+
+    assert!(public_holiday_retry_visible(HolidayFetch::Failed));
+    assert!(!public_holiday_retry_visible(HolidayFetch::Idle));
+    assert!(!public_holiday_retry_visible(HolidayFetch::Loading));
+    assert!(!public_holiday_retry_visible(HolidayFetch::Updated(today)));
+}
+
+/// R76, D21: the country choice starts with Off, then the table names sorted; index and country
+/// map both ways; an index out of range is Off.
+#[test]
+fn r76_country_options_start_with_off_and_round_trip() {
+    let options = country_options();
+
+    assert_eq!(options[0], "Off");
+    let names: Vec<String> = calendars_by_name().iter().map(|c| c.name.clone()).collect();
+    assert_eq!(options[1..], names[..]);
+    assert_eq!(options.len(), calendars().len() + 1);
+
+    assert_eq!(country_index(&Country::Off), 0);
+    assert_eq!(country_from_index(0), Country::Off);
+    for calendar in calendars() {
+        let country = Country::Code(calendar.code.clone());
+        let index = country_index(&country);
+        assert_eq!(options[index as usize], calendar.name, "{}", calendar.code);
+        assert_eq!(country_from_index(index), country, "{}", calendar.code);
+    }
+    let bd = calendar_for("BD").unwrap();
+    assert_eq!(
+        options[country_index(&Country::Code("BD".to_string())) as usize],
+        bd.name
+    );
+    assert_eq!(country_from_index(-1), Country::Off);
+    assert_eq!(country_from_index(options.len() as i32), Country::Off);
+}
+
+/// R79: a Settings row keeps the order given, with the key `YYYY-MM-DD|name`, the date text,
+/// and the name.
+#[test]
+fn r79_public_holiday_rows_format_date_and_key() {
+    let rows = public_holiday_rows(&[
+        public_holiday(d(2026, 10, 6), "Eid"),
+        public_holiday(d(2026, 12, 16), "Victory Day"),
+    ]);
+
+    assert_eq!(
+        rows,
+        vec![
+            PublicHolidayRow {
+                key: "2026-10-06|Eid".to_string(),
+                date: format_date(d(2026, 10, 6)),
+                name: "Eid".to_string(),
+            },
+            PublicHolidayRow {
+                key: "2026-12-16|Victory Day".to_string(),
+                date: format_date(d(2026, 12, 16)),
+                name: "Victory Day".to_string(),
+            },
+        ]
+    );
+    assert!(public_holiday_rows(&[]).is_empty());
+}
+
+/// R78, D32: the day panel line is empty, `Public holiday: <name>`, or the names joined by `; `.
+#[test]
+fn r78_day_panel_public_holiday_text() {
+    let one = [public_holiday(d(2026, 10, 6), "Eid")];
+    let two = [
+        public_holiday(d(2026, 10, 6), "Eid"),
+        public_holiday(d(2026, 10, 6), "Day Two"),
+    ];
+
+    assert_eq!(day_panel_public_holiday_text(&[]), "");
+    assert_eq!(day_panel_public_holiday_text(&one), "Public holiday: Eid");
+    assert_eq!(
+        day_panel_public_holiday_text(&two),
+        "Public holiday: Eid; Day Two"
+    );
+}
+
+/// R78, D30: marking sets `public_holiday`, the `public-holiday` fill key, and a label addition
+/// on the holiday's cell only; other cells keep an empty text and no fill.
+#[test]
+fn r78_mark_public_holidays_sets_fill_key_and_label() {
+    let mut grid = grid_oct();
+    let before = cell(&grid, "2026-10-06").label.clone();
+
+    mark_public_holidays(&mut grid, &[public_holiday(d(2026, 10, 6), "Eid")]);
+
+    let marked = cell(&grid, "2026-10-06");
+    assert_eq!(marked.public_holiday, "Eid");
+    assert_eq!(cell_fill_key(marked), "public-holiday");
+    assert_eq!(marked.label, format!("{before}, public holiday Eid"));
+    for c in grid.iter().filter(|c| c.key != "2026-10-06") {
+        assert_eq!(c.public_holiday, "", "{}", c.key);
+        assert_eq!(cell_fill_key(c), "", "{}", c.key);
+    }
+}
+
+/// R74, R78, D10: a public holiday on a term day off keeps the term kind's fill key; the
+/// public holiday text is still set so the day panel shows both lines.
+#[test]
+fn r78_term_day_off_wins_over_public_holiday_fill() {
+    let midterm = day_off(d(2026, 10, 14), Some("Week 7"), DayOffKind::Midterm);
+    let mut grid = month_grid(
+        d(2026, 10, 1),
+        d(2026, 10, 29),
+        d(2026, 10, 29),
+        &[],
+        &[],
+        &[midterm],
+    );
+
+    mark_public_holidays(&mut grid, &[public_holiday(d(2026, 10, 14), "Day A")]);
+
+    let both = cell(&grid, "2026-10-14");
+    assert_eq!(cell_fill_key(both), "midterm");
+    assert_eq!(both.public_holiday, "Day A");
+}
+
+/// R78, D31: the calendar legend is the three day off entries plus Public holiday last; the
+/// day off legend itself keeps three.
+#[test]
+fn r78_calendar_legend_has_public_holiday_last() {
+    let legend = calendar_legend();
+
+    let texts: Vec<&str> = legend.iter().map(|item| item.text.as_str()).collect();
+    let keys: Vec<&str> = legend.iter().map(|item| item.key.as_str()).collect();
+    assert_eq!(
+        texts,
+        ["Holiday", "Mid exam", "Final exam", "Public holiday"]
+    );
+    assert_eq!(keys, ["holiday", "midterm", "final", "public-holiday"]);
+    assert_eq!(day_off_legend().len(), 3);
+}
+>>>>>>> 8c16fa0 (M16: tests T75-T79 and decisions D44-D46)
