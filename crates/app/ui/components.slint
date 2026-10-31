@@ -543,6 +543,9 @@ export component StatusColumn inherits VerticalLayout {
 // stack below the title.
 export component SectionCard inherits Rectangle {
     in property <string> title;
+    // R73: optional square swatch before the title (Mid exams and Final exams cards).
+    in property <bool> has-swatch: false;
+    in property <brush> swatch: transparent;
 
     background: Theme.surface;
     border-radius: Theme.radius-none;
@@ -550,12 +553,24 @@ export component SectionCard inherits Rectangle {
     VerticalLayout {
         padding: Theme.space-lg;
         spacing: Theme.space-sm;
-        Text {
-            text: root.title;
-            color: Theme.on-surface;
-            font-family: Theme.font-heading;
-            font-size: Theme.headline-md-size;
-            font-weight: Theme.headline-md-weight;
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            if root.has-swatch: VerticalLayout {
+                alignment: center;
+                Rectangle {
+                    width: Theme.swatch-size;
+                    height: Theme.swatch-size;
+                    background: root.swatch;
+                    border-radius: Theme.radius-none;
+                }
+            }
+            Text {
+                text: root.title;
+                color: Theme.on-surface;
+                font-family: Theme.font-heading;
+                font-size: Theme.headline-md-size;
+                font-weight: Theme.headline-md-weight;
+            }
         }
         @children
     }

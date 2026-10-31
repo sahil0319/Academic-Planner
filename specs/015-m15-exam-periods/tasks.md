@@ -109,7 +109,7 @@ Stories (for labels):
 
 ## Phase 4: Settings cards (builder) — US3
 
-- [ ] T006 [US3] [US4] `crates/app/ui/types.slint`: `CalendarDay.day-off: string` (comment: fill
+- [x] T006 [US3] [US4] `crates/app/ui/types.slint`: `CalendarDay.day-off: string` (comment: fill
   key, D20). `crates/app/src/bridge.rs`: `calendar_day` sets
   `day_off: vm::day_off_key(c.day_off).into()`. `crates/app/ui/components.slint` `SectionCard`:
   optional swatch (`has-swatch`, `swatch`) before the title, `Theme.swatch-size`,

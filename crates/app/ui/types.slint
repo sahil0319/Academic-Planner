@@ -57,6 +57,8 @@ export struct CalendarDay {
     is-weekend: bool,
     // Holiday label for the date: "Holiday" when unlabeled, "" when not a holiday.
     holiday: string,
+    // R74: fill key of the day off on the date: "holiday", "midterm", "final", or "" (D20).
+    day-off: string,
     // Accessible label, e.g. "Monday, October 26, 2026, 2 classes, 1 assessment due".
     label: string,
 }

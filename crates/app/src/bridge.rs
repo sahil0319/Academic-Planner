@@ -159,6 +159,7 @@ pub fn calendar_day(c: &vm::CalendarDay) -> CalendarDay {
         has_due: c.has_due,
         is_weekend: c.is_weekend,
         holiday: c.holiday.as_str().into(),
+        day_off: vm::day_off_key(c.day_off).into(),
         label: c.label.as_str().into(),
     }
 }
