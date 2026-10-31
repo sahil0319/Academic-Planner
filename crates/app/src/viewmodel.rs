@@ -1549,6 +1549,84 @@ pub fn grade_scale_saved_text() -> String {
     "Grade scale saved.".to_string()
 }
 
+/// R89a: toast after the course form saves: Added for a new course, Saved for an edit.
+pub fn course_saved_text(created: bool) -> String {
+    if created {
+        "Course added.".to_string()
+    } else {
+        "Course saved.".to_string()
+    }
+}
+
+/// R89a, R51: toast after deleting `n` courses, e.g. "Deleted 2 courses.".
+pub fn courses_deleted_text(n: usize) -> String {
+    let noun = if n == 1 { "course" } else { "courses" };
+    format!("Deleted {n} {noun}.")
+}
+
+/// R89a, R3: toast after archiving or unarchiving a course.
+pub fn course_archived_text(archived: bool) -> String {
+    if archived {
+        "Course archived.".to_string()
+    } else {
+        "Course unarchived.".to_string()
+    }
+}
+
+/// R89a, R10: toast after adding a makeup class.
+pub fn makeup_added_text() -> String {
+    "Makeup class added.".to_string()
+}
+
+/// R89a: toast after the assessment form saves (score entry included).
+pub fn assessment_saved_text(created: bool) -> String {
+    if created {
+        "Assessment added.".to_string()
+    } else {
+        "Assessment saved.".to_string()
+    }
+}
+
+/// R89a: toast after deleting an assessment.
+pub fn assessment_deleted_text() -> String {
+    "Assessment deleted.".to_string()
+}
+
+/// R89a, R9: toast after the reschedule form saves.
+pub fn rescheduled_text() -> String {
+    "Class rescheduled.".to_string()
+}
+
+/// R89a, R7: toast after the slot form saves: Added for a new slot, Saved for a change.
+pub fn slot_saved_text(created: bool) -> String {
+    if created {
+        "Slot added.".to_string()
+    } else {
+        "Slot saved.".to_string()
+    }
+}
+
+/// R89a, R7: toast after ending a slot.
+pub fn slot_ended_text() -> String {
+    "Slot ended.".to_string()
+}
+
+/// R89a, R34: toast after deleting a rule set.
+pub fn rule_set_deleted_text() -> String {
+    "Rule set deleted.".to_string()
+}
+
+/// R89a, R48: toast after Import Apply. `courses` is the number of courses added plus updated;
+/// `term` is true when the import also created the term. The result list stays inline.
+pub fn import_applied_text(courses: usize, term: bool) -> String {
+    match (courses, term) {
+        (0, true) => "Imported the term.".to_string(),
+        (0, false) => "Nothing imported.".to_string(),
+        (1, _) => "Imported 1 course.".to_string(),
+        (n, _) => format!("Imported {n} courses."),
+    }
+}
+
 /// R91: the hint above the Save button when a row fails to parse
 pub fn fix_rows_hint_text() -> String {
     "Fix the rows marked in red before saving.".to_string()
