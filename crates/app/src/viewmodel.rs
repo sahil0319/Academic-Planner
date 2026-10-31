@@ -1603,11 +1603,7 @@ pub fn export_saved_note(n: usize, path: &Path) -> ExportNote {
     if n == 0 {
         return ExportNote::Inline(NO_COURSES_TO_EXPORT.to_string());
     }
-    ExportNote::Toast(format!(
-        "Saved {} to {}.",
-        courses_count(n),
-        path.display()
-    ))
+    ExportNote::Toast(format!("Saved {} to {}.", courses_count(n), path.display()))
 }
 
 /// R89a, R3: toast after archiving or unarchiving a course.

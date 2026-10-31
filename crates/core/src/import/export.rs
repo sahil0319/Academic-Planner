@@ -170,10 +170,7 @@ fn course_out(conn: &Connection, course: Course, today: NaiveDate) -> Result<Cou
         instructor: course.instructor,
         room: course.room,
         min_attendance_pct: course.min_attendance_pct,
-        slots: slots
-            .into_iter()
-            .map(|s| slot_out(s, this_week))
-            .collect(),
+        slots: slots.into_iter().map(|s| slot_out(s, this_week)).collect(),
     })
 }
 
