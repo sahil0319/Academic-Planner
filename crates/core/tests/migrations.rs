@@ -8,12 +8,13 @@ use std::path::Path;
 use planner_core::{Error, Planner, SCHEMA_VERSION};
 use rusqlite::Connection;
 
-const TABLES: [&str; 12] = [
+const TABLES: [&str; 13] = [
     "assessment",
     "attendance_band",
     "course",
     "grade_scale",
     "holiday",
+    "public_holiday",
     "reminder_log",
     "rule_component",
     "rule_set",

@@ -100,6 +100,14 @@ pub struct Holiday {
     pub kind: DayOffKind,
 }
 
+/// R77: one cached government public holiday of a country (`public_holiday` table). Informational
+/// only: it never changes classes until the human adds it as a holiday (R79).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PublicHoliday {
+    pub date: NaiveDate,
+    pub name: String,
+}
+
 /// Input for `create_course` / `update_course`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CourseInput {

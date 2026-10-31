@@ -33,6 +33,8 @@ const MIGRATIONS: &[&str] = &[
     include_str!("migrations/004_default_bands.sql"),
     // Migration 005 adds holiday.kind for mid and final exam periods (R71).
     include_str!("migrations/005_day_off_kind.sql"),
+    // Migration 006 adds the public_holiday cache table (R77, R80).
+    include_str!("migrations/006_public_holiday.sql"),
 ];
 
 /// R93: replaces attendance bands that are exactly the retired placeholder table with the
@@ -175,6 +177,75 @@ impl Planner {
             }
         }
         tx.commit()?;
+        Ok(())
+    }
+
+    /// R77: replaces the cached public holidays of `country` in one transaction. Rows of other
+    /// countries stay. The country text is stored as given (the app passes the upper-case ISO
+    /// code); a repeated `(date, name)` is stored once and never fails; an empty slice clears
+    /// the country (D18). The cache never changes classes (R79).
+    pub fn set_public_holidays(&mut self, country: &str, days: &[PublicHoliday]) -> Result<()> {
+        let tx = self.conn.transaction()?;
+        tx.execute("DELETE FROM public_holiday WHERE country = ?1", [country])?;
+        {
+            let mut insert = tx.prepare(
+                "INSERT OR IGNORE INTO public_holiday (country, date, name) VALUES (?1, ?2, ?3)",
+            )?;
+            for day in days {
+                insert.execute(params![country, fmt_date(day.date), day.name])?;
+            }
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// R77: the cached public holidays of `country` from `from` to `to`, both inclusive, ordered
+    /// by date then name.
+    pub fn public_holidays_between(
+        &self,
+        country: &str,
+        from: NaiveDate,
+        to: NaiveDate,
+    ) -> Result<Vec<PublicHoliday>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT date, name FROM public_holiday
+             WHERE country = ?1 AND date BETWEEN ?2 AND ?3
+             ORDER BY date, name",
+        )?;
+        let rows = stmt.query_map(params![country, fmt_date(from), fmt_date(to)], |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+        })?;
+        let mut out = Vec::new();
+        for row in rows {
+            let (date, name) = row?;
+            let date = parse_date(&date)
+                .ok_or_else(|| Error::Corrupt(format!("public_holiday date {date:?}")))?;
+            out.push(PublicHoliday { date, name });
+        }
+        Ok(out)
+    }
+
+    /// R76: the stored public holiday country text (`off` or an ISO code); `None` while the
+    /// human has not chosen one, so the app follows the OS region (D8, D17).
+    pub fn public_holiday_country(&self) -> Result<Option<String>> {
+        Ok(self
+            .conn
+            .query_row(
+                "SELECT value FROM setting WHERE key = ?1",
+                [SETTING_PUBLIC_HOLIDAY_COUNTRY],
+                |r| r.get(0),
+            )
+            .optional()?)
+    }
+
+    /// R76: stores the public holiday country text (`off` or an ISO code). Backups carry it
+    /// like every other setting (R80).
+    pub fn set_public_holiday_country(&mut self, country: &str) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO setting (key, value) VALUES (?1, ?2)
+             ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+            params![SETTING_PUBLIC_HOLIDAY_COUNTRY, country],
+        )?;
         Ok(())
     }
 
@@ -885,6 +956,8 @@ const SETTING_NOTIFICATIONS: &str = "notifications_enabled";
 pub(crate) const SETTING_THEME: &str = "theme";
 /// §3, R29: whether to check for an update once per launch, stored as `1` or `0`.
 pub(crate) const SETTING_CHECK_UPDATES: &str = "check_updates_on_start";
+/// §13.11, R76: the public holiday country, stored as `off` or an ISO code (D17).
+pub(crate) const SETTING_PUBLIC_HOLIDAY_COUNTRY: &str = "public_holiday_country";
 
 // ---- text codecs (docs/spec.md §1: YYYY-MM-DD, HH:MM, YYYY-MM-DDTHH:MM) ----
 

@@ -66,7 +66,7 @@ Stories (for labels):
 
 ## Phase 2: Core cache (builder) — US1
 
-- [ ] T003 [US1] Add `crates/core/src/migrations/006_public_holiday.sql` with exactly the §13.11 SQL
+- [x] T003 [US1] Add `crates/core/src/migrations/006_public_holiday.sql` with exactly the §13.11 SQL
   `CREATE TABLE public_holiday (country TEXT NOT NULL, date TEXT NOT NULL, name TEXT NOT NULL,
   PRIMARY KEY (country, date, name));` and a header comment (R77, R80; next free number, D1); append
   it to `MIGRATIONS` in `crates/core/src/db.rs`. In `model.rs` add `PublicHoliday { date, name }`
