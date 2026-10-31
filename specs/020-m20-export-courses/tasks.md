@@ -7,4 +7,4 @@ Spec: `docs/spec.md` section 13.15 (R96-R100, T92-T96). Light flow like M11: no 
 - [x] T003 App: `viewmodel.rs` export texts and `ExportNote` (R99).
 - [x] T004 App: Courses page "Copy JSON" and "Save JSON..." buttons, helper line, handlers in `pages/courses.rs` (R99).
 - [x] T005 Docs: `docs/import/` and Import panel text (R100).
-- [ ] T006 Gate, theme grep, rebase onto `main`, gate again.
+- [x] T006 Gate, theme grep, rebase onto `main`, gate again.
