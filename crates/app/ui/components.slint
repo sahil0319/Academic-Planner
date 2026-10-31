@@ -231,20 +231,32 @@ export component DangerButton inherits OutlineButton {
 // rule, inset ring on focus (focus colour) or when invalid (error colour, which wins).
 // Width comes from the surrounding layout only: Slint reports a no-wrap `TextInput` minimum and
 // preferred width as its text width, so both are zeroed below and long text scrolls inside the clip.
+// The box itself never shrinks below `field-min-width`, so a row that mixes stretch factors cannot
+// squeeze it down to its padding. A click anywhere in the box, padding included, focuses the input.
 component FieldBox inherits Rectangle {
     in-out property <string> text <=> input.text;
     in property <bool> invalid;
     callback edited(string);
 
     height: Theme.input-height;
+    min-width: Theme.field-min-width;
     border-radius: Theme.radius-none;
     background: Theme.field;
     clip: true;
+
+    // Below the input, so clicks on the text itself still place the cursor.
+    TouchArea {
+        mouse-cursor: MouseCursor.text;
+        clicked => {
+            input.focus();
+        }
+    }
 
     HorizontalLayout {
         padding-left: Theme.space-lg;
         padding-right: Theme.space-lg;
         input := TextInput {
+            horizontal-stretch: 1;
             min-width: 0;
             preferred-width: 0;
             vertical-alignment: center;
@@ -278,6 +290,8 @@ export component Field inherits VerticalLayout {
     callback edited(string);
 
     // Width comes from the parent layout (stretch), never from the content or the error line.
+    // Stretch 1 by default so siblings that set a larger factor (Name: 2) do not starve the rest.
+    horizontal-stretch: 1;
     preferred-width: 0;
     spacing: Theme.space-xs;
 
@@ -316,6 +330,8 @@ export component ComboField inherits VerticalLayout {
     callback selected();
 
     // Width comes from the parent layout (stretch), never from the content or the error line.
+    // Stretch 1 by default so siblings that set a larger factor (Name: 2) do not starve the rest.
+    horizontal-stretch: 1;
     preferred-width: 0;
     spacing: Theme.space-xs;
 
@@ -450,6 +466,8 @@ export component TimeField inherits VerticalLayout {
     callback edited(string);
 
     // Width comes from the parent layout (stretch), never from the content or the error line.
+    // Stretch 1 by default so siblings that set a larger factor (Name: 2) do not starve the rest.
+    horizontal-stretch: 1;
     preferred-width: 0;
     spacing: Theme.space-xs;
 
@@ -465,6 +483,7 @@ export component TimeField inherits VerticalLayout {
         spacing: Theme.space-sm;
 
         box := FieldBox {
+            horizontal-stretch: 1;
             invalid: root.error != "";
             edited(value) => {
                 root.edited(value);

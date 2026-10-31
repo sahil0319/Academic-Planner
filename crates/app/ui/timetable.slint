@@ -130,6 +130,9 @@ component ComboField inherits VerticalLayout {
     in property <string> error;
 
     // Width comes from the parent layout (stretch), never from the content or the error line.
+    // Stretch 1 by default and a usable minimum, like the shared `ComboField`.
+    horizontal-stretch: 1;
+    min-width: Theme.field-min-width;
     preferred-width: 0;
     spacing: Theme.space-xs;
 

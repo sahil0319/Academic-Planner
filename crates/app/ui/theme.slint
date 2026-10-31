@@ -103,6 +103,10 @@ export global Theme {
     out property <length> nav-item-height: 32px;
     out property <length> row-height: 40px;
     out property <length> input-height: 32px;
+    // Smallest width a text input or combo box may shrink to inside a form row, so a row that
+    // mixes stretch factors can never squeeze a field below a usable size (the box minus its
+    // horizontal padding still leaves room for a few characters).
+    out property <length> field-min-width: 96px;
     // Fixed course-code column in course rows so the names share one left edge (F-07).
     out property <length> code-column-width: 104px;
     // Fixed columns in session rows so weekday, date, time, room, and status line up from row to
