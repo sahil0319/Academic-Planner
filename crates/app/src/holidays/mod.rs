@@ -10,8 +10,10 @@
 #![allow(dead_code)]
 
 pub mod calendars;
+pub mod fetch;
 pub mod ics;
 pub mod locale;
+pub mod service;
 
 #[cfg(test)]
 mod tests;

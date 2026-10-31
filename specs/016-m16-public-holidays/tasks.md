@@ -105,7 +105,7 @@ Stories (for labels):
   `serde_json::Value`), `locale.rs` (`Country`, `country_from_locale`, `resolve_country`,
   `setting_value`, `os_locale` via `sys_locale::get_locale()`, untested). T76 tests pass. Commit:
   `M16: country table and locale mapping`.
-- [ ] T008 [US2] `crates/app/src/holidays/fetch.rs` (`FETCH_TIMEOUT` 10 s, `feed_url` with percent
+- [x] T008 [US2] `crates/app/src/holidays/fetch.rs` (`FETCH_TIMEOUT` 10 s, `feed_url` with percent
   encoding of everything but unreserved characters, `HolidayFetcher`, `HttpFetcher` using
   `reqwest::blocking::Client` with the timeout and a non-2xx status as `Err`) and
   `service.rs` (`term_years`, `fetch_events`, `FetchOutcome`, `apply_fetch`; D26). T079 and the
