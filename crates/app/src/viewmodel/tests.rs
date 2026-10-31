@@ -4639,6 +4639,8 @@ fn t91_every_persisting_handler_toasts() {
                 "delete_selected",
                 "set_archived",
                 "add_makeup",
+                "copied_json",
+                "save_json",
             ],
         ),
         (
@@ -4944,4 +4946,51 @@ fn r78_calendar_legend_has_public_holiday_last() {
     );
     assert_eq!(keys, ["holiday", "midterm", "final", "public-holiday"]);
     assert_eq!(day_off_legend().len(), 3);
+}
+
+// ---- M20 export texts (R99, T96) ----
+
+/// R99 (T96): one and three courses copied to the clipboard give a toast.
+#[test]
+fn t96_copy_json_toast_texts() {
+    assert_eq!(
+        export_copied_note(1),
+        ExportNote::Toast("Copied 1 course to the clipboard.".to_string())
+    );
+    assert_eq!(
+        export_copied_note(3),
+        ExportNote::Toast("Copied 3 courses to the clipboard.".to_string())
+    );
+}
+
+/// R99 (T96): saved courses name the count and the file path.
+#[test]
+fn t96_save_json_toast_texts() {
+    let path = PathBuf::from("/x/academic-planner-courses.json");
+    assert_eq!(
+        export_saved_note(1, &path),
+        ExportNote::Toast("Saved 1 course to /x/academic-planner-courses.json.".to_string())
+    );
+    assert_eq!(
+        export_saved_note(3, &path),
+        ExportNote::Toast("Saved 3 courses to /x/academic-planner-courses.json.".to_string())
+    );
+}
+
+/// R99 (T96): zero courses is an inline message, not a toast, for both buttons.
+#[test]
+fn t96_zero_courses_is_inline() {
+    let inline = ExportNote::Inline("No courses to export.".to_string());
+    assert_eq!(export_copied_note(0), inline);
+    assert_eq!(export_saved_note(0, &PathBuf::from("/x/y.json")), inline);
+}
+
+/// R98, R99: the fixed texts next to the buttons and the suggested file name.
+#[test]
+fn t96_export_fixed_texts() {
+    assert_eq!(EXPORT_FILE_NAME, "academic-planner-courses.json");
+    assert_eq!(
+        EXPORT_HELPER_TEXT,
+        "The other person needs rule sets named like yours: Theory and Lab exist by default."
+    );
 }
