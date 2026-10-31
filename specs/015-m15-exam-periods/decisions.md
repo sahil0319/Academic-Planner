@@ -29,3 +29,4 @@ D1-D8 were fixed by the router before planning. D9 onward were taken by the plan
 - D25 The existing `day_panel_holiday_text(&str)` stays (Holiday line, tested); the new `day_panel_day_off_text(Option<&Holiday>)` uses it for holidays and adds "Mid exam: …" / "Final exam: …".
 - D27 Analysis remediation applied: plan.md task references aligned with the nine tasks of tasks.md (gate = T009, A13); `LegendItem` and `bridge::legend_item` moved from T006 to T008 so each commit compiles (A14).
 - D26 Adding the `kind` field breaks every `Holiday { .. }` literal in tests; the tester updates them in Phase 1 (list in tasks.md T001/T002), the builder never edits tests.
+- D28 (builder) `migrations.rs` `t26_newer_schema_version_refused` hard-coded `found: 3, supported: 2`; it now compares with `SCHEMA_VERSION + 1` / `SCHEMA_VERSION` so it survives the renumbering (old schema version only, no rule change).

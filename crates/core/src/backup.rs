@@ -12,10 +12,14 @@ use crate::db::{
     DEFAULT_BANDS_MIGRATION, GRADING_SEED, SCHEMA_VERSION, SETTING_CHECK_UPDATES, SETTING_THEME,
 };
 use crate::error::{Error, Result};
-use crate::model::{ThemeMode, WeekParity};
+use crate::model::{DayOffKind, ThemeMode, WeekParity};
 
 /// R21: value of the `format` key of every backup document.
 const BACKUP_FORMAT: &str = "academic-planner-backup";
+
+/// R75: first schema version whose backups carry `holidays[].kind` (the M15 migration number;
+/// renumber with the migration). An older backup restores every day off as `holiday`.
+const DAY_OFF_KIND_VERSION: i64 = 3;
 
 /// Reads a nullable field but, unlike serde's default for `Option`, still requires the key.
 fn nullable<'de, D, T>(d: D) -> std::result::Result<Option<T>, D::Error>
@@ -73,6 +77,14 @@ struct HolidayRow {
     date: String,
     #[serde(deserialize_with = "nullable")]
     label: Option<String>,
+    /// R75: `holiday`, `midterm`, or `final`; absent in backups older than `DAY_OFF_KIND_VERSION`.
+    #[serde(default = "default_day_off_kind")]
+    kind: String,
+}
+
+/// R75: the kind of a day off in a backup that has no `kind` key.
+fn default_day_off_kind() -> String {
+    "holiday".to_string()
 }
 
 #[derive(Serialize, Deserialize)]
@@ -211,6 +223,10 @@ impl Backup {
         }
         for h in &self.holidays {
             date("holiday date", &h.date)?;
+            // R71, R75: only holiday, midterm, or final.
+            if DayOffKind::from_db(&h.kind).is_none() {
+                return Err(bad("holiday kind", &h.kind));
+            }
         }
         for s in &self.slots {
             time("slot start_time", &s.start_time)?;
@@ -285,8 +301,8 @@ fn apply(tx: &Transaction, b: &Backup, version: i64) -> rusqlite::Result<()> {
     }
     for h in &b.holidays {
         tx.execute(
-            "INSERT INTO holiday (term_id, date, label) VALUES (?1, ?2, ?3)",
-            params![h.term_id, h.date, h.label],
+            "INSERT INTO holiday (term_id, date, label, kind) VALUES (?1, ?2, ?3, ?4)",
+            params![h.term_id, h.date, h.label, h.kind],
         )?;
     }
     if version >= 2 {
@@ -453,12 +469,13 @@ impl Planner {
             )?,
             holidays: rows(
                 &tx,
-                "SELECT term_id, date, label FROM holiday ORDER BY term_id, date",
+                "SELECT term_id, date, label, kind FROM holiday ORDER BY term_id, date",
                 |r| {
                     Ok(HolidayRow {
                         term_id: r.get(0)?,
                         date: r.get(1)?,
                         label: r.get(2)?,
+                        kind: r.get(3)?,
                     })
                 },
             )?,
@@ -636,8 +653,25 @@ impl Planner {
                 root.remove(key);
             }
         }
+        // R75: a current backup must say the kind of every day off.
+        if version >= DAY_OFF_KIND_VERSION {
+            let days = root.get("holidays").and_then(Value::as_array);
+            if days
+                .into_iter()
+                .flatten()
+                .any(|h| h.as_object().is_some_and(|o| !o.contains_key("kind")))
+            {
+                return Err(invalid("backup has the wrong shape: missing field `kind`"));
+            }
+        }
         let mut backup: Backup = serde_json::from_value(value)
             .map_err(|e| Error::Validation(format!("backup has the wrong shape: {e}")))?;
+        if version < DAY_OFF_KIND_VERSION {
+            // R75: an older backup restores every day off as a holiday.
+            for h in &mut backup.holidays {
+                h.kind = default_day_off_kind();
+            }
+        }
         if version < 2 {
             // R41: a version 1 backup restores ungraded.
             for c in &mut backup.courses {

@@ -240,7 +240,8 @@ impl Planner {
 ///
 /// R3, R4: for each slot of each non-archived course in the active term, every date in
 /// `[max(term.start, valid_from), min(term.end, valid_to ?? term.end)]` (both inclusive)
-/// with the slot's weekday that is not a holiday gets one `regular`, pending session; an
+/// with the slot's weekday that is not a day off of any kind (R72: holiday, mid exam, or final
+/// exam day, all in `term.holidays`) gets one `regular`, pending session; an
 /// existing row for that `(slot, date)` is left untouched, whatever its status (R8). The
 /// session copies start, end, and room (slot room, else course room) at creation time.
 ///
