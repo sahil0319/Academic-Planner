@@ -1,0 +1,20 @@
+[
+  { "code": "BD", "name": "Bangladesh", "id": "en.bd#holiday@group.v.calendar.google.com" },
+  { "code": "IN", "name": "India", "id": "en.indian#holiday@group.v.calendar.google.com" },
+  { "code": "PK", "name": "Pakistan", "id": "en.pk#holiday@group.v.calendar.google.com" },
+  { "code": "NP", "name": "Nepal", "id": "en.np#holiday@group.v.calendar.google.com" },
+  { "code": "LK", "name": "Sri Lanka", "id": "en.lk#holiday@group.v.calendar.google.com" },
+  { "code": "MY", "name": "Malaysia", "id": "en.malaysia#holiday@group.v.calendar.google.com" },
+  { "code": "SG", "name": "Singapore", "id": "en.singapore#holiday@group.v.calendar.google.com" },
+  { "code": "ID", "name": "Indonesia", "id": "en.indonesian#holiday@group.v.calendar.google.com" },
+  { "code": "AE", "name": "United Arab Emirates", "id": "en.ae#holiday@group.v.calendar.google.com" },
+  { "code": "SA", "name": "Saudi Arabia", "id": "en.saudiarabian#holiday@group.v.calendar.google.com" },
+  { "code": "GB", "name": "United Kingdom", "id": "en.uk#holiday@group.v.calendar.google.com" },
+  { "code": "IE", "name": "Ireland", "id": "en.irish#holiday@group.v.calendar.google.com" },
+  { "code": "US", "name": "United States", "id": "en.usa#holiday@group.v.calendar.google.com" },
+  { "code": "CA", "name": "Canada", "id": "en.canadian#holiday@group.v.calendar.google.com" },
+  { "code": "AU", "name": "Australia", "id": "en.australian#holiday@group.v.calendar.google.com" },
+  { "code": "NZ", "name": "New Zealand", "id": "en.new_zealand#holiday@group.v.calendar.google.com" },
+  { "code": "DE", "name": "Germany", "id": "en.german#holiday@group.v.calendar.google.com" },
+  { "code": "FR", "name": "France", "id": "en.french#holiday@group.v.calendar.google.com" }
+]

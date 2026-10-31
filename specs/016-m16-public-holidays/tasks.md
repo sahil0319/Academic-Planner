@@ -98,7 +98,7 @@ Stories (for labels):
 - [x] T006 [US2] `crates/app/src/holidays/ics.rs`: `parse_public_holidays(&str) -> Vec<PublicHoliday>`
   exactly per D22, D23 and plan.md; doc comments cite R81. T75 tests pass. Commit:
   `M16: iCalendar public holiday parser`.
-- [ ] T007 [US2] `crates/app/data/holiday-calendars.json` (D21, D40: the 18 required codes, names,
+- [x] T007 [US2] `crates/app/data/holiday-calendars.json` (D21, D40: the 18 required codes, names,
   ids; the builder may verify each id with one manual request and records verified and unverified
   ids in decisions.md as a new D-line), `calendars.rs` (`Calendar`, `calendars`, `calendar_for`,
   `calendars_by_name`; `OnceLock`, `include_str!("../../data/holiday-calendars.json")`, parse with

@@ -9,7 +9,9 @@
 // they are wired, so the module is checked for dead code again.
 #![allow(dead_code)]
 
+pub mod calendars;
 pub mod ics;
+pub mod locale;
 
 #[cfg(test)]
 mod tests;
