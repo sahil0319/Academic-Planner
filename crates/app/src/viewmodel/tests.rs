@@ -4541,7 +4541,6 @@ fn r89a_day_off_toast_texts() {
     );
 }
 
-<<<<<<< HEAD
 // ---- M18a sweep: a toast for every save, add, apply, delete, and archive (R89a, T91) ----
 
 /// R89a (T91): the course form says Added for a new course and Saved for an edit.
@@ -4688,7 +4687,7 @@ fn t91_every_persisting_handler_toasts() {
         }
     }
 }
-=======
+
 fn public_holiday(date: NaiveDate, name: &str) -> PublicHoliday {
     PublicHoliday {
         date,
@@ -4941,4 +4940,3 @@ fn r78_calendar_legend_has_public_holiday_last() {
     assert_eq!(keys, ["holiday", "midterm", "final", "public-holiday"]);
     assert_eq!(day_off_legend().len(), 3);
 }
->>>>>>> 8c16fa0 (M16: tests T75-T79 and decisions D44-D46)
