@@ -71,3 +71,47 @@ Result: 11 texts become toasts; the page `message` property holds errors only af
 - [x] Tests T84 and T84b (R88): `ToastQueue` dedupe, expiry, cap of three, close, in `crates/app/src/toast/tests.rs`; covered by T001.
 - [x] Tests T85 (R89): each confirmation yields one toast with the text from `viewmodel.rs`, page `message` stays empty, an error case shows no toast; covered by T002 and T004.
 - [x] Fill in the exact test file paths above once the tester has written them.
+
+## M18a sweep (R89a, T91)
+
+Human request 2026-10-31: every button that saves, adds, applies, deletes, or archives user data toasts on success, on every page. Failures keep the inline error and show no toast. Texts come from `crates/app/src/viewmodel.rs`; each handler calls `App::toast` after the page refresh (`App::changed`), and only when that refresh left no error in the page message where the page has one. Light flow, one commit per step, prefix `M18a:`.
+
+### Handler audit
+
+| Page | Handler (`pages/*.rs`) | Button | Toast text | State before sweep |
+|---|---|---|---|---|
+| Courses | `save_course` | Save / Add course | "Course added." / "Course saved." (`course_saved_text(created)`) | missing |
+| Courses | `delete_selected` | Delete (confirmed) | "Deleted 1 course." / "Deleted 2 courses." (`courses_deleted_text(n)`) | missing |
+| Courses | `set_archived` (was a closure in `wire`) | Archive / Unarchive | "Course archived." / "Course unarchived." (`course_archived_text(archived)`) | missing |
+| Courses | `add_makeup` | Add makeup class | "Makeup class added." (`makeup_added_text()`) | missing |
+| Assessments | `save` | Save / Add (includes score entry) | "Assessment added." / "Assessment saved." (`assessment_saved_text(created)`) | missing |
+| Assessments | `delete_assessment` (was a closure in `wire`) | Delete | "Assessment deleted." (`assessment_deleted_text()`) | missing |
+| Timetable | `reschedule` | Reschedule Save | "Class rescheduled." (`rescheduled_text()`) | missing |
+| Timetable | `save_slot` | Save slot / Add slot | "Slot added." / "Slot saved." (`slot_saved_text(created)`) | missing |
+| Timetable | `end_slot` | End slot | "Slot ended." (`slot_ended_text()`) | missing |
+| Rules | `save_set` | Save (rule set) | "Rule set saved." | done (M18) |
+| Rules | `save_scale` | Save grade scale | "Grade scale saved." | done (M18) |
+| Rules | `delete_set` | Delete rule set | "Rule set deleted." (`rule_set_deleted_text()`) | missing |
+| Import | `run_apply` | Apply | "Imported 3 courses." (`import_applied_text(courses, term)`); result list stays | missing |
+| Import | template / prompt copy | Copy template / prompt | "Template copied" / "AI prompt copied" | done (M18) |
+| Settings | `save_term` | Save term | "Term saved." | done (M18) |
+| Settings | `archive_confirm` | Archive term (confirmed) | "Term archived." | done (M18) |
+| Settings | `add_holiday` | Add holiday | "Holidays saved." | done (M18) |
+| Settings | `remove_holiday` | Remove holiday | "Holiday removed." | done (M18) |
+| Settings | `save_settings` | Save settings | "Settings saved." | done (M18) |
+| Settings | `backup`, `export_csv`, `restore_confirm` | Backup, Export CSV, Restore | existing messages | done (M18) |
+| Dashboard | `shift_biweekly` | Move to next week | "Moved to next week." | done (M12) |
+
+No toast by design (the row itself changes, R89a):
+- session status buttons (Attended, Absent, Cancelled, Pending) in `dashboard.rs`, `timetable.rs`, `courses.rs`;
+- the "completed" checkbox on an assessment row (`assessments.rs` `set_completed`): a row toggle like the status buttons;
+- the "Check for updates on start" switch on About (`about.rs` `toggle_check_on_start`): a switch, not a save button; it shows its own error and reloads the switch on failure.
+
+Not built yet (M15, M16 and any later page): exam period Add, public holiday Add selected. They are not on this branch; the M15/M16 builder adds a toast for them (R89a) and a line to the coverage test (`t91_every_persisting_handler_toasts`).
+
+### Tasks
+
+- [ ] T007 Tests first (T91): text functions in `viewmodel/tests.rs` (`t91_*`) and the handler coverage check `t91_every_persisting_handler_toasts`. Commit: `M18a: tests for save toasts (T91)`.
+- [ ] T008 `viewmodel.rs`: the new text functions. Commit: `M18a: toast texts for save, add, delete, archive`.
+- [ ] T009 Handlers: courses, assessments, timetable, rules (delete), import. Commit: `M18a: toasts on every save, add, apply, delete, archive`.
+- [ ] T010 Gate, theme grep, rebase onto `main`, gate again.
