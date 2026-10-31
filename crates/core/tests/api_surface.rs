@@ -80,6 +80,9 @@ fn api_signatures_match_spec_section_5() {
     let _: fn(&mut Planner, &str, NaiveDate, NaiveDate) -> Result<ImportReport> =
         Planner::apply_import;
 
+    // M20 (§13.15)
+    let _: fn(&Planner, Option<&[i64]>, NaiveDate) -> Result<String> = Planner::export_courses_json;
+
     // M11 (§13.6)
     let _: fn(&mut Planner, &[i64]) -> Result<()> = Planner::delete_courses;
 

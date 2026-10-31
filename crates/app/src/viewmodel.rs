@@ -1566,6 +1566,46 @@ pub fn courses_deleted_text(n: usize) -> String {
     format!("Deleted {n} {noun}.")
 }
 
+/// R99: suggested file name of the Save JSON dialog.
+pub const EXPORT_FILE_NAME: &str = "academic-planner-courses.json";
+
+/// R98: the line next to the export buttons.
+pub const EXPORT_HELPER_TEXT: &str =
+    "The other person needs rule sets named like yours: Theory and Lab exist by default.";
+
+/// R99: inline message when there is nothing to export.
+const NO_COURSES_TO_EXPORT: &str = "No courses to export.";
+
+/// R99: how the result of an export is shown: a success is a toast (R88), "No courses to
+/// export." stays inline.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ExportNote {
+    Toast(String),
+    Inline(String),
+}
+
+/// R99: "1 course" or "3 courses".
+fn courses_count(n: usize) -> String {
+    let noun = if n == 1 { "course" } else { "courses" };
+    format!("{n} {noun}")
+}
+
+/// R99: note after Copy JSON put `n` courses on the clipboard.
+pub fn export_copied_note(n: usize) -> ExportNote {
+    if n == 0 {
+        return ExportNote::Inline(NO_COURSES_TO_EXPORT.to_string());
+    }
+    ExportNote::Toast(format!("Copied {} to the clipboard.", courses_count(n)))
+}
+
+/// R99: note after Save JSON wrote `n` courses to `path`.
+pub fn export_saved_note(n: usize, path: &Path) -> ExportNote {
+    if n == 0 {
+        return ExportNote::Inline(NO_COURSES_TO_EXPORT.to_string());
+    }
+    ExportNote::Toast(format!("Saved {} to {}.", courses_count(n), path.display()))
+}
+
 /// R89a, R3: toast after archiving or unarchiving a course.
 pub fn course_archived_text(archived: bool) -> String {
     if archived {

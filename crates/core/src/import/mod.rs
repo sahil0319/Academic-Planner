@@ -1,6 +1,7 @@
 //! Course and timetable JSON import (M10, docs/spec.md §13.4).
 
 mod apply;
+mod export;
 mod parse;
 mod plan;
 mod types;

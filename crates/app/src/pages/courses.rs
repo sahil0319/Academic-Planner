@@ -132,6 +132,20 @@ pub fn wire(app: &Rc<App>) {
     };
     let ui = window.global::<CoursesState>();
     ui.set_below_target_label(vm::BELOW_TARGET_LABEL.into());
+    ui.set_export_helper(vm::EXPORT_HELPER_TEXT.into());
+
+    let weak = Rc::downgrade(app);
+    ui.on_prepare_json_copy(move || {
+        let mut ready = false;
+        with(&weak, |app, ui| ready = prepare_json_copy(app, ui));
+        ready
+    });
+
+    let weak = Rc::downgrade(app);
+    ui.on_json_copied(move || with(&weak, copied_json));
+
+    let weak = Rc::downgrade(app);
+    ui.on_save_json(move || with(&weak, save_json));
 
     let weak = Rc::downgrade(app);
     ui.on_toggle_archived(move |show| {
@@ -303,6 +317,84 @@ fn clear_makeup_form(ui: &CoursesState<'_>) {
     }
     ui.set_mk_start_pm(false);
     ui.set_mk_end_pm(false);
+}
+
+/// R99: the export of the ticked courses (R52), or of every non-archived course when none is
+/// ticked, and the number of courses in it. An empty export shows the inline message and
+/// returns `None`.
+fn export_document(app: &App, ui: &CoursesState<'_>) -> Option<(String, usize)> {
+    let selected: Vec<i64> = app.state().selected_courses.iter().copied().collect();
+    let result = {
+        let planner = app.planner();
+        let ids = (!selected.is_empty()).then_some(selected.as_slice());
+        planner
+            .export_courses_json(ids, app.today())
+            .and_then(|json| {
+                let count = match ids {
+                    Some(ids) => ids.len(),
+                    None => planner.list_courses(false)?.len(),
+                };
+                Ok((json, count))
+            })
+    };
+    match result {
+        Ok((_, 0)) => {
+            if let vm::ExportNote::Inline(text) = vm::export_copied_note(0) {
+                ui.set_message(text.into());
+            }
+            None
+        }
+        Ok(found) => Some(found),
+        Err(e) => {
+            ui.set_message(err(e).into());
+            None
+        }
+    }
+}
+
+/// R99: Copy JSON step 1. Puts the document in `export-text` for the clipboard carrier in
+/// `courses.slint`; returns false when there is nothing to copy.
+fn prepare_json_copy(app: &App, ui: &CoursesState<'_>) -> bool {
+    let Some((json, count)) = export_document(app, ui) else {
+        return false;
+    };
+    ui.set_export_text(json.into());
+    ui.set_export_count(i32::try_from(count).unwrap_or(i32::MAX));
+    true
+}
+
+/// R99, R88: Copy JSON step 2. The carrier has copied the document; toasts the count.
+fn copied_json(app: &App, ui: &CoursesState<'_>) {
+    let count = usize::try_from(ui.get_export_count()).unwrap_or(0);
+    ui.set_message(SharedString::new());
+    if let vm::ExportNote::Toast(text) = vm::export_copied_note(count) {
+        app.toast(&text);
+    }
+    ui.set_export_text(SharedString::new());
+}
+
+/// R99, R88: Save JSON. Writes the document to a file picked in a save dialog (the same dialog
+/// style as the backup button) and toasts the count and path. Cancel does nothing.
+fn save_json(app: &App, ui: &CoursesState<'_>) {
+    let Some((json, count)) = export_document(app, ui) else {
+        return;
+    };
+    let Some(path) = rfd::FileDialog::new()
+        .set_file_name(vm::EXPORT_FILE_NAME)
+        .add_filter("JSON", &["json"])
+        .save_file()
+    else {
+        return;
+    };
+    match std::fs::write(&path, json) {
+        Ok(()) => {
+            ui.set_message(SharedString::new());
+            if let vm::ExportNote::Toast(text) = vm::export_saved_note(count, &path) {
+                app.toast(&text);
+            }
+        }
+        Err(e) => ui.set_message(vm::file_error_message(&path, &e.to_string()).into()),
+    }
 }
 
 /// R52: opens the confirm panel naming the selected course codes.

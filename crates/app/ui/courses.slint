@@ -97,6 +97,18 @@ export global CoursesState {
     in property <bool> confirm-delete;
     in property <string> confirm-delete-text;
 
+    // R98, R99: JSON export. `export-text` is the document the hidden clipboard carrier copies;
+    // `export-count` is its course count; `export-helper` is the line next to the buttons.
+    in property <string> export-text;
+    in property <int> export-count;
+    in property <string> export-helper;
+
+    // R99: Rust builds the document and returns false (with an inline message) when there is
+    // nothing to export; Slint then copies it and calls `json-copied`.
+    callback prepare-json-copy() -> bool;
+    callback json-copied();
+    callback save-json();
+
     callback toggle-archived(bool);
     callback toggle-selected(int, bool);
     callback select-all(bool);
@@ -210,6 +222,45 @@ export component CoursesPage inherits VerticalLayout {
                 ImportState.open = true;
             }
         }
+        // R99: export the ticked courses (all non-archived when none is ticked).
+        SecondaryButton {
+            text: "Copy JSON";
+            clicked => {
+                if (CoursesState.prepare-json-copy()) {
+                    export-source.select-all();
+                    export-source.copy();
+                    export-source.clear-selection();
+                    CoursesState.json-copied();
+                }
+            }
+        }
+        SecondaryButton {
+            text: "Save JSON…";
+            clicked => {
+                CoursesState.save-json();
+            }
+        }
+        // Hidden clipboard carrier, like the Import panel's (select-all, copy, clear-selection).
+        Rectangle {
+            width: 0;
+            height: 0;
+            export-source := TextInput {
+                visible: false;
+                read-only: true;
+                width: 0;
+                height: 0;
+                text: CoursesState.export-text;
+            }
+        }
+    }
+
+    // R98: the other planner must know the rule set names.
+    Text {
+        text: CoursesState.export-helper;
+        color: Theme.on-surface-muted;
+        wrap: word-wrap;
+        font-family: Theme.font-body;
+        font-size: Theme.body-sm-size;
     }
 
     // M10, R42-R50: course and timetable import.
