@@ -4536,4 +4536,149 @@ fn r89a_day_off_toast_texts() {
         day_off_removed_text(DayOffKind::Final),
         "Final exam removed."
     );
+
+// ---- M18a sweep: a toast for every save, add, apply, delete, and archive (R89a, T91) ----
+
+/// R89a (T91): the course form says Added for a new course and Saved for an edit.
+#[test]
+fn t91_course_saved_text() {
+    assert_eq!(course_saved_text(true), "Course added.");
+    assert_eq!(course_saved_text(false), "Course saved.");
+}
+
+/// R89a, R51 (T91): the delete toast counts the deleted courses with the right plural.
+#[test]
+fn t91_courses_deleted_text() {
+    assert_eq!(courses_deleted_text(1), "Deleted 1 course.");
+    assert_eq!(courses_deleted_text(2), "Deleted 2 courses.");
+    assert_eq!(courses_deleted_text(12), "Deleted 12 courses.");
+}
+
+/// R89a, R3 (T91): archive and unarchive have their own texts.
+#[test]
+fn t91_course_archived_text() {
+    assert_eq!(course_archived_text(true), "Course archived.");
+    assert_eq!(course_archived_text(false), "Course unarchived.");
+}
+
+/// R89a, R10 (T91): makeup class added.
+#[test]
+fn t91_makeup_added_text() {
+    assert_eq!(makeup_added_text(), "Makeup class added.");
+}
+
+/// R89a (T91): the assessment form (score entry included) says Added or Saved; delete has a text.
+#[test]
+fn t91_assessment_texts() {
+    assert_eq!(assessment_saved_text(true), "Assessment added.");
+    assert_eq!(assessment_saved_text(false), "Assessment saved.");
+    assert_eq!(assessment_deleted_text(), "Assessment deleted.");
+}
+
+/// R89a, R9 (T91): reschedule Save.
+#[test]
+fn t91_rescheduled_text() {
+    assert_eq!(rescheduled_text(), "Class rescheduled.");
+}
+
+/// R89a, R7 (T91): slot Add, slot Save, and End slot.
+#[test]
+fn t91_slot_texts() {
+    assert_eq!(slot_saved_text(true), "Slot added.");
+    assert_eq!(slot_saved_text(false), "Slot saved.");
+    assert_eq!(slot_ended_text(), "Slot ended.");
+}
+
+/// R89a, R34 (T91): rule set delete.
+#[test]
+fn t91_rule_set_deleted_text() {
+    assert_eq!(rule_set_deleted_text(), "Rule set deleted.");
+}
+
+/// R89a, R48 (T91): Import Apply counts the courses added and updated; a plan with only a term
+/// has its own text.
+#[test]
+fn t91_import_applied_text() {
+    assert_eq!(import_applied_text(3, false), "Imported 3 courses.");
+    assert_eq!(import_applied_text(3, true), "Imported 3 courses.");
+    assert_eq!(import_applied_text(1, false), "Imported 1 course.");
+    assert_eq!(import_applied_text(0, true), "Imported the term.");
+    assert_eq!(import_applied_text(0, false), "Nothing imported.");
+}
+
+/// Returns the body of the top-level function `name` in `source`: from `fn name(` to the first
+/// line that is exactly `}`.
+fn handler_body<'a>(source: &'a str, name: &str) -> &'a str {
+    let head = format!("\nfn {name}(");
+    let start = source
+        .find(&head)
+        .unwrap_or_else(|| panic!("handler {name} not found"));
+    let rest = &source[start..];
+    let end = rest.find("\n}\n").unwrap_or(rest.len());
+    &rest[..end]
+}
+
+/// R89a (T91): no handler in `pages/*.rs` that persists data is without a toast. There is no
+/// headless Slint backend, so this scans the source: each handler named below must call
+/// `toast(` (directly or through `changed_then_toast`). A new Save, Add, Apply, Delete, or Archive
+/// handler (for example exam period Add of M15) is added to this list. Handlers that must not toast
+/// (session status buttons, the assessment completed checkbox, the About update switch) are not
+/// listed; see "No toast by design" in `specs/018-m18-toasts/tasks.md`.
+#[test]
+fn t91_every_persisting_handler_toasts() {
+    let pages: [(&str, &str, &[&str]); 7] = [
+        (
+            "courses",
+            include_str!("../pages/courses.rs"),
+            &[
+                "save_course",
+                "delete_selected",
+                "set_archived",
+                "add_makeup",
+            ],
+        ),
+        (
+            "assessments",
+            include_str!("../pages/assessments.rs"),
+            &["save", "delete_assessment"],
+        ),
+        (
+            "timetable",
+            include_str!("../pages/timetable.rs"),
+            &["reschedule", "save_slot", "end_slot"],
+        ),
+        (
+            "rules",
+            include_str!("../pages/rules.rs"),
+            &["save_set", "save_scale", "delete_set"],
+        ),
+        ("import", include_str!("../pages/import.rs"), &["run_apply"]),
+        (
+            "settings",
+            include_str!("../pages/settings.rs"),
+            &[
+                "save_term",
+                "archive_confirm",
+                "add_holiday",
+                "remove_holiday",
+                "save_settings",
+                "backup",
+                "export_csv",
+                "restore_confirm",
+            ],
+        ),
+        (
+            "dashboard",
+            include_str!("../pages/dashboard.rs"),
+            &["shift_biweekly"],
+        ),
+    ];
+    for (page, source, handlers) in pages {
+        for handler in handlers {
+            assert!(
+                handler_body(source, handler).contains("toast("),
+                "{page}::{handler} persists data but never toasts (R89a)"
+            );
+        }
+    }
 }
