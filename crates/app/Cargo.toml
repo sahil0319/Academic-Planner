@@ -19,6 +19,12 @@ open = "5"
 planner-core = { path = "../core" }
 rfd = "0.17.2"
 rusqlite.workspace = true
+# M16 (R77): the public holiday feed fetch. Same features the updater already builds (D3, D20).
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls-native-roots"] }
+# M16 (R76): the OS locale region picks the default public holiday country.
+sys-locale = "0.3"
+# M16 (R77): parses the built-in holiday calendar table.
+serde_json.workspace = true
 # `unstable-winit-030`: window-attributes hook used to make the window opaque (see main.rs).
 slint = { workspace = true, features = ["unstable-winit-030"] }
 

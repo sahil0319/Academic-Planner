@@ -7,6 +7,7 @@ slint::include_modules!();
 
 mod bridge;
 mod controller;
+mod holidays;
 mod notify;
 mod pages;
 mod restore;

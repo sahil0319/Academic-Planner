@@ -86,7 +86,7 @@ Stories (for labels):
 
 ## Phase 3: App holidays module (builder) — US2
 
-- [ ] T005 [US2] `crates/app/Cargo.toml`: `reqwest = { version = "0.12", default-features = false,
+- [x] T005 [US2] `crates/app/Cargo.toml`: `reqwest = { version = "0.12", default-features = false,
   features = ["blocking", "rustls-tls-native-roots"] }`, `sys-locale = "0.3"`, `serde_json.workspace
   = true` (comment: M16, R77; same features the updater already builds, D3, D20). Check `git diff
   Cargo.lock` shows only the `app` package's dependency list changing and no new `[[package]]`

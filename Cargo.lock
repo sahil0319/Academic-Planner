@@ -226,10 +226,13 @@ dependencies = [
  "notify-rust",
  "open",
  "planner-core",
+ "reqwest",
  "rfd",
  "rusqlite",
+ "serde_json",
  "slint",
  "slint-build",
+ "sys-locale",
 ]
 
 [[package]]
