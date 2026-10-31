@@ -295,6 +295,7 @@ Each milestone ends with the **gate**: `cargo fmt --check && cargo clippy --work
 | **M17** | Carbon restyle from DESIGN.md v2, light and dark, IBM Plex Sans (§13.12) | Gate passes; theme grep check and DESIGN.md lint pass; `impeccable` critique of every page in both themes has no open high-severity items; human approves screenshots |
 | **M18** | Toast notifications system-wide (5 s timer bar, cross button); Rules page save confirmation; build right after M17 (§13.13) | Gate passes; T80–T85 (incl. T84b) and T91 pass; DESIGN.md lint passes; human sees the toasts in the app |
 | **M19** | Default attendance bands: the human's table for rule sets not configured yet (§13.14) | Gate passes; T86–T90 pass; human sees the new defaults in the app |
+| **M20** | Export courses and routine as a JSON that another user can import (§13.15) | Gate passes; T92–T96 pass; human round-trips an export through Import |
 
 **Parallelism:** after M1 the API is frozen as stubs, so one agent can do M2–M3 (core) while another builds M4 (UI) against the stubs. Merge before the M4 smoke test.
 
@@ -434,7 +435,7 @@ Never run Spec Kit on the whole app at once. Per-milestone features keep `tasks.
 - `progress.json`: `{"milestone": "M2", "phase": "implement", "tasks": {"T001": "done", ...}}`, using Spec Kit task IDs. The agent updates it after each task, not at the end.
 - `checkpoint.md`, at most 15 lines: current milestone, last green gate (commit hash), next task, open questions. A new session reads **only** `AGENTS.md` + `checkpoint.md` + the current `specs/<milestone>/tasks.md`. This replaces re-reading chat history and is the cheapest way to resume after `/clear` or an expired prompt cache.
 
-## 13. After v0.1.1: M7–M19 (human decisions 2026-10-29; M11–M19 2026-10-30)
+## 13. After v0.1.1: M7–M20 (human decisions 2026-10-29; M11–M20 2026-10-30 and 2026-10-31)
 
 Build in order: **M7 → M8 → M9 → M10**. The updater ships first so every later feature reaches installed copies with one click. Rules continue the R-numbering (R26–R50) and tests continue the T-numbering (§13.5). Everything in §1–§12 still applies.
 
@@ -860,3 +861,31 @@ pub fn default_attendance_bands() -> Vec<AttendanceBand>;   // R92
 | T88 | fresh database; restore of a version-1 backup | Theory and Lab attendance bands equal the new table in both cases |
 | T89 | 3-credit Theory with the seeded bands, attendance 87% and 95% | Attendance 18.0 of 30 and 30.0 of 30 |
 | T90 (app) | New rule set form, add an attendance component; then edit a band and add another attendance-less component | six band rows from `default_attendance_bands()`; edited rows are kept; no stored change before Save |
+
+### 13.15 M20: export courses and routine (human request 2026-10-31)
+
+Light flow like M11: T-tests first, then the gate. No schema change. The export writes the M10 import format (§13.4), so the other person pastes it into **Courses → Import…** and the existing preview and apply (R42–R49) do the rest.
+
+**Rules**
+- **R96** `export_courses_json(course_ids: Option<&[i64]>, today: NaiveDate) -> Result<String>` returns pretty-printed JSON in the §13.4 format (`"format": "academic-planner-courses"`, `"version": 1`). `term`: the active term's name, start, and end (omitted when there is no active term). `courses`: the given courses, or when `None` every course that is not archived, ordered by code. An unknown id in the list is `Error::NotFound`. An empty list gives an empty `courses` array.
+- **R97** Each course has `code`, `name`, `credits` (omitted when not graded), `rule_set` (the rule set's name, omitted when none), `instructor`, `room`, `min_attendance_pct` (the course's target), and `slots`. Notes are not exported (personal). Slots are the course's slots that have not ended (`valid_to` is NULL or on or after `today`), ordered by weekday then start, each with `day` (`Mon`…`Sun`), `start` and `end` as 24-hour `HH:MM`, `room`, and `biweekly` (`"this_week"` when the slot meets in the week of `today`, `"next_week"` when it meets in the week after, per R54; the key is omitted for a weekly slot). No ids, sessions, attendance, assessments, marks, holidays, settings, or past slots are exported.
+- **R98** Round trip: importing an export into an empty planner (effective date = `today`) recreates the term, the courses, their slots, and the bi-weekly pattern; previewing the same export again in the exporting planner gives an empty plan (R48). A `rule_set` name that the other planner does not have is reported by the preview as an error with its path (R42); the app tells the user so next to the export buttons ("The other person needs rule sets named like yours: Theory and Lab exist by default.").
+- **R99** UI, Courses page next to **Import…**: **Copy JSON** (puts the document on the clipboard) and **Save JSON…** (a save dialog, suggested name `academic-planner-courses.json`, the same dialog style as the backup button). With courses ticked in the list (R52) the export holds only those; with none ticked it holds every non-archived course. Success shows a toast (R88): "Copied N courses to the clipboard." / "Saved N courses to {path}." (plural and zero handled; with no courses it says "No courses to export." as an inline message, not a toast). The texts come from `viewmodel.rs`.
+- **R100** The AI prompt and the Import panel text (R50) mention that an exported file can be pasted into Import. `docs/import/README` or the template notes the `biweekly` key meaning for exports.
+
+**API addition**
+
+```rust
+pub fn export_courses_json(&self, course_ids: Option<&[i64]>, today: NaiveDate) -> Result<String>;   // R96
+```
+
+**Tests**
+
+| ID | Given | Then |
+|---|---|---|
+| T92 | a term, 2 graded courses (one with a bi-weekly slot meeting this week, one with an ended slot and a current slot), 1 archived course; `export_courses_json(None, today)` | the archived course is absent; ended slot absent; fields and `HH:MM`/`Mon` formats right; `biweekly` is `this_week`; weekly slots have no `biweekly` key; no notes, ids, or sessions |
+| T93 | export of two courses, then `export_courses_json(Some(&[id]), today)` and `Some(&[999])` and `Some(&[])` | only the chosen course; `Error::NotFound`; empty `courses` array |
+| T94 | export from planner A, `apply_import` into an empty planner B (effective date today), then `preview_import` of the same text in A and in B | B has the term, courses, slots, parity; both previews are empty |
+| T95 | export whose course uses a custom rule set name; preview in a planner without it | error at `courses[0].rule_set` naming the rule set; nothing written |
+| T96 (app) | 0, 1, and 3 courses exported by copy and by save | toast "Copied 1 course to the clipboard." / "Saved 3 courses to {path}."; 0 courses gives the inline "No courses to export." and no toast |
+
