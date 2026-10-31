@@ -19,7 +19,7 @@ const BACKUP_FORMAT: &str = "academic-planner-backup";
 
 /// R75: first schema version whose backups carry `holidays[].kind` (the M15 migration number;
 /// renumber with the migration). An older backup restores every day off as `holiday`.
-const DAY_OFF_KIND_VERSION: i64 = 3;
+const DAY_OFF_KIND_VERSION: i64 = 5;
 
 /// Reads a nullable field but, unlike serde's default for `Option`, still requires the key.
 fn nullable<'de, D, T>(d: D) -> std::result::Result<Option<T>, D::Error>

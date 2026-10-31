@@ -4103,7 +4103,6 @@ fn t70_term_save_error_stays_inline() {
     );
 }
 
-<<<<<<< HEAD
 // ---- M12: bi-weekly slot form (R56, R58) ----
 
 /// Term start used by the T61 tests: a Monday. 2026-01-12 is the Monday of week 2 (even).
@@ -4343,7 +4342,8 @@ fn t90_bands_with_defaults_keeps_existing_rows() {
 
     let single = band_rows(&[("0", "0")]);
     assert_eq!(bands_with_defaults(&single), single);
-=======
+}
+
 // ---- M15: day off kinds (R71-R74, R89a) ----
 
 /// R74 (T74): each day off kind marks its calendar cell and gives its fill key; every other
@@ -4536,5 +4536,4 @@ fn r89a_day_off_toast_texts() {
         day_off_removed_text(DayOffKind::Final),
         "Final exam removed."
     );
->>>>>>> c949924 (M15: viewmodel tests T74)
 }

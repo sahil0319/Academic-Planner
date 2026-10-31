@@ -87,7 +87,7 @@ Stories (for labels):
   any write (D9, D10, exact text `"{%B %-d, %Y} is already a {noun}"`) and insert `kind`;
   `load_term` selects `kind`. Fix `Holiday { .. }` literals in `crates/core/src` if any. T71,
   T72 tests and `migrations.rs` pass. Commit: `M15: day off kind migration and model`.
-- [ ] T004 [US1] [US2] Update the `sync_in` doc in `crates/core/src/schedule.rs` to cite R72 (no
+- [x] T004 [US1] [US2] Update the `sync_in` doc in `crates/core/src/schedule.rs` to cite R72 (no
   logic change). In `crates/core/src/backup.rs`: `const DAY_OFF_KIND_VERSION: i64 = 3;` (doc:
   renumber with the migration); `HolidayRow.kind: String` after `label` (serde default for old
   documents); export selects `kind`; `restore_json` requires a `kind` key on every holiday object
