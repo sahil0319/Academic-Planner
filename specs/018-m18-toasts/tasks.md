@@ -96,7 +96,7 @@ Human request 2026-10-31: every button that saves, adds, applies, deletes, or ar
 | Import | template / prompt copy | Copy template / prompt | "Template copied" / "AI prompt copied" | done (M18) |
 | Settings | `save_term` | Save term | "Term saved." | done (M18) |
 | Settings | `archive_confirm` | Archive term (confirmed) | "Term archived." | done (M18) |
-| Settings | `add_holiday` | Add holiday | "Holidays saved." | done (M18) |
+| Settings | `add_day_off` (was `add_holiday`, M15) | Add holiday, Add exam period (mid, final) | `day_off_saved_text(kind)`, e.g. "Mid exams saved." | done (M15) |
 | Settings | `remove_holiday` | Remove holiday | "Holiday removed." | done (M18) |
 | Settings | `save_settings` | Save settings | "Settings saved." | done (M18) |
 | Settings | `backup`, `export_csv`, `restore_confirm` | Backup, Export CSV, Restore | existing messages | done (M18) |
@@ -107,11 +107,11 @@ No toast by design (the row itself changes, R89a):
 - the "completed" checkbox on an assessment row (`assessments.rs` `set_completed`): a row toggle like the status buttons;
 - the "Check for updates on start" switch on About (`about.rs` `toggle_check_on_start`): a switch, not a save button; it shows its own error and reloads the switch on failure.
 
-Not built yet (M15, M16 and any later page): exam period Add, public holiday Add selected. They are not on this branch; the M15/M16 builder adds a toast for them (R89a) and a line to the coverage test (`t91_every_persisting_handler_toasts`).
+Not built yet (M16 and any later page): public holiday Add selected. The M16 builder adds a toast for it (R89a) and a line to the coverage test (`t91_every_persisting_handler_toasts`).
 
 ### Tasks
 
 - [x] T007 Tests first (T91): text functions in `viewmodel/tests.rs` (`t91_*`) and the handler coverage check `t91_every_persisting_handler_toasts`. Commit: `M18a: tests for save toasts (T91)`.
 - [x] T008 `viewmodel.rs`: the new text functions. Commit: `M18a: toast texts for save, add, delete, archive`.
 - [x] T009 Handlers: courses, assessments, timetable, rules (delete), import. Commit: `M18a: toasts on every save, add, apply, delete, archive`.
-- [ ] T010 Gate, theme grep, rebase onto `main`, gate again.
+- [x] T010 Gate, theme grep, rebase onto `main`, gate again.

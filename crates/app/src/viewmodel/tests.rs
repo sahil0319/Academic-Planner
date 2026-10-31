@@ -4536,6 +4536,7 @@ fn r89a_day_off_toast_texts() {
         day_off_removed_text(DayOffKind::Final),
         "Final exam removed."
     );
+}
 
 // ---- M18a sweep: a toast for every save, add, apply, delete, and archive (R89a, T91) ----
 
@@ -4659,7 +4660,7 @@ fn t91_every_persisting_handler_toasts() {
             &[
                 "save_term",
                 "archive_confirm",
-                "add_holiday",
+                "add_day_off",
                 "remove_holiday",
                 "save_settings",
                 "backup",
