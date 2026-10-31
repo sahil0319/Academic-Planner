@@ -95,7 +95,7 @@ Stories (for labels):
   network (R27)") and add `mod holidays;` to `main.rs`; `mod.rs` declares only `#[cfg(test)] mod
   tests;` now, and each later task (T006-T008) adds the `pub mod` line for the file it creates, so
   every commit compiles. Commit: `M16: holidays module and dependencies`.
-- [ ] T006 [US2] `crates/app/src/holidays/ics.rs`: `parse_public_holidays(&str) -> Vec<PublicHoliday>`
+- [x] T006 [US2] `crates/app/src/holidays/ics.rs`: `parse_public_holidays(&str) -> Vec<PublicHoliday>`
   exactly per D22, D23 and plan.md; doc comments cite R81. T75 tests pass. Commit:
   `M16: iCalendar public holiday parser`.
 - [ ] T007 [US2] `crates/app/data/holiday-calendars.json` (D21, D40: the 18 required codes, names,

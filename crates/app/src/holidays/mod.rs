@@ -5,5 +5,11 @@
 //! and a service layer that takes the fetcher (`service`). Only the app crate uses the network
 //! (R27); tests inject a fake fetcher and never open a socket.
 
+// TODO(M16, T010-T011): the page glue and the dashboard use these items; remove this allow when
+// they are wired, so the module is checked for dead code again.
+#![allow(dead_code)]
+
+pub mod ics;
+
 #[cfg(test)]
 mod tests;
