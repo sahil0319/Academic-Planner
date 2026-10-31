@@ -4620,7 +4620,7 @@ fn handler_body<'a>(source: &'a str, name: &str) -> &'a str {
 
 /// R89a (T91): no handler in `pages/*.rs` that persists data is without a toast. There is no
 /// headless Slint backend, so this scans the source: each handler named below must call
-/// `toast(` (directly or through `changed_then_toast`). A new Save, Add, Apply, Delete, or Archive
+/// `toast(` (directly or through `changed_then_toast`) or `toast_unless_error(`. A new Save, Add, Apply, Delete, or Archive
 /// handler (for example exam period Add of M15) is added to this list. Handlers that must not toast
 /// (session status buttons, the assessment completed checkbox, the About update switch) are not
 /// listed; see "No toast by design" in `specs/018-m18-toasts/tasks.md`.
@@ -4675,8 +4675,9 @@ fn t91_every_persisting_handler_toasts() {
     ];
     for (page, source, handlers) in pages {
         for handler in handlers {
+            let body = handler_body(source, handler);
             assert!(
-                handler_body(source, handler).contains("toast("),
+                body.contains("toast(") || body.contains("toast_unless_error("),
                 "{page}::{handler} persists data but never toasts (R89a)"
             );
         }

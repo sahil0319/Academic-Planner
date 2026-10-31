@@ -132,19 +132,25 @@ pub fn wire(app: &Rc<App>) {
     });
 
     let weak = Rc::downgrade(app);
-    st.on_delete(move |id| {
-        with_app(&weak, |app| {
-            let result = app.planner_mut().delete_assessment(i64::from(id));
-            if result.is_ok() {
-                if let Some(window) = app.window() {
-                    if window.global::<AssessmentsState>().get_editing_id() == id {
-                        clear_form(app);
-                    }
-                }
+    st.on_delete(move |id| with_app(&weak, |app| delete_assessment(app, id)));
+}
+
+/// R89a: deletes an assessment (closing the form when it was being edited) and toasts on success;
+/// an error stays inline.
+fn delete_assessment(app: &App, id: i32) {
+    let result = app.planner_mut().delete_assessment(i64::from(id));
+    let deleted = result.is_ok();
+    if deleted {
+        if let Some(window) = app.window() {
+            if window.global::<AssessmentsState>().get_editing_id() == id {
+                clear_form(app);
             }
-            finish_row_action(app, result);
-        });
-    });
+        }
+    }
+    finish_row_action(app, result);
+    if deleted {
+        app.toast_unless_error(&vm::assessment_deleted_text());
+    }
 }
 
 /// Runs `f` if the app is still alive.
@@ -387,6 +393,7 @@ fn save(app: &App) {
         Ok(_) => {
             clear_form(app);
             app.changed(false);
+            app.toast_unless_error(&vm::assessment_saved_text(editing < 0));
         }
         Err(e) => show_errors(&st, &FormErrors::default(), &vm::error_text(&e)),
     }

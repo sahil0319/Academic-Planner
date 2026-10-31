@@ -345,6 +345,28 @@ impl App {
         pages::import::refresh(self);
     }
 
+    /// R89a, R88: shows `text` as a toast unless the refresh or sync that followed a successful
+    /// save left an error in the visible page's `message`; call it after [`App::changed`], so a
+    /// refresh error is never hidden by a success toast.
+    pub fn toast_unless_error(&self, text: &str) {
+        let Some(window) = self.window() else {
+            return;
+        };
+        let message = match window.global::<AppState>().get_current_page() {
+            1 => window.global::<TimetableState>().get_message(),
+            2 => window.global::<CoursesState>().get_message(),
+            3 => window.global::<AssessmentsState>().get_message(),
+            4 => window.global::<SettingsState>().get_message(),
+            5 => window.global::<AboutState>().get_message(),
+            6 => window.global::<RulesState>().get_message(),
+            7 => window.global::<ProgressState>().get_message(),
+            _ => window.global::<DashboardState>().get_message(),
+        };
+        if message.is_empty() {
+            self.toast(text);
+        }
+    }
+
     /// Shows `text` in the `message` property of the page that is currently visible.
     pub fn show_message(&self, text: &str) {
         let Some(window) = self.window() else {

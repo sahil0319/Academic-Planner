@@ -111,7 +111,7 @@ Not built yet (M15, M16 and any later page): exam period Add, public holiday Add
 
 ### Tasks
 
-- [ ] T007 Tests first (T91): text functions in `viewmodel/tests.rs` (`t91_*`) and the handler coverage check `t91_every_persisting_handler_toasts`. Commit: `M18a: tests for save toasts (T91)`.
-- [ ] T008 `viewmodel.rs`: the new text functions. Commit: `M18a: toast texts for save, add, delete, archive`.
-- [ ] T009 Handlers: courses, assessments, timetable, rules (delete), import. Commit: `M18a: toasts on every save, add, apply, delete, archive`.
+- [x] T007 Tests first (T91): text functions in `viewmodel/tests.rs` (`t91_*`) and the handler coverage check `t91_every_persisting_handler_toasts`. Commit: `M18a: tests for save toasts (T91)`.
+- [x] T008 `viewmodel.rs`: the new text functions. Commit: `M18a: toast texts for save, add, delete, archive`.
+- [x] T009 Handlers: courses, assessments, timetable, rules (delete), import. Commit: `M18a: toasts on every save, add, apply, delete, archive`.
 - [ ] T010 Gate, theme grep, rebase onto `main`, gate again.

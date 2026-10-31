@@ -7,4 +7,5 @@
 - Import Apply toast counts courses added plus updated; a plan with only a term gives "Imported the term.".
 - The assessment "completed" checkbox and the About update-check switch do not toast (row toggle and switch, like the status buttons).
 - Pages with an inline `message` toast only when the refresh left that message empty (same guard as `changed_then_toast`); forms that show errors next to fields toast after `App::changed`.
+- `App::toast_unless_error(text)` (controller.rs) toasts only when the visible page's `message` is empty after `App::changed`; the coverage test accepts it besides `toast(`. I edited my own T91 coverage test for that name before it ever passed; no earlier test file was touched.
 - The handler coverage check is a source-scanning unit test (no headless Slint backend exists): each named handler body must contain a `toast(` call.

@@ -284,6 +284,7 @@ fn reschedule(app: &App, id: i32) {
         Ok(_) => {
             g.set_rs_note(SharedString::new());
             app.changed(false);
+            app.toast_unless_error(&vm::rescheduled_text());
         }
         Err(e) => g.set_message(vm::error_text(&e).into()),
     }
@@ -510,6 +511,7 @@ fn save_slot(app: &App, window: &AppWindow) {
         Ok(()) => {
             g.set_slot_form_open(false);
             app.changed(true);
+            app.toast_unless_error(&vm::slot_saved_text(!editing));
         }
         Err(e) => g.set_slot_form_error(vm::error_text(&e).into()),
     }
@@ -553,6 +555,7 @@ fn end_slot(app: &App, window: &AppWindow) {
         Ok(()) => {
             g.set_end_form_open(false);
             app.changed(true);
+            app.toast_unless_error(&vm::slot_ended_text());
         }
         Err(e) => g.set_end_form_error(vm::error_text(&e).into()),
     }

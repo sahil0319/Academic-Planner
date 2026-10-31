@@ -318,6 +318,7 @@ fn delete_set(app: &App, ui: &RulesState<'_>, id: i32) {
             }
             ui.set_message(SharedString::new());
             app.changed(false);
+            app.toast_unless_error(&vm::rule_set_deleted_text());
         }
         Err(e) => ui.set_message(err(e).into()),
     }

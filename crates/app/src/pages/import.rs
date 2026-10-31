@@ -176,6 +176,12 @@ fn run_apply(app: &App, ui: &ImportState<'_>, preview: &Shared) {
             update_gates(ui, None);
             // R6: sync with today and refresh every page.
             app.changed(true);
+            // R89a: a short toast next to the result list, which stays.
+            let courses = report.plan.add.len() + report.plan.update.len();
+            app.toast_unless_error(&vm::import_applied_text(
+                courses,
+                report.plan.term.is_some(),
+            ));
         }
         Err(e) => {
             ui.set_message(vm::error_text(&e).into());

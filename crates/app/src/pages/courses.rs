@@ -196,11 +196,7 @@ pub fn wire(app: &Rc<App>) {
 
     let weak = Rc::downgrade(app);
     ui.on_set_archived(move |id, archived| {
-        with(&weak, |app, ui| {
-            // R3: archiving keeps sessions and history; R6: sync afterwards.
-            let result = app.planner_mut().set_archived(i64::from(id), archived);
-            after(app, ui, result, true);
-        })
+        with(&weak, |app, ui| set_archived(app, ui, id, archived))
     });
 
     let weak = Rc::downgrade(app);
@@ -254,14 +250,28 @@ fn err(e: planner_core::Error) -> String {
 }
 
 /// Row action result: an error goes to `message`; success clears it and refreshes, syncing first
-/// when `sync` is set (R6).
-fn after<T>(app: &App, ui: &CoursesState<'_>, result: planner_core::Result<T>, sync: bool) {
+/// when `sync` is set (R6). Returns true on success, so the caller can toast (R89a) after the
+/// refresh.
+fn after<T>(app: &App, ui: &CoursesState<'_>, result: planner_core::Result<T>, sync: bool) -> bool {
     match result {
         Ok(_) => {
             ui.set_message(SharedString::new());
             app.changed(sync);
+            true
         }
-        Err(e) => ui.set_message(err(e).into()),
+        Err(e) => {
+            ui.set_message(err(e).into());
+            false
+        }
+    }
+}
+
+/// R3, R6, R89a: archives or unarchives a course (sessions and history are kept), syncs, and
+/// toasts on success.
+fn set_archived(app: &App, ui: &CoursesState<'_>, id: i32, archived: bool) {
+    let result = app.planner_mut().set_archived(i64::from(id), archived);
+    if after(app, ui, result, true) {
+        app.toast_unless_error(&vm::course_archived_text(archived));
     }
 }
 
@@ -315,7 +325,7 @@ fn ask_delete(app: &App, ui: &CoursesState<'_>) {
 }
 
 /// R51, R52: deletes the selected courses, clears the selection, closes the detail or form of a
-/// deleted course, and syncs (R6).
+/// deleted course, and syncs (R6). R89a: toasts "Deleted N courses." on success.
 fn delete_selected(app: &App, ui: &CoursesState<'_>) {
     let ids: Vec<i64> = app.state().selected_courses.iter().copied().collect();
     let result = app.planner_mut().delete_courses(&ids);
@@ -331,7 +341,9 @@ fn delete_selected(app: &App, ui: &CoursesState<'_>) {
             ui.set_form_open(false);
         }
     }
-    after(app, ui, result, true);
+    if after(app, ui, result, true) {
+        app.toast_unless_error(&vm::courses_deleted_text(ids.len()));
+    }
 }
 
 /// Opens an empty form for a new course.
@@ -418,6 +430,7 @@ fn save_course(app: &App, ui: &CoursesState<'_>) {
             ui.set_form_open(false);
             ui.set_message(SharedString::new());
             app.changed(true);
+            app.toast_unless_error(&vm::course_saved_text(editing == NEW_COURSE));
         }
         Err(e) => {
             ui.set_target_error(SharedString::new());
@@ -468,6 +481,7 @@ fn add_makeup(app: &App, ui: &CoursesState<'_>) {
             clear_makeup_form(ui);
             ui.set_message(SharedString::new());
             app.changed(false);
+            app.toast_unless_error(&vm::makeup_added_text());
         }
         Err(e) => ui.set_mk_form_error(err(e).into()),
     }
