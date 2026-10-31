@@ -5,6 +5,9 @@ last line. When the assistant answers, copy its answer into the Import panel of 
 press Preview. Preview shows everything the import would do and any problem in the answer, and
 nothing is saved until you press Apply.
 
+If someone sent you a file exported from Academic Planner (Courses, then Copy JSON or Save JSON), you
+do not need an assistant: paste that text straight into the Import panel and press Preview.
+
 ## Your task
 
 Convert the timetable that follows this prompt into the `academic-planner-courses` format
