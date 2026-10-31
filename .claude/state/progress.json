@@ -1,6 +1,6 @@
 {
-  "milestone": "overnight run: M19 and M15 in worktrees; then M16, M18a toast sweep",
-  "phase": "overnight-run",
+  "milestone": "all milestones merged; waiting for human review",
+  "phase": "awaiting-human-review",
   "tasks": {
     "M11": "done (v0.2.1 tagged)",
     "M12 spec": "done",
@@ -26,7 +26,7 @@
     "M12 build": "done, merged (634 tests)",
     "M19 build": "done, merged",
     "M15 build": "done, merged",
-    "M16 build": "in progress (worktree)",
+    "M16 build": "done, merged",
     "M18a toast sweep (R89a, T91)": "done, merged (454334d)",
     "font bump 15px": "done, merged (d717c59)"
   }
