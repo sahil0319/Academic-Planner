@@ -124,7 +124,7 @@ Stories (for labels):
 
 ## Phase 5: Settings card (builder) — US3
 
-- [ ] T010 [US3] Settings card (R76, R77, R79) and fetch wiring, as plan.md "Slint" and "Page glue":
+- [x] T010 [US3] Settings card (R76, R77, R79) and fetch wiring, as plan.md "Slint" and "Page glue":
   `ui/types.slint` (`PublicHolidayRow`, `day-off` comment), `ui/settings.slint` (`SettingsState`
   additions and the Public holidays card after the Final exams card; `Theme.*` only),
   `bridge.rs` (`public_holiday_row`), new `crates/app/src/pages/public_holidays.rs` (`wire`,

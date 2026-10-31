@@ -72,6 +72,7 @@ fn main() -> anyhow::Result<()> {
             pages::courses::wire(&app);
             pages::assessments::wire(&app);
             pages::settings::wire(&app);
+            pages::public_holidays::wire(&app);
             pages::about::wire(&app);
             pages::rules::wire(&app);
             pages::import::wire(&app);
@@ -95,6 +96,9 @@ fn main() -> anyhow::Result<()> {
 
             // R6: sync on app start, then fill every page.
             app.changed(true);
+
+            // R77, D5: one background public holiday fetch per launch.
+            pages::public_holidays::start(&app);
 
             // R27, R29, §1 Network: one background update check per launch when the About
             // switch is on. It never installs anything; a failure shows only on About. An

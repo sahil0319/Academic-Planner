@@ -7,6 +7,7 @@ pub mod courses;
 pub mod dashboard;
 pub mod import;
 pub mod progress;
+pub mod public_holidays;
 pub mod rules;
 pub mod settings;
 pub mod timetable;

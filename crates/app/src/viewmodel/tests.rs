@@ -4630,7 +4630,7 @@ fn handler_body<'a>(source: &'a str, name: &str) -> &'a str {
 /// listed; see "No toast by design" in `specs/018-m18-toasts/tasks.md`.
 #[test]
 fn t91_every_persisting_handler_toasts() {
-    let pages: [(&str, &str, &[&str]); 7] = [
+    let pages: [(&str, &str, &[&str]); 8] = [
         (
             "courses",
             include_str!("../pages/courses.rs"),
@@ -4675,6 +4675,11 @@ fn t91_every_persisting_handler_toasts() {
             "dashboard",
             include_str!("../pages/dashboard.rs"),
             &["shift_biweekly"],
+        ),
+        (
+            "public_holidays",
+            include_str!("../pages/public_holidays.rs"),
+            &["add_selected"],
         ),
     ];
     for (page, source, handlers) in pages {

@@ -57,7 +57,8 @@ export struct CalendarDay {
     is-weekend: bool,
     // Holiday label for the date: "Holiday" when unlabeled, "" when not a holiday.
     holiday: string,
-    // R74: fill key of the day off on the date: "holiday", "midterm", "final", or "" (D20).
+    // R74, R78: fill key of the date: the day off kind ("holiday", "midterm", "final"), else
+    // "public-holiday" when a public holiday falls on it, else "" (D20, D30).
     day-off: string,
     // Accessible label, e.g. "Monday, October 26, 2026, 2 classes, 1 assessment due".
     label: string,
@@ -102,6 +103,15 @@ export struct HolidayRow {
     key: string,
     date: string,
     label: string,
+}
+
+// R79: one cached public holiday of the active term in the Settings list.
+export struct PublicHolidayRow {
+    // `YYYY-MM-DD|name`; identity passed back to Rust for the tick, never shown.
+    key: string,
+    date: string,
+    name: string,
+    checked: bool,
 }
 
 // R70: one read-only past term row.

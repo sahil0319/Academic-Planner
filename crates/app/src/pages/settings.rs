@@ -83,6 +83,8 @@ pub fn refresh(app: &App) {
         }
         Err(e) => page.set_message(vm::error_text(&e).into()),
     }
+    // R76, R77, R79: the Public holidays card.
+    super::public_holidays::refresh(app);
 }
 
 /// R67: empties the term form fields and their errors.
@@ -163,7 +165,7 @@ fn message(app: &App, text: &str) {
 
 /// R6, R89: runs the controller's changed path, then shows `text` as a toast unless the refresh
 /// or sync already put an error in the page message (errors stay inline, never toasts).
-fn changed_then_toast(app: &App, sync: bool, text: &str) {
+pub(super) fn changed_then_toast(app: &App, sync: bool, text: &str) {
     app.changed(sync);
     if let Some(window) = app.window() {
         if window.global::<SettingsState>().get_message().is_empty() {

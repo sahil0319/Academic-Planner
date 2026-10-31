@@ -1,11 +1,12 @@
 // Settings page (docs/spec.md §6, contracts/ui-bridge.md "SettingsState"): term, holidays, mid exams,
 // final exams, reminder settings, backup, restore, CSV export, and the database path. Bindings only; every
 // data-derived string comes from Rust (src/pages/settings.rs via src/viewmodel.rs).
-import { Switch } from "std-widgets.slint";
+import { CheckBox, Switch } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { HolidayRow, PastTermRow } from "types.slint";
+import { HolidayRow, PastTermRow, PublicHolidayRow } from "types.slint";
 import {
     PageTitle, EmptyState, SectionCard, ListRow, Field, PrimaryButton, SecondaryButton, DangerButton,
+    ComboField, LinkButton,
 } from "components.slint";
 
 export global SettingsState {
@@ -61,6 +62,16 @@ export global SettingsState {
     in property <string> fin-end-error;
     in property <string> fin-form-error;
 
+    // R76, R77, R79: Public holidays card. Country choice, fetch status, Retry, the cached
+    // public holidays of the active term with a tick each, and the inline error.
+    in property <[string]> ph-countries;
+    in-out property <int> ph-country-index;
+    in property <string> ph-status;
+    in property <bool> ph-can-retry;
+    in property <[PublicHolidayRow]> ph-rows;
+    in property <string> ph-empty-text;
+    in property <string> ph-error;
+
     // Settings form (§3 settings).
     in-out property <string> reminder;
     in-out property <string> window;
@@ -92,6 +103,10 @@ export global SettingsState {
     callback restore-confirm();
     callback restore-cancel();
     callback export-csv();
+    callback ph-country-selected();
+    callback ph-retry();
+    callback ph-toggle(string, bool);
+    callback ph-add-selected();
 }
 
 // Form-level error under a form (core R2 errors, no active term).
@@ -456,6 +471,87 @@ export component SettingsPage inherits VerticalLayout {
         }
         remove(key) => {
             SettingsState.remove-holiday(key);
+        }
+    }
+
+    // R76, R77, R79: government public holidays of the chosen country. They never change classes
+    // until Add selected turns ticked ones into holidays.
+    SectionCard {
+        title: "Public holidays";
+
+        ComboField {
+            label: "Country";
+            model: SettingsState.ph-countries;
+            current-index <=> SettingsState.ph-country-index;
+            selected => {
+                SettingsState.ph-country-selected();
+            }
+        }
+
+        if SettingsState.ph-status != "": HorizontalLayout {
+            spacing: Theme.space-md;
+            MutedText {
+                text: SettingsState.ph-status;
+                horizontal-stretch: 1;
+            }
+
+            if SettingsState.ph-can-retry: LinkButton {
+                text: "Retry";
+                clicked => {
+                    SettingsState.ph-retry();
+                }
+            }
+        }
+
+        if SettingsState.ph-rows.length == 0: EmptyState {
+            text: SettingsState.ph-empty-text;
+        }
+
+        if SettingsState.ph-rows.length > 0: VerticalLayout {
+            for row in SettingsState.ph-rows: ListRow {
+                VerticalLayout {
+                    alignment: center;
+                    CheckBox {
+                        checked: row.checked;
+                        toggled => {
+                            SettingsState.ph-toggle(row.key, self.checked);
+                        }
+                    }
+                }
+
+                Text {
+                    text: row.date;
+                    vertical-alignment: center;
+                    color: Theme.on-surface;
+                    font-family: Theme.font-body;
+                    font-size: Theme.body-md-size;
+                    font-weight: Theme.body-md-weight;
+                }
+
+                Text {
+                    text: row.name;
+                    horizontal-stretch: 1;
+                    vertical-alignment: center;
+                    color: Theme.on-surface-muted;
+                    font-family: Theme.font-body;
+                    font-size: Theme.body-md-size;
+                    font-weight: Theme.body-md-weight;
+                }
+            }
+        }
+
+        if SettingsState.ph-error != "": FormError {
+            text: SettingsState.ph-error;
+        }
+
+        HorizontalLayout {
+            alignment: start;
+            SecondaryButton {
+                text: "Add selected as holidays";
+                clicked => {
+                    SettingsState.ph-add-selected();
+                }
+            }
         }
     }
 

@@ -11,8 +11,8 @@ use crate::viewmodel::{self as vm, ChipKind};
 use crate::{
     AppWindow, AssessmentRow, BandRow, CalendarDay, CalendarWeek, Chip, ComponentRow, CourseRow,
     DayGroup, GradeRowView, HolidayRow, ImportLine, ImportLineKind, LegendItem, MarkRow,
-    NeededRowView, Palette, PastTermRow, ProgressCardRow, RuleSetRow, SessionRow, SlotRow,
-    StatusAction, SummaryView, Theme,
+    NeededRowView, Palette, PastTermRow, ProgressCardRow, PublicHolidayRow, RuleSetRow, SessionRow,
+    SlotRow, StatusAction, SummaryView, Theme,
 };
 
 /// R-D18: Slint `int` is `i32`; an id that does not fit is reported, never truncated.
@@ -236,6 +236,16 @@ pub fn holiday_row(r: &vm::HolidayRow) -> HolidayRow {
         key: r.key.as_str().into(),
         date: r.date.as_str().into(),
         label: r.label.as_str().into(),
+    }
+}
+
+/// R79: one public holiday row of the Settings list, with its tick.
+pub fn public_holiday_row(r: &vm::PublicHolidayRow, checked: bool) -> PublicHolidayRow {
+    PublicHolidayRow {
+        key: r.key.as_str().into(),
+        date: r.date.as_str().into(),
+        name: r.name.as_str().into(),
+        checked,
     }
 }
 
