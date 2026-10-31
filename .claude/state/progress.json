@@ -25,8 +25,9 @@
     "M14 build": "done, merged",
     "M12 build": "done, merged (634 tests)",
     "M19 build": "done, merged",
-    "M15 build": "in progress (worktree agent a1d940a8e911661c2)",
-    "M16 build": "waiting for M15 merge",
-    "M18a toast sweep (R89a, T91)": "after M16"
+    "M15 build": "done, merged",
+    "M16 build": "in progress (worktree)",
+    "M18a toast sweep (R89a, T91)": "in progress (worktree)",
+    "font bump 15px": "in progress (worktree)"
   }
 }
