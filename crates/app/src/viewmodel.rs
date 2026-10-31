@@ -10,9 +10,9 @@ use chrono::{Datelike, Days, Duration, NaiveDate, NaiveDateTime, NaiveTime, Time
 use planner_core::{
     term_week_parity, Assessment, AssessmentFilter, AssessmentInput, AssessmentKind, Assumption,
     AttendanceBand, AttendanceSummary, ComponentKind, Course, CourseInput, CourseMarks, Dashboard,
-    FinalOutlook, GpaStatus, GpaSummary, GradeRow, Holiday, MakeupInput, Needed, PastTermSummary,
-    RuleComponent, RuleComponentInput, RuleSet, SessionView, Settings, Slot, SlotInput, Status,
-    Term, TermInput, ThemeMode, WeekParity,
+    DayOffKind, FinalOutlook, GpaStatus, GpaSummary, GradeRow, Holiday, MakeupInput, Needed,
+    PastTermSummary, RuleComponent, RuleComponentInput, RuleSet, SessionView, Settings, Slot,
+    SlotInput, Status, Term, TermInput, ThemeMode, WeekParity,
 };
 
 use crate::updater::InstallKind;
@@ -702,17 +702,27 @@ pub fn expand_holiday_range(
         .map(|date| Holiday {
             date,
             label: label.clone(),
+            kind: DayOffKind::Holiday,
         })
         .collect())
 }
 
-/// Exactly one holiday per date, sorted; for a date in both lists the added one wins.
+/// R71, D11, D12: one entry per date and kind, sorted by date. For a date and kind in both lists
+/// the added one wins; an entry of another kind on the same date is kept next to it (existing
+/// first), so core rejects the add with its R71 text and the card shows it inline.
 pub fn merge_holidays(existing: &[Holiday], added: &[Holiday]) -> Vec<Holiday> {
-    let mut by_date: BTreeMap<NaiveDate, Holiday> = BTreeMap::new();
+    let mut merged: Vec<Holiday> = Vec::new();
     for h in existing.iter().chain(added) {
-        by_date.insert(h.date, h.clone());
+        match merged
+            .iter_mut()
+            .find(|m| m.date == h.date && m.kind == h.kind)
+        {
+            Some(slot) => *slot = h.clone(),
+            None => merged.push(h.clone()),
+        }
     }
-    by_date.into_values().collect()
+    merged.sort_by_key(|h| h.date);
+    merged
 }
 
 /// Removes only `date`; the others stay unchanged and sorted.
@@ -742,6 +752,70 @@ pub fn holiday_row(h: &Holiday) -> HolidayRow {
         date: format_date(h.date),
         label: or_dash(h.label.as_deref()),
     }
+}
+
+/// R71, R74: `Holiday`, `Mid exam`, or `Final exam`.
+pub fn day_off_kind_name(kind: DayOffKind) -> &'static str {
+    match kind {
+        DayOffKind::Holiday => "Holiday",
+        DayOffKind::Midterm => "Mid exam",
+        DayOffKind::Final => "Final exam",
+    }
+}
+
+/// R74: the key the calendar cell maps to its `Theme.calendar-*` fill: `holiday`, `midterm`, or
+/// `final`; `""` when the date is not a day off (D20).
+pub fn day_off_key(kind: Option<DayOffKind>) -> &'static str {
+    match kind {
+        None => "",
+        Some(DayOffKind::Holiday) => "holiday",
+        Some(DayOffKind::Midterm) => "midterm",
+        Some(DayOffKind::Final) => "final",
+    }
+}
+
+/// R74, D21: one legend entry of the day-off fills: the fill key and the kind name.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LegendItem {
+    pub key: String,
+    pub text: String,
+}
+
+/// R74: legend entries for the day-off fills, in order Holiday, Mid exam, Final exam.
+pub fn day_off_legend() -> Vec<LegendItem> {
+    [DayOffKind::Holiday, DayOffKind::Midterm, DayOffKind::Final]
+        .into_iter()
+        .map(|kind| LegendItem {
+            key: day_off_key(Some(kind)).to_string(),
+            text: day_off_kind_name(kind).to_string(),
+        })
+        .collect()
+}
+
+/// R73, D13: sets `kind` on every day. A blank label on the Mid exams and Final exams cards
+/// becomes the kind name (`Mid exam`, `Final exam`); Holiday days keep no label.
+pub fn as_day_off(days: Vec<Holiday>, kind: DayOffKind) -> Vec<Holiday> {
+    days.into_iter()
+        .map(|mut h| {
+            h.kind = kind;
+            if kind != DayOffKind::Holiday && h.label.is_none() {
+                h.label = Some(day_off_kind_name(kind).to_string());
+            }
+            h
+        })
+        .collect()
+}
+
+/// R73, D14: the rows of one card: the days of `kind` only, sorted by date, one row per day.
+pub fn day_off_rows(days: &[Holiday], kind: DayOffKind) -> Vec<HolidayRow> {
+    let mut of_kind: Vec<&Holiday> = days.iter().filter(|h| h.kind == kind).collect();
+    of_kind.sort_by_key(|h| h.date);
+    of_kind.into_iter().map(holiday_row).collect()
+}
+
+/// R74: the day off on `date`, if any.
+pub fn day_off_on(days: &[Holiday], date: NaiveDate) -> Option<&Holiday> {
+    days.iter().find(|h| h.date == date)
 }
 
 // ---- Rows ----
@@ -1432,6 +1506,24 @@ pub fn holiday_removed_text() -> String {
     "Holiday removed.".to_string()
 }
 
+/// R89a, D18: `Holidays saved.`, `Mid exams saved.`, or `Final exams saved.`
+pub fn day_off_saved_text(kind: DayOffKind) -> String {
+    match kind {
+        DayOffKind::Holiday => holidays_saved_text(),
+        DayOffKind::Midterm => "Mid exams saved.".to_string(),
+        DayOffKind::Final => "Final exams saved.".to_string(),
+    }
+}
+
+/// R89a, D18: `Holiday removed.`, `Mid exam removed.`, or `Final exam removed.`
+pub fn day_off_removed_text(kind: DayOffKind) -> String {
+    match kind {
+        DayOffKind::Holiday => holiday_removed_text(),
+        DayOffKind::Midterm => "Mid exam removed.".to_string(),
+        DayOffKind::Final => "Final exam removed.".to_string(),
+    }
+}
+
 /// R89: toast text: Settings saved.
 pub fn settings_saved_text() -> String {
     "Settings saved.".to_string()
@@ -1533,6 +1625,8 @@ pub struct CalendarDay {
     pub is_weekend: bool,
     /// Holiday label for the date: `"Holiday"` when unlabeled, `""` when not a holiday.
     pub holiday: String,
+    /// R74: the kind of day off on the date, if any; picks the cell fill.
+    pub day_off: Option<DayOffKind>,
     pub label: String,
 }
 
@@ -1555,13 +1649,15 @@ fn count_text(n: usize, one: &str, many: &str) -> String {
     }
 }
 
-/// R14: holiday text for `date`: its label, `Holiday` when unlabeled, `""` when not a holiday
-/// (§6 mini calendar change).
+/// R14, R74: day off text for `date`: its label, else its kind name (`Holiday`, `Mid exam`,
+/// `Final exam`), `""` when not a day off (§6 mini calendar change).
 pub fn holiday_text(holidays: &[Holiday], date: NaiveDate) -> String {
-    holidays
-        .iter()
-        .find(|h| h.date == date)
-        .map(|h| h.label.clone().unwrap_or_else(|| "Holiday".to_string()))
+    day_off_on(holidays, date)
+        .map(|h| {
+            h.label
+                .clone()
+                .unwrap_or_else(|| day_off_kind_name(h.kind).to_string())
+        })
         .unwrap_or_default()
 }
 
@@ -1610,6 +1706,7 @@ pub fn month_grid(
                 has_due: dues > 0,
                 is_weekend: matches!(date.weekday(), Weekday::Sat | Weekday::Sun),
                 holiday,
+                day_off: day_off_on(holidays, date).map(|h| h.kind),
                 label,
             }
         })
@@ -1641,6 +1738,22 @@ pub fn day_panel_holiday_text(holiday: &str) -> String {
         String::new()
     } else {
         format!("Holiday: {holiday}")
+    }
+}
+
+/// R74: day panel day off line: `""` for no day off, else `Holiday: <text>`, `Mid exam: <text>`,
+/// or `Final exam: <text>`, where the text is the label, else the kind name.
+pub fn day_panel_day_off_text(day: Option<&Holiday>) -> String {
+    let Some(h) = day else {
+        return String::new();
+    };
+    let text = h
+        .label
+        .clone()
+        .unwrap_or_else(|| day_off_kind_name(h.kind).to_string());
+    match h.kind {
+        DayOffKind::Holiday => day_panel_holiday_text(&text),
+        kind => format!("{}: {text}", day_off_kind_name(kind)),
     }
 }
 

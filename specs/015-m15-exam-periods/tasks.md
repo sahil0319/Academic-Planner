@@ -98,7 +98,7 @@ Stories (for labels):
 
 ## Phase 3: View model (builder) — US3, US4
 
-- [ ] T005 [US3] [US4] In `crates/app/src/viewmodel.rs` add exactly the plan.md "App view model"
+- [x] T005 [US3] [US4] In `crates/app/src/viewmodel.rs` add exactly the plan.md "App view model"
   items: `day_off_kind_name`, `day_off_key`, `LegendItem`, `day_off_legend`, `as_day_off`,
   `day_off_rows`, `day_off_saved_text`, `day_off_removed_text` (Holiday delegates to
   `holidays_saved_text` / `holiday_removed_text`), `day_panel_day_off_text` (Holiday delegates to
