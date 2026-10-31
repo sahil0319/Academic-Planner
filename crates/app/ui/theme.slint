@@ -61,28 +61,28 @@ export global Theme {
 
     // Typography sizes and weights. Slint Text has no line-height, so line heights are comments.
     // title-lg: line height 32px
-    out property <length> title-lg-size: 24px;
+    out property <length> title-lg-size: 25px;
     out property <int> title-lg-weight: 400;
-    // headline-md: line height 22px
-    out property <length> headline-md-size: 16px;
+    // headline-md: line height 24px
+    out property <length> headline-md-size: 17px;
     out property <int> headline-md-weight: 600;
     // numeral-md: line height 32px (used from M13)
-    out property <length> numeral-md-size: 24px;
+    out property <length> numeral-md-size: 25px;
     out property <int> numeral-md-weight: 400;
-    // body-md: line height 20px
-    out property <length> body-md-size: 14px;
+    // body-md: line height 22px
+    out property <length> body-md-size: 15px;
     out property <int> body-md-weight: 400;
-    // body-emphasis: line height 18px
-    out property <length> body-emphasis-size: 14px;
+    // body-emphasis: line height 20px
+    out property <length> body-emphasis-size: 15px;
     out property <int> body-emphasis-weight: 600;
-    // body-sm: line height 16px
-    out property <length> body-sm-size: 12px;
+    // body-sm: line height 18px
+    out property <length> body-sm-size: 13px;
     out property <int> body-sm-weight: 400;
-    // label-md: line height 16px
-    out property <length> label-md-size: 12px;
+    // label-md: line height 18px
+    out property <length> label-md-size: 13px;
     out property <int> label-md-weight: 400;
-    // label-sm: line height 16px
-    out property <length> label-sm-size: 12px;
+    // label-sm: line height 18px
+    out property <length> label-sm-size: 13px;
     out property <int> label-sm-weight: 400;
 
     // Radii: square everywhere, including status chips (DESIGN.md "Shapes"); radius-full is unused.
@@ -104,14 +104,14 @@ export global Theme {
     out property <length> row-height: 40px;
     out property <length> input-height: 32px;
     // Fixed course-code column in course rows so the names share one left edge (F-07).
-    out property <length> code-column-width: 96px;
+    out property <length> code-column-width: 104px;
     // Fixed columns in session rows so weekday, date, time, room, and status line up from row to
     // row (R84, DESIGN.md "Status chip"). Rows use them as preferred widths and may shrink.
-    out property <length> weekday-column-width: 96px;
-    out property <length> date-column-width: 144px;
-    out property <length> time-column-width: 144px;
-    out property <length> room-column-width: 128px;
-    out property <length> status-column-width: 240px;
+    out property <length> weekday-column-width: 104px;
+    out property <length> date-column-width: 160px;
+    out property <length> time-column-width: 160px;
+    out property <length> room-column-width: 136px;
+    out property <length> status-column-width: 256px;
     // Progress bar height and target marker width (used from M13).
     out property <length> progress-height: 8px;
     out property <length> progress-target-width: 2px;
@@ -127,7 +127,7 @@ export global Theme {
     // 3px left rule: nav active bar, banner and toast (R84).
     out property <length> rule-width: 3px;
     // DESIGN.md "toast" (used from M18).
-    out property <length> toast-width: 320px;
+    out property <length> toast-width: 336px;
     out property <length> toast-close-size: 24px;
     out property <length> toast-timer-height: 3px;
     // Square swatch in legends (DESIGN.md "Mini calendar" and "Exam period cards").

@@ -84,44 +84,44 @@ colors:
 typography:
   title-lg:
     fontFamily: IBM Plex Sans
-    fontSize: 24px
+    fontSize: 25px
     fontWeight: 400
     lineHeight: 32px
   headline-md:
     fontFamily: IBM Plex Sans
-    fontSize: 16px
+    fontSize: 17px
     fontWeight: 600
-    lineHeight: 22px
+    lineHeight: 24px
   numeral-md:
     fontFamily: IBM Plex Sans
-    fontSize: 24px
+    fontSize: 25px
     fontWeight: 400
     lineHeight: 32px
   body-md:
     fontFamily: IBM Plex Sans
-    fontSize: 14px
+    fontSize: 15px
     fontWeight: 400
-    lineHeight: 20px
+    lineHeight: 22px
   body-emphasis:
     fontFamily: IBM Plex Sans
-    fontSize: 14px
+    fontSize: 15px
     fontWeight: 600
-    lineHeight: 18px
+    lineHeight: 20px
   body-sm:
     fontFamily: IBM Plex Sans
-    fontSize: 12px
+    fontSize: 13px
     fontWeight: 400
-    lineHeight: 16px
+    lineHeight: 18px
   label-md:
     fontFamily: IBM Plex Sans
-    fontSize: 12px
+    fontSize: 13px
     fontWeight: 400
-    lineHeight: 16px
+    lineHeight: 18px
   label-sm:
     fontFamily: IBM Plex Sans
-    fontSize: 12px
+    fontSize: 13px
     fontWeight: 400
-    lineHeight: 16px
+    lineHeight: 18px
 rounded:
   none: 0px
   full: 9999px
@@ -261,7 +261,7 @@ components:
     typography: "{typography.body-md}"
     rounded: "{rounded.none}"
     padding: "{spacing.md}"
-    width: 320px
+    width: 336px
   toast-close:
     textColor: "{colors.on-surface}"
     rounded: "{rounded.none}"
@@ -469,7 +469,7 @@ decoration.
 
 - **Personality:** calm, precise, unobtrusive. No illustrations, gradients, glass, glow, or
   animation beyond short colour changes on hover and press.
-- **Density:** 40px list rows, 32px controls, 14px body text, a 4px grid.
+- **Density:** 40px list rows, 32px controls, 15px body text, a 4px grid.
 - **Theme:** light by default, with a dark theme in the colours of the VS Code theme GitHub Dark Dimmed, a
   blue-tinted slate (human decision 2026-10-31, replacing the Carbon g100 neutral greys; the Carbon
   layer structure stays): slate `#22272E` page and fields, `#2D333B` cards, `#1C2128` navigation
@@ -538,13 +538,13 @@ come from IBM's official release (github.com/IBM/plex, SIL Open Font License 1.1
 the app, so every platform looks the same. Glyphs missing from Plex fall back to the platform font.
 The licence goes into `THIRD-PARTY-NOTICES.html`.
 
-- **Title (24px / 400):** page titles. One per page.
-- **Headline (16px / 600):** section card titles ("Today's classes", "Marks").
-- **Numeral (24px / 400):** big figures on the Progress page (attendance %, projected %).
-- **Body (14px / 400):** list rows, field text, button labels, banner text.
-- **Body emphasis (14px / 600):** course codes in rows, the active nav item.
-- **Body small (12px / 400):** metadata lines, inline validation errors.
-- **Label (12px / 400):** field labels, figure captions, status chip text. Labels are sentence
+- **Title (25px / 400):** page titles. One per page.
+- **Headline (17px / 600):** section card titles ("Today's classes", "Marks").
+- **Numeral (25px / 400):** big figures on the Progress page (attendance %, projected %).
+- **Body (15px / 400):** list rows, field text, button labels, banner text.
+- **Body emphasis (15px / 600):** course codes in rows, the active nav item.
+- **Body small (13px / 400):** metadata lines, inline validation errors.
+- **Label (13px / 400):** field labels, figure captions, status chip text. Labels are sentence
   case, never all caps.
 
 Hierarchy comes from size and the 400/600 pair, never from colour. The missing-value placeholder is
@@ -595,7 +595,7 @@ the appearance switch, and status chips. There are no rounded or pill shapes.
 - **Checkbox and switch:** the platform-neutral Slint widgets, recoloured with these tokens.
 - **List row:** 40px, surface fill, 1px bottom border. Primary text left, muted metadata next to
   it, status chip and actions right-aligned.
-- **Status chip:** square, 12px label text on its tinted fill, 8px horizontal padding, 4px vertical
+- **Status chip:** square, 13px label text on its tinted fill, 8px horizontal padding, 4px vertical
   padding. Text always present. Chips sit in a fixed-width, left-aligned column so the chips of all
   rows start at the same x; a long "Rescheduled → date" label elides instead of breaking the column.
 - **Below-target banner:** below-target-bg fill, 3px error rule on the left, body text listing each
@@ -624,7 +624,7 @@ the appearance switch, and status chips. There are no rounded or pill shapes.
   date with a muted line saying when it becomes available. The form appears in the card only when
   creating or editing.
 - **Toast notification:** the one way the app confirms a completed action ("Term saved.", "Rule set
-  saved.", "Backup saved to …"). It is a 320px panel, success-bg fill, 3px success rule on the left
+  saved.", "Backup saved to …"). It is a 336px panel, success-bg fill, 3px success rule on the left
   edge, on-surface body text, 12px padding, with a 24px close button (a cross icon, accessible label
   "Dismiss") in the top-right corner. A 3px timer bar runs along the bottom edge: a border-coloured
   track with a success-coloured bar that starts full and shrinks from right to left, linearly, over
@@ -653,7 +653,7 @@ the appearance switch, and status chips. There are no rounded or pill shapes.
 - Do reserve blue for the one primary button per panel, the active nav bar, links, focus, today, and
   the progress target marker.
 - Do keep corners square everywhere, status chips included.
-- Do keep rows at 40px and body text at 14px so a full week fits on screen.
+- Do keep rows at 40px and body text at 15px so a full week fits on screen.
 - Do show "—" for a missing percentage, never "0%" or "NaN".
 - Don't use weights other than 400 and 600, or all-caps tracked labels.
 - Don't hardcode colours or sizes in `.slint` files; reference `Theme.*` from `ui/theme.slint`.

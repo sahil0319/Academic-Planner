@@ -61,14 +61,17 @@ task 11), **removed** (in task 11).
 
 | Role | `-size` | `-weight` | Line height (comment) | Status |
 |---|---|---|---|---|
-| `title-lg` | 24px | 400 | 32px | kept |
-| `headline-md` | 16px | 600 | 22px | kept |
-| `numeral-md` | 24px | 400 | 32px | new (used from M13) |
-| `body-md` | 14px | 400 | 20px | kept |
-| `body-emphasis` | 14px | 600 | 18px | new |
-| `body-sm` | 12px | 400 | 16px | kept |
-| `label-md` | 12px | 400 | 16px | kept |
-| `label-sm` | 12px | 400 | 16px | kept |
+| `title-lg` | 25px | 400 | 32px | kept |
+| `headline-md` | 17px | 600 | 24px | kept |
+| `numeral-md` | 25px | 400 | 32px | new (used from M13) |
+| `body-md` | 15px | 400 | 22px | kept |
+| `body-emphasis` | 15px | 600 | 20px | new |
+| `body-sm` | 13px | 400 | 18px | kept |
+| `label-md` | 13px | 400 | 18px | kept |
+| `label-sm` | 13px | 400 | 18px | kept |
+
+Font size bump (human request 2026-10-31, `decisions-font-bump.md`): every size is 1px above the
+original Carbon values. Rows (40px) and controls (32px) are unchanged.
 
 ## Radii
 
@@ -101,10 +104,16 @@ task 11), **removed** (in task 11).
 | `focus-ring-width` | 2px | components.focus-ring | new |
 | `focus-inner-width` | 1px | Components "Focus" (inner ring on filled buttons) | new |
 | `rule-width` | 3px | components.success-rule; nav active bar, banner and toast left rule | new |
-| `toast-width` | 320px | components.toast | new (used from M18) |
+| `toast-width` | 336px | components.toast | new (used from M18) |
 | `toast-close-size` | 24px | components.toast-close | new (used from M18) |
 | `toast-timer-height` | 3px | components.toast-timer-* | new (used from M18) |
 | `progress-target-width` | 2px | Components "Progress card" | new (used from M13) |
+| `code-column-width` | 104px | course-code column in course rows | font bump (was 96px) |
+| `weekday-column-width` | 104px | session row column | font bump (was 96px) |
+| `date-column-width` | 160px | session row column | font bump (was 144px) |
+| `time-column-width` | 160px | session row column | font bump (was 144px) |
+| `room-column-width` | 136px | session row column | font bump (was 128px) |
+| `status-column-width` | 256px | status chip column | font bump (was 240px) |
 | `swatch-size` | 12px | Components "Mini calendar" legend, "Exam period cards" | new |
 | `calendar-cell` | 36px | Components "Mini calendar" | kept |
 | `calendar-marker` | 4px | Components "Mini calendar" (due square) | kept |
