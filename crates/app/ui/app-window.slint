@@ -213,7 +213,9 @@ export component AppWindow inherits Window {
                         padding-top: 0;
                         alignment: start;
 
-                        if AppState.current-page == 0: DashboardPage { }
+                        if AppState.current-page == 0: DashboardPage {
+                            window-width: root.width;
+                        }
                         if AppState.current-page == 1: TimetablePage { }
                         if AppState.current-page == 2: CoursesPage { }
                         if AppState.current-page == 3: AssessmentsPage { }

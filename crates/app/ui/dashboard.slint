@@ -142,26 +142,14 @@ component SessionLine inherits ListRow {
     in property <SessionRow> item;
     in property <bool> show-date;
 
-    // Set by `update-wrap` from the row width after each layout pass, not bound to it: a binding
-    // from the width to the cell widths would be a binding loop (the page width depends on them).
-    property <bool> wrapped;
-
-    function update-wrap() {
-        root.wrapped = root.show-date
-            && root.width < (root.item.can-shift ? Theme.session-line-wrap-width-action : Theme.session-line-wrap-width);
-    }
-    init => {
-        root.update-wrap();
-    }
-    changed width => {
-        root.update-wrap();
-    }
-    changed item => {
-        root.update-wrap();
-    }
-    changed show-date => {
-        root.update-wrap();
-    }
+    // R143: the width the row gets, worked out from the window width and the fixed insets around
+    // the card (nav column, page padding, card padding). The row's own width cannot be used: the
+    // cell widths below depend on `wrapped`, and the page width depends on the cell widths, so a
+    // binding to the row width is a binding loop that crashes at the first draw.
+    in property <length> window-width;
+    property <length> row-width: root.window-width - Theme.nav-width - 2 * Theme.space-xl - 2 * Theme.space-lg;
+    property <bool> wrapped: root.show-date
+        && root.row-width < (root.item.can-shift ? Theme.session-line-wrap-width-action : Theme.session-line-wrap-width);
 
     // The row is at least the standard height, and taller when its content is (the content height
     // plus the row's own vertical inset).
@@ -763,6 +751,9 @@ component CalendarSection inherits HorizontalLayout {
 // Section order (T028 critique, §6 mini calendar change): banner, the action list (awaiting
 // attendance), the calendar with today's day panel, next class, overdue, then upcoming.
 export component DashboardPage inherits VerticalLayout {
+    // R143: the window width, from `AppWindow`; rows that show the date columns wrap by it.
+    in property <length> window-width;
+
     spacing: Theme.space-xxl;
     alignment: start;
 
@@ -882,6 +873,7 @@ export component DashboardPage inherits VerticalLayout {
             if DashboardState.has-next: SessionLine {
                 item: DashboardState.next-class;
                 show-date: true;
+                window-width: root.window-width;
             }
             if !DashboardState.has-next: EmptyState {
                 text: "No upcoming classes. Add weekly slots in Timetable → Rules to schedule them.";
