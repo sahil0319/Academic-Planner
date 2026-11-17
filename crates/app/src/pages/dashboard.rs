@@ -2,7 +2,7 @@
 
 use std::rc::Rc;
 
-use chrono::NaiveDateTime;
+use chrono::{NaiveDate, NaiveDateTime};
 use planner_core::{Assessment, AssessmentFilter, PublicHoliday, SessionView};
 use slint::{ComponentHandle, SharedString};
 
@@ -56,6 +56,10 @@ pub fn refresh(app: &App) {
         return;
     }
     if let Err(text) = fill_calendar(app, &state, now) {
+        state.set_message(text.into());
+        return;
+    }
+    if let Err(text) = fill_extra_class(app, &state) {
         state.set_message(text.into());
     }
 }
@@ -254,6 +258,24 @@ pub fn wire(app: &Rc<App>) {
             select_day(&app, key.as_str());
         }
     });
+    let weak = Rc::downgrade(app);
+    state.on_open_extra_class(move || {
+        if let Some(app) = weak.upgrade() {
+            open_extra_class(&app);
+        }
+    });
+    let weak = Rc::downgrade(app);
+    state.on_add_extra_class(move || {
+        if let Some(app) = weak.upgrade() {
+            add_extra_class(&app);
+        }
+    });
+    let weak = Rc::downgrade(app);
+    state.on_cancel_extra_class(move || {
+        if let Some(app) = weak.upgrade() {
+            cancel_extra_class(&app);
+        }
+    });
 }
 
 /// §6 mini calendar change: Previous / Next move the shown month and keep the selected day;
@@ -285,6 +307,151 @@ fn select_day(app: &App, key: &str) {
         s.calendar_month = viewmodel::month_start(date);
     }
     refresh(app);
+}
+
+/// R139, R140: fills the "Add extra class" course dropdown from the non-archived courses of the
+/// active term (by code), keeps the chosen course when it is still listed, and keeps an open
+/// form's Date on the selected day until the user has edited it. With no course the form shows
+/// "Add a course first." and cannot be submitted.
+fn fill_extra_class(app: &App, state: &DashboardState<'_>) -> Result<(), String> {
+    let courses = app
+        .planner()
+        .list_courses(false)
+        .map_err(|e| viewmodel::error_text(&e))?;
+    let ids: Vec<i64> = courses.iter().map(|c| c.id).collect();
+    let labels: Vec<String> = courses.iter().map(viewmodel::course_option_label).collect();
+    let selected = app.state().calendar_selected;
+    let chosen = usize::try_from(state.get_xc_course_index())
+        .ok()
+        .and_then(|i| app.state().extra_class_courses.get(i).copied());
+    let index = chosen
+        .and_then(|id| ids.iter().position(|&c| c == id))
+        .and_then(|i| i32::try_from(i).ok())
+        .unwrap_or(0);
+    let defaults = viewmodel::extra_class_defaults(selected, ids.len());
+    app.state().extra_class_courses = ids;
+    state.set_xc_courses(bridge::strings(&labels));
+    state.set_xc_course_index(index);
+    state.set_xc_notice(defaults.notice.into());
+    state.set_xc_can_submit(defaults.can_submit);
+    if state.get_xc_open() {
+        state.set_xc_date(
+            viewmodel::extra_class_date_text(
+                selected,
+                &state.get_xc_date(),
+                state.get_xc_date_edited(),
+            )
+            .into(),
+        );
+    }
+    Ok(())
+}
+
+/// R140: opens the form under the day panel title with the selected day in the Date field.
+fn open_extra_class(app: &App) {
+    let Some(window) = app.window() else {
+        return;
+    };
+    let state = window.global::<DashboardState>();
+    if state.get_xc_open() {
+        return;
+    }
+    reset_extra_class_form(app, &state);
+    state.set_xc_open(true);
+}
+
+/// R140: Cancel closes the form and clears it.
+fn cancel_extra_class(app: &App) {
+    let Some(window) = app.window() else {
+        return;
+    };
+    let state = window.global::<DashboardState>();
+    reset_extra_class_form(app, &state);
+    state.set_xc_open(false);
+}
+
+/// R140: puts the defaults for the selected day into every form field and clears all errors.
+fn reset_extra_class_form(app: &App, state: &DashboardState<'_>) {
+    let count = app.state().extra_class_courses.len();
+    let defaults = viewmodel::extra_class_defaults(app.state().calendar_selected, count);
+    state.set_xc_date(defaults.date.into());
+    state.set_xc_date_edited(false);
+    state.set_xc_course_index(defaults.course_index);
+    state.set_xc_start(defaults.start.into());
+    state.set_xc_start_pm(false);
+    state.set_xc_end(defaults.end.into());
+    state.set_xc_end_pm(false);
+    state.set_xc_room(defaults.room.into());
+    state.set_xc_note(defaults.note.into());
+    state.set_xc_notice(defaults.notice.into());
+    state.set_xc_can_submit(defaults.can_submit);
+    set_xc_errors(state, &viewmodel::FormErrors::default());
+    state.set_xc_form_error(SharedString::new());
+}
+
+/// R88: shows the form's field errors under the fields.
+fn set_xc_errors(state: &DashboardState<'_>, errors: &viewmodel::FormErrors) {
+    state.set_xc_course_error(errors.get("course").into());
+    state.set_xc_date_error(errors.get("date").into());
+    state.set_xc_start_error(errors.get("start").into());
+    state.set_xc_end_error(errors.get("end").into());
+}
+
+/// R141: adds the extra class (a `makeup` session) through `add_makeup`. Field errors and core
+/// errors show inline under the form; no sync runs because makeups are not generated sessions.
+/// R142: on success the form closes, the calendar shows the added day's month with the day
+/// selected, every page refreshes, and a toast names the date.
+fn add_extra_class(app: &App) {
+    let Some(window) = app.window() else {
+        return;
+    };
+    let state = window.global::<DashboardState>();
+    let ids = app.state().extra_class_courses.clone();
+    let parsed = viewmodel::parse_extra_class_form(
+        &ids,
+        state.get_xc_course_index(),
+        &state.get_xc_date(),
+        viewmodel::TimeText {
+            digits: &state.get_xc_start(),
+            pm: state.get_xc_start_pm(),
+        },
+        viewmodel::TimeText {
+            digits: &state.get_xc_end(),
+            pm: state.get_xc_end_pm(),
+        },
+        &state.get_xc_room(),
+        &state.get_xc_note(),
+    );
+    let input = match parsed {
+        Ok(input) => input,
+        Err(errors) => {
+            set_xc_errors(&state, &errors);
+            state.set_xc_form_error(SharedString::new());
+            return;
+        }
+    };
+    set_xc_errors(&state, &viewmodel::FormErrors::default());
+    let date = input.date;
+    let result = app.planner_mut().add_makeup(input);
+    match result {
+        Ok(_) => {
+            focus_calendar_on(app, date);
+            reset_extra_class_form(app, &state);
+            state.set_xc_open(false);
+            show(app, "");
+            app.changed(false);
+            app.toast_unless_error(&viewmodel::extra_class_added_text(date));
+        }
+        Err(e) => state.set_xc_form_error(viewmodel::error_text(&e).into()),
+    }
+}
+
+/// R142: shows the month of `added` and selects that day.
+fn focus_calendar_on(app: &App, added: NaiveDate) {
+    let (year, month, selected) = viewmodel::calendar_focus_after_add(added);
+    let mut s = app.state();
+    s.calendar_month = NaiveDate::from_ymd_opt(year, month, 1).unwrap_or(selected);
+    s.calendar_selected = selected;
 }
 
 /// R11, R12: marks a session with a fresh `now`; the core refuses attended/absent before the

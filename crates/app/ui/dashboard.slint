@@ -19,8 +19,12 @@ import {
     ListRow,
     StatusChip,
     StatusColumn,
+    PrimaryButton,
     SecondaryButton,
     LinkButton,
+    Field,
+    ComboField,
+    TimeField,
 } from "components.slint";
 
 export global DashboardState {
@@ -78,6 +82,33 @@ export global DashboardState {
     callback this-month();
     // Selects the day with this ISO key; a day of another month also moves the calendar.
     callback select-day(string);
+
+    // R139-R142: the "Add extra class" form under the day panel title. Rust fills the courses,
+    // the date, the notice, and the errors; the fields are two-way bound.
+    in-out property <bool> xc-open;
+    // Non-archived courses of the active term by code; empty disables the button (R139).
+    in property <[string]> xc-courses;
+    in-out property <int> xc-course-index;
+    // R140: the Date field follows the selected day until the user edits it.
+    in-out property <string> xc-date;
+    in-out property <bool> xc-date-edited;
+    in-out property <string> xc-start;
+    in-out property <bool> xc-start-pm;
+    in-out property <string> xc-end;
+    in-out property <bool> xc-end-pm;
+    in-out property <string> xc-room;
+    in-out property <string> xc-note;
+    in property <string> xc-course-error;
+    in property <string> xc-date-error;
+    in property <string> xc-start-error;
+    in property <string> xc-end-error;
+    // Core errors (R141) and the "Add a course first." notice (R139).
+    in property <string> xc-form-error;
+    in property <string> xc-notice;
+    in property <bool> xc-can-submit;
+    callback open-extra-class();
+    callback add-extra-class();
+    callback cancel-extra-class();
 }
 
 // Primary row text.
@@ -102,53 +133,99 @@ component RowMeta inherits Text {
 }
 
 // Session row: time, course, room, and the status chip right-aligned.
+// R143: with `show-date` the row shows weekday and date columns first. The row grows to fit the
+// "Every other week" line (R58). When the row is narrower than the wrap width, the weekday, date,
+// time, room, status, and button stay on the first line and the course label takes the full width
+// of a second line. Above it, weekday, date, and room shrink first and the course label keeps at
+// least `course-label-min-width`. Without `show-date` the row never wraps.
 component SessionLine inherits ListRow {
     in property <SessionRow> item;
     in property <bool> show-date;
 
-    // Fixed columns (preferred widths that may shrink) keep every row's cells at the same x.
-    if root.show-date: RowMeta {
-        text: root.item.weekday;
-        preferred-width: Theme.weekday-column-width;
-        min-width: 0;
+    // Set by `update-wrap` from the row width after each layout pass, not bound to it: a binding
+    // from the width to the cell widths would be a binding loop (the page width depends on them).
+    property <bool> wrapped;
+
+    function update-wrap() {
+        root.wrapped = root.show-date
+            && root.width < (root.item.can-shift ? Theme.session-line-wrap-width-action : Theme.session-line-wrap-width);
     }
-    if root.show-date: RowMeta {
-        text: root.item.date;
-        preferred-width: Theme.date-column-width;
-        min-width: 0;
+    init => {
+        root.update-wrap();
     }
-    // R58: "Every other week" sits under the time of a bi-weekly session.
-    VerticalLayout {
-        preferred-width: Theme.time-column-width;
-        min-width: 0;
-        RowMeta {
-            text: root.item.time;
-        }
-        if root.item.biweekly: RowMeta {
-            text: root.item.biweekly-label;
-        }
+    changed width => {
+        root.update-wrap();
     }
-    RowText {
-        text: root.item.course;
+    changed item => {
+        root.update-wrap();
+    }
+    changed show-date => {
+        root.update-wrap();
+    }
+
+    // The row is at least the standard height, and taller when its content is (the content height
+    // plus the row's own vertical inset).
+    min-height: max(Theme.row-height, content.preferred-height + Theme.row-height - Theme.input-height);
+
+    content := VerticalLayout {
         horizontal-stretch: 1;
-    }
-    RowMeta {
-        text: root.item.room;
-        preferred-width: Theme.room-column-width;
-        min-width: 0;
-    }
-    StatusColumn {
-        chip: root.item.chip;
-        text: root.item.status-label;
-    }
-    // R58: a pending bi-weekly session dated today or later can move to next week.
-    if root.item.can-shift: VerticalLayout {
-        alignment: center;
-        SecondaryButton {
-            text: "Move to next week";
-            clicked => {
-                DashboardState.shift-biweekly(root.item.id);
+        spacing: Theme.space-xs;
+
+        // Fixed columns (preferred widths that may shrink) keep every row's cells at the same x.
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            if root.show-date: RowMeta {
+                text: root.item.weekday;
+                preferred-width: Theme.weekday-column-width;
+                min-width: root.wrapped ? 0 : Theme.weekday-column-min-width;
             }
+            if root.show-date: RowMeta {
+                text: root.item.date;
+                preferred-width: Theme.date-column-width;
+                min-width: root.wrapped ? 0 : Theme.date-column-min-width;
+            }
+            // R58: "Every other week" sits under the time of a bi-weekly session.
+            VerticalLayout {
+                preferred-width: Theme.time-column-width;
+                min-width: root.wrapped ? 0 : Theme.time-column-width;
+                RowMeta {
+                    text: root.item.time;
+                }
+                if root.item.biweekly: RowMeta {
+                    text: root.item.biweekly-label;
+                }
+            }
+            if !root.wrapped: RowText {
+                text: root.item.course;
+                horizontal-stretch: 1;
+                preferred-width: Theme.course-label-min-width;
+                min-width: Theme.course-label-min-width;
+            }
+            RowMeta {
+                text: root.item.room;
+                preferred-width: Theme.room-column-width;
+                min-width: root.wrapped ? 0 : Theme.room-column-min-width;
+                // Wrapped rows have no course on this line, so the room takes the free width.
+                horizontal-stretch: root.wrapped ? 1 : 0;
+            }
+            StatusColumn {
+                chip: root.item.chip;
+                text: root.item.status-label;
+                min-width: root.wrapped ? 0 : Theme.status-column-min-width;
+            }
+            // R58: a pending bi-weekly session dated today or later can move to next week.
+            if root.item.can-shift: VerticalLayout {
+                alignment: center;
+                SecondaryButton {
+                    text: "Move to next week";
+                    clicked => {
+                        DashboardState.shift-biweekly(root.item.id);
+                    }
+                }
+            }
+        }
+        if root.wrapped: RowText {
+            text: root.item.course;
         }
     }
 }
@@ -533,15 +610,111 @@ component CalendarSection inherits HorizontalLayout {
         spacing: Theme.space-sm;
         alignment: start;
 
-        Text {
-            text: DashboardState.panel-title;
-            min-height: Theme.input-height;
-            vertical-alignment: center;
-            overflow: elide;
-            color: Theme.on-surface;
-            font-family: Theme.font-heading;
-            font-size: Theme.headline-md-size;
-            font-weight: Theme.headline-md-weight;
+        // R139: the title and the "Add extra class" button share one row.
+        HorizontalLayout {
+            spacing: Theme.space-sm;
+            Text {
+                text: DashboardState.panel-title;
+                horizontal-stretch: 1;
+                min-width: 0;
+                min-height: Theme.input-height;
+                vertical-alignment: center;
+                overflow: elide;
+                color: Theme.on-surface;
+                font-family: Theme.font-heading;
+                font-size: Theme.headline-md-size;
+                font-weight: Theme.headline-md-weight;
+            }
+            SecondaryButton {
+                text: "Add extra class";
+                enabled: DashboardState.xc-courses.length > 0;
+                clicked => {
+                    DashboardState.open-extra-class();
+                }
+            }
+        }
+
+        // R140, R141: the inline form; errors show under it, never as toasts (R88).
+        if DashboardState.xc-open: VerticalLayout {
+            padding-bottom: Theme.space-md;
+            spacing: Theme.space-sm;
+
+            if DashboardState.xc-notice != "": Text {
+                text: DashboardState.xc-notice;
+                wrap: word-wrap;
+                color: Theme.on-surface-muted;
+                font-family: Theme.font-body;
+                font-size: Theme.body-md-size;
+                font-weight: Theme.body-md-weight;
+            }
+            HorizontalLayout {
+                spacing: Theme.space-md;
+                ComboField {
+                    label: "Course";
+                    model: DashboardState.xc-courses;
+                    current-index <=> DashboardState.xc-course-index;
+                    error: DashboardState.xc-course-error;
+                }
+                Field {
+                    label: "Date (DD-MM-YYYY)";
+                    text <=> DashboardState.xc-date;
+                    error: DashboardState.xc-date-error;
+                    edited(value) => {
+                        DashboardState.xc-date-edited = true;
+                    }
+                }
+            }
+            HorizontalLayout {
+                spacing: Theme.space-md;
+                TimeField {
+                    label: "Start";
+                    text <=> DashboardState.xc-start;
+                    pm <=> DashboardState.xc-start-pm;
+                    error: DashboardState.xc-start-error;
+                }
+                TimeField {
+                    label: "End";
+                    text <=> DashboardState.xc-end;
+                    pm <=> DashboardState.xc-end-pm;
+                    error: DashboardState.xc-end-error;
+                }
+            }
+            HorizontalLayout {
+                spacing: Theme.space-md;
+                Field {
+                    label: "Room";
+                    text <=> DashboardState.xc-room;
+                }
+                Field {
+                    label: "Note";
+                    text <=> DashboardState.xc-note;
+                }
+            }
+            if DashboardState.xc-form-error != "": Text {
+                text: DashboardState.xc-form-error;
+                wrap: word-wrap;
+                color: Theme.error;
+                font-family: Theme.font-body;
+                font-size: Theme.body-md-size;
+                font-weight: Theme.body-md-weight;
+            }
+            HorizontalLayout {
+                spacing: Theme.space-sm;
+                alignment: start;
+                PrimaryButton {
+                    text: "Add extra class";
+                    enabled: DashboardState.xc-can-submit;
+                    clicked => {
+                        DashboardState.add-extra-class();
+                    }
+                }
+                SecondaryButton {
+                    text: "Cancel";
+                    clicked => {
+                        DashboardState.cancel-extra-class();
+                    }
+                }
+            }
         }
 
         if DashboardState.panel-holiday != "": Text {

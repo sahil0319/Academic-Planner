@@ -136,6 +136,13 @@ spacing:
   nav-width: 240px
   nav-item-height: 32px
   row-height: 40px
+  weekday-column-min-width: 80px
+  date-column-min-width: 128px
+  room-column-min-width: 72px
+  status-column-min-width: 96px
+  course-label-min-width: 176px
+  session-line-wrap-width: 780px
+  session-line-wrap-width-action: 960px
   input-height: 32px
   progress-height: 8px
   window-width: 1100px
@@ -595,6 +602,12 @@ the appearance switch, and status chips. There are no rounded or pill shapes.
 - **Checkbox and switch:** the platform-neutral Slint widgets, recoloured with these tokens.
 - **List row:** 40px, surface fill, 1px bottom border. Primary text left, muted metadata next to
   it, status chip and actions right-aligned.
+- **Session row with date columns (Next class):** weekday, date, time, course, room, status chip,
+  and an optional action button. The row grows taller for the "Every other week" line and keeps 40px
+  without it. When the row is narrower than 780px (960px with the "Move to next week" button), the
+  course label moves to its own second line at the full row width; above that the weekday, date,
+  room, and status columns shrink to their minimums (80, 128, 72, 96px) while the course label keeps
+  at least 176px. Rows without the date columns (day panel) never wrap.
 - **Status chip:** square, 13px label text on its tinted fill, 8px horizontal padding, 4px vertical
   padding. Text always present. Chips sit in a fixed-width, left-aligned column so the chips of all
   rows start at the same x; a long "Rescheduled → date" label elides instead of breaking the column.

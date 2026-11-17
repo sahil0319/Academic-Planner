@@ -56,6 +56,9 @@ pub struct UiState {
     /// R58: sessions on the dashboard that offer "Move to next week": session id, course id, and
     /// date. Rebuilt on each dashboard refresh.
     pub shiftable: Vec<(i64, i64, NaiveDate)>,
+    /// R140: course ids behind the Dashboard "Add extra class" course dropdown, in its order
+    /// (non-archived courses of the active term by code). Rebuilt on each dashboard refresh.
+    pub extra_class_courses: Vec<i64>,
 }
 
 impl UiState {
@@ -76,6 +79,7 @@ impl UiState {
             calendar_month: viewmodel::month_start(today),
             calendar_selected: today,
             shiftable: Vec::new(),
+            extra_class_courses: Vec::new(),
         }
     }
 

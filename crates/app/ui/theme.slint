@@ -116,6 +116,17 @@ export global Theme {
     out property <length> time-column-width: 160px;
     out property <length> room-column-width: 136px;
     out property <length> status-column-width: 256px;
+    // R143: smallest widths of the shrinking session row columns, the smallest course label, and
+    // the row widths below which a row with the date columns wraps its cells onto two lines (the
+    // course label takes the second line). The wrap widths are the sum of these minimums, the
+    // time column, the row inset, and the gaps; the second one adds the "Move to next week" button.
+    out property <length> weekday-column-min-width: 80px;
+    out property <length> date-column-min-width: 128px;
+    out property <length> room-column-min-width: 72px;
+    out property <length> status-column-min-width: 96px;
+    out property <length> course-label-min-width: 176px;
+    out property <length> session-line-wrap-width: 780px;
+    out property <length> session-line-wrap-width-action: 960px;
     // Progress bar height and target marker width (used from M13).
     out property <length> progress-height: 8px;
     out property <length> progress-target-width: 2px;
