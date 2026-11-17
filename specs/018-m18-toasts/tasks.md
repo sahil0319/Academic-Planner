@@ -101,6 +101,7 @@ Human request 2026-10-31: every button that saves, adds, applies, deletes, or ar
 | Settings | `save_settings` | Save settings | "Settings saved." | done (M18) |
 | Settings | `backup`, `export_csv`, `restore_confirm` | Backup, Export CSV, Restore | existing messages | done (M18) |
 | Dashboard | `shift_biweekly` | Move to next week | "Moved to next week." | done (M12) |
+| Dashboard | `add_extra_class` | Add extra class | "Extra class added for November 18, 2026." (`extra_class_added_text(date)`) | done (M26) |
 
 No toast by design (the row itself changes, R89a):
 - session status buttons (Attended, Absent, Cancelled, Pending) in `dashboard.rs`, `timetable.rs`, `courses.rs`;

@@ -4741,7 +4741,7 @@ fn t91_every_persisting_handler_toasts() {
         (
             "dashboard",
             include_str!("../pages/dashboard.rs"),
-            &["shift_biweekly"],
+            &["shift_biweekly", "add_extra_class"],
         ),
         (
             "public_holidays",
@@ -5058,4 +5058,190 @@ fn t96_export_fixed_texts() {
         EXPORT_HELPER_TEXT,
         "The other person needs rule sets named like yours: Theory and Lab exist by default."
     );
+}
+
+// ---- M26: extra class from the Dashboard (R139-R143, T129-T134) ----
+
+/// R140 (T129): a new form shows the selected day as `DD-MM-YYYY`, the first course, and empty
+/// times, room, and note.
+#[test]
+fn t129_defaults_with_courses() {
+    let defaults = extra_class_defaults(d(2026, 11, 18), 3);
+
+    assert_eq!(defaults.date, "18-11-2026");
+    assert_eq!(defaults.course_index, 0);
+    assert_eq!(defaults.start, "");
+    assert_eq!(defaults.end, "");
+    assert_eq!(defaults.room, "");
+    assert_eq!(defaults.note, "");
+    assert_eq!(defaults.notice, "");
+    assert!(defaults.can_submit);
+}
+
+/// R139 (T129): with no non-archived course the form says "Add a course first." and cannot be
+/// submitted.
+#[test]
+fn t129_defaults_without_courses() {
+    let defaults = extra_class_defaults(d(2026, 11, 18), 0);
+
+    assert_eq!(defaults.date, "18-11-2026");
+    assert_eq!(defaults.notice, "Add a course first.");
+    assert!(!defaults.can_submit);
+}
+
+/// R140: the Date field follows the selected day until the user edits it.
+#[test]
+fn t129_date_follows_selection_until_edited() {
+    assert_eq!(
+        extra_class_date_text(d(2026, 11, 20), "18-11-2026", false),
+        "20-11-2026"
+    );
+    assert_eq!(
+        extra_class_date_text(d(2026, 11, 20), "05-12-2026", true),
+        "05-12-2026"
+    );
+}
+
+fn extra_form<'a>(
+    ids: &[i64],
+    index: i32,
+    date: &'a str,
+    start: (&'a str, bool),
+    end: (&'a str, bool),
+) -> Result<MakeupInput, FormErrors> {
+    parse_extra_class_form(
+        ids,
+        index,
+        date,
+        TimeText {
+            digits: start.0,
+            pm: start.1,
+        },
+        TimeText {
+            digits: end.0,
+            pm: end.1,
+        },
+        " B2 ",
+        "",
+    )
+}
+
+/// R141 (T129): a valid form picks the course by the dropdown index and builds the makeup input
+/// of `parse_makeup_form`.
+#[test]
+fn t131_valid_form_uses_the_chosen_course() {
+    let input = extra_form(&[7, 9], 1, "18-11-2026", ("200", true), ("330", true)).unwrap();
+
+    assert_eq!(
+        input,
+        MakeupInput {
+            course_id: 9,
+            date: d(2026, 11, 18),
+            start_time: t(14, 0),
+            end_time: t(15, 30),
+            room: Some("B2".to_string()),
+            note: None,
+        }
+    );
+}
+
+/// R9, R10, R88 (T131): an impossible date and an end that is not after the start both show
+/// inline, with texts from the view model.
+#[test]
+fn t131_bad_date_and_end_before_start_report_inline_errors() {
+    let errors = extra_form(&[7], 0, "31-02-2026", ("930", false), ("900", false)).unwrap_err();
+
+    assert_eq!(errors.get("date"), DATE_ERR);
+    assert_eq!(errors.get("end"), "End time must be after the start time");
+    assert_eq!(errors.get("start"), "");
+    assert_eq!(errors.get("course"), "");
+}
+
+/// R10 (T131): an end equal to the start is not after it; a correct order has no end error.
+#[test]
+fn t131_equal_times_are_rejected_and_pm_order_is_fine() {
+    let same = extra_form(&[7], 0, "18-11-2026", ("900", false), ("900", false)).unwrap_err();
+    assert_eq!(same.get("end"), "End time must be after the start time");
+
+    // 11:30 AM to 1:00 PM.
+    extra_form(&[7], 0, "18-11-2026", ("1130", false), ("100", true)).unwrap();
+}
+
+/// R139 (T131): with no courses nothing is built and the course error says what to do.
+#[test]
+fn t131_empty_course_list_blocks_submit() {
+    let errors = extra_form(&[], 0, "18-11-2026", ("900", false), ("1000", false)).unwrap_err();
+
+    assert_eq!(errors.get("course"), "Add a course first.");
+}
+
+/// R140 (T131): a dropdown index outside the list asks for a course.
+#[test]
+fn t131_index_outside_the_list_asks_for_a_course() {
+    let errors = extra_form(&[7], 3, "18-11-2026", ("900", false), ("1000", false)).unwrap_err();
+    assert_eq!(errors.get("course"), "Choose a course");
+
+    let negative = extra_form(&[7], -1, "18-11-2026", ("900", false), ("1000", false)).unwrap_err();
+    assert_eq!(negative.get("course"), "Choose a course");
+}
+
+/// R142 (T132): an extra class in another month moves the calendar to that month and selects the
+/// added day.
+#[test]
+fn t132_calendar_jumps_to_the_added_month() {
+    assert_eq!(
+        calendar_focus_after_add(d(2026, 12, 5)),
+        (2026, 12, d(2026, 12, 5))
+    );
+}
+
+/// R142 (T132): a day of the month already shown keeps that month and selects the day.
+#[test]
+fn t132_same_month_keeps_the_month() {
+    assert_eq!(
+        calendar_focus_after_add(d(2026, 11, 18)),
+        (2026, 11, d(2026, 11, 18))
+    );
+}
+
+/// R89a, R142 (T133): the toast names the added date.
+#[test]
+fn t133_extra_class_added_text() {
+    assert_eq!(
+        extra_class_added_text(d(2026, 11, 18)),
+        "Extra class added for November 18, 2026."
+    );
+}
+
+/// R89a, R141 (T134): the Dashboard handler `add_extra_class` toasts on success only and shows
+/// errors inline. There is no headless Slint backend, so this scans the source (like T91); the
+/// handler is also on the T91 list.
+#[test]
+fn t134_add_extra_class_handler_toasts_and_shows_errors_inline() {
+    let source = include_str!("../pages/dashboard.rs");
+    let body = handler_body(source, "add_extra_class");
+
+    assert!(
+        body.contains("toast_unless_error("),
+        "add_extra_class must toast on success (R89a, R142)"
+    );
+    assert!(
+        body.contains("extra_class_added_text("),
+        "the toast text comes from viewmodel.rs (R142)"
+    );
+    assert!(
+        body.contains("set_xc_errors(") && body.contains("set_xc_form_error("),
+        "errors show inline under the form (R88, R141)"
+    );
+    assert!(
+        body.contains("parse_extra_class_form("),
+        "the form is checked by viewmodel.rs (R9, R10)"
+    );
+    assert!(
+        !body.contains("sync("),
+        "no sync: makeups are not generated sessions (R141)"
+    );
+    // The error branch shows no toast: exactly one toast call, in the success branch.
+    assert_eq!(body.matches("toast_unless_error(").count(), 1);
+    assert!(!body.contains(".toast("));
 }
