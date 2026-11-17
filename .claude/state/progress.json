@@ -1,5 +1,5 @@
 {
-  "milestone": "M21-M25 specified (2026-11-01); waiting for human to start M21",
+  "milestone": "M26 built; M21-M25 specified, waiting for human",
   "phase": "awaiting-human-start",
   "tasks": {
     "M11": "done (v0.2.1 tagged)",
@@ -35,6 +35,7 @@
     "M22 spec (sync-ready data)": "done 2026-11-01 (\u00a713.17)",
     "M23 spec (sync engine)": "done 2026-11-01 (\u00a713.18)",
     "M24 spec (Google sign-in + Drive)": "done 2026-11-01 (\u00a713.19)",
-    "M25 spec (Android)": "sketch only (\u00a713.20); detailed spec after the spike"
+    "M25 spec (Android)": "sketch only (\u00a713.20); detailed spec after the spike",
+    "M26 spec + build (Dashboard extra class, Next class row fix)": "done 2026-11-17, gate green (731 tests); human visual check T135 pending"
   }
 }
