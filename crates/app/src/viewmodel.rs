@@ -601,6 +601,108 @@ pub fn parse_makeup_form(
     }
 }
 
+/// R10, R139: shown under the Dashboard extra class form (and as its course error) when the
+/// active term has no non-archived course.
+const ADD_COURSE_FIRST: &str = "Add a course first.";
+/// R9, R10: an extra class must end after it starts. The same rule is enforced by core; the form
+/// checks it first so the error shows under the End field together with the other field errors.
+const EXTRA_END_ERR: &str = "End time must be after the start time";
+
+/// R139, R140: the empty Dashboard "Add extra class" form.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExtraClassDefaults {
+    /// The selected day as `DD-MM-YYYY`.
+    pub date: String,
+    /// The first course is preselected.
+    pub course_index: i32,
+    pub start: String,
+    pub end: String,
+    pub room: String,
+    pub note: String,
+    /// "Add a course first." when there is no course to choose, else empty.
+    pub notice: String,
+    /// False when there is no course: the form cannot be submitted.
+    pub can_submit: bool,
+}
+
+/// R139, R140: the form values when it opens or clears: the selected day in the Date field, the
+/// first course, and empty times, room, and note. With no course the notice says "Add a course
+/// first." and the form cannot be submitted.
+pub fn extra_class_defaults(selected: NaiveDate, course_count: usize) -> ExtraClassDefaults {
+    ExtraClassDefaults {
+        date: format_date_input(selected),
+        course_index: 0,
+        start: String::new(),
+        end: String::new(),
+        room: String::new(),
+        note: String::new(),
+        notice: if course_count == 0 {
+            ADD_COURSE_FIRST.to_string()
+        } else {
+            String::new()
+        },
+        can_submit: course_count > 0,
+    }
+}
+
+/// R140: the text of the Date field after the selected day changed. The field follows the selected
+/// day until the user has edited it; an edited field keeps what the user typed.
+pub fn extra_class_date_text(selected: NaiveDate, current: &str, edited: bool) -> String {
+    if edited {
+        current.to_string()
+    } else {
+        format_date_input(selected)
+    }
+}
+
+/// R9, R10, R139, R141: checks the Dashboard extra class form with [`parse_makeup_form`] and adds
+/// the course choice and the order of the times. `course_ids` holds the ids behind the course
+/// dropdown, in its order. Every problem is reported at once under its field (`course`, `date`,
+/// `start`, `end`), never as a toast (R88).
+#[allow(clippy::too_many_arguments)]
+pub fn parse_extra_class_form(
+    course_ids: &[i64],
+    course_index: i32,
+    date: &str,
+    start: TimeText<'_>,
+    end: TimeText<'_>,
+    room: &str,
+    note: &str,
+) -> Result<MakeupInput, FormErrors> {
+    let course = if course_ids.is_empty() {
+        Err(ADD_COURSE_FIRST.to_string())
+    } else {
+        usize::try_from(course_index)
+            .ok()
+            .and_then(|i| course_ids.get(i).copied())
+            .ok_or_else(|| CHOOSE_COURSE_ERR.to_string())
+    };
+    let mut errors = FormErrors::default();
+    let course_id = errors.check("course", course);
+    let parsed = parse_makeup_form(course_id.unwrap_or_default(), date, start, end, room, note);
+    let input = match parsed {
+        Ok(input) => Some(input),
+        Err(field_errors) => {
+            errors.errors.extend(field_errors.errors);
+            None
+        }
+    };
+    let ordered = match (
+        parse_time(start.digits, start.pm),
+        parse_time(end.digits, end.pm),
+    ) {
+        (Ok(start_time), Ok(end_time)) => end_time > start_time,
+        _ => true,
+    };
+    if !ordered {
+        errors.push("end", EXTRA_END_ERR.to_string());
+    }
+    match input {
+        Some(input) if errors.errors.is_empty() => Ok(input),
+        _ => Err(errors),
+    }
+}
+
 /// Checks `course`, `kind`, `due_date`, `due_time`, `remind`, `score` (R36: empty = none,
 /// otherwise a number of 0 or more). `due_at` is date plus time.
 #[allow(clippy::too_many_arguments)]
@@ -1641,6 +1743,18 @@ pub fn course_archived_text(archived: bool) -> String {
 /// R89a, R10: toast after adding a makeup class.
 pub fn makeup_added_text() -> String {
     "Makeup class added.".to_string()
+}
+
+/// R89a, R142: toast after an extra class is added from the Dashboard, naming its date.
+pub fn extra_class_added_text(date: NaiveDate) -> String {
+    format!("Extra class added for {}.", format_date(date))
+}
+
+/// R142: where the calendar goes after an extra class is added on `added`: its year, its month
+/// (1 to 12), and the day to select. The month moves to the added day's month; a day of the
+/// month already shown keeps that month.
+pub fn calendar_focus_after_add(added: NaiveDate) -> (i32, u32, NaiveDate) {
+    (added.year(), added.month(), added)
 }
 
 /// R89a: toast after the assessment form saves (score entry included).
