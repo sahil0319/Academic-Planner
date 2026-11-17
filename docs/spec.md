@@ -301,6 +301,7 @@ Each milestone ends with the **gate**: `cargo fmt --check && cargo clippy --work
 | **M23** | Sync engine in core plus the app runner with a fake transport (§13.18) | Gate passes; T113–T122 pass |
 | **M24** | Google sign-in and Drive hidden-folder transport, Account and sync card (§13.19) | Gate passes; T123–T128 pass; human signs in and syncs two databases both ways |
 | **M25** | Android spike, then the Android app (§13.20, sketch) | Spike go / no-go decided by the human |
+| **M26** | Add extra classes from the Dashboard calendar card; fix the cramped Next class row (§13.21) | Gate passes; T129–T134 pass; human checks T135 by eye in light and dark |
 
 **Parallelism:** after M1 the API is frozen as stubs, so one agent can do M2–M3 (core) while another builds M4 (UI) against the stubs. Merge before the M4 smoke test.
 
@@ -440,7 +441,7 @@ Never run Spec Kit on the whole app at once. Per-milestone features keep `tasks.
 - `progress.json`: `{"milestone": "M2", "phase": "implement", "tasks": {"T001": "done", ...}}`, using Spec Kit task IDs. The agent updates it after each task, not at the end.
 - `checkpoint.md`, at most 15 lines: current milestone, last green gate (commit hash), next task, open questions. A new session reads **only** `AGENTS.md` + `checkpoint.md` + the current `specs/<milestone>/tasks.md`. This replaces re-reading chat history and is the cheapest way to resume after `/clear` or an expired prompt cache.
 
-## 13. After v0.1.1: M7–M25 (human decisions 2026-10-29; M11–M20 2026-10-30 and 2026-10-31; M21–M25 2026-11-01)
+## 13. After v0.1.1: M7–M26 (human decisions 2026-10-29; M11–M20 2026-10-30 and 2026-10-31; M21–M25 2026-11-01; M26 2026-11-17)
 
 Build in order: **M7 → M8 → M9 → M10**. The updater ships first so every later feature reaches installed copies with one click. Rules continue the R-numbering (R26–R50) and tests continue the T-numbering (§13.5). Everything in §1–§12 still applies.
 
@@ -1063,3 +1064,39 @@ Goal: the same app on Android, syncing with the Mac through M24. Order is fixed:
 - **M25 spike (go / no-go):** an `android` feature builds `core` and a Slint library crate (`cdylib` with `android_main`) with the NDK and shows only the Dashboard on an emulator and one real phone. Questions it must answer: does Slint's Android backend render IBM Plex and the theme, does text input work with the soft keyboard, does the APK build in CI. The spike is revertable and changes no rule. Go / no-go criteria are written in its spec.
 - **Then (to be specified):** mobile layout shell (bottom navigation, touch targets of at least 48 dp, single-column pages, a calendar that fits 360 dp; a mobile section in DESIGN.md); the remaining pages; platform glue (database path in the app's private files dir, file save and open through the Storage Access Framework, clipboard, class and assessment notifications that fire when the app is closed through AlarmManager and the notification permission, Google sign-in on Android with the token in Android Keystore, bundled root certificates for `reqwest`); CI build and signing with an Android keystore; release.
 - Rejected alternatives (kept for the record): a native Kotlin UI over `core`, Tauri mobile, and a web or PWA version. The human prefers one Slint codebase unless the spike fails.
+
+### 13.21 M26: add extra classes from the Dashboard, and fix the Next class row layout (human request 2026-11-17)
+
+Light flow like M11 and M20: T-tests first, then the gate. No schema change, no new core API: the Dashboard reuses `add_makeup` (R10) and the form checks of `parse_makeup_form` (R9, R10). The human asked to build this before M21; it does not depend on M21–M25 and they do not depend on it.
+
+**Rules**
+- **R139** Dashboard, Calendar card: an **Add extra class** button sits at the top right of the day panel, on the same row as the selected day's title ("Wednesday, November 18, 2026"). It is shown whenever there is an active term. With no non-archived course it is disabled and the form says "Add a course first."
+- **R140** The button opens an inline form directly under that header (the day's list moves down; nothing leaves the Dashboard). Fields: **Course** (a dropdown of the non-archived courses of the active term, ordered by code, first one preselected), **Date** (`DD-MM-YYYY`, prefilled with the selected day, editable, so an extra class can go on any day of any week), **Start** and **End** (12-hour fields, R32), **Room** (optional), **Note** (optional). Buttons: **Add extra class** and **Cancel**. Cancel and a successful add close the form and clear it; changing the selected day while the form is open updates the Date field only if the user has not edited it.
+- **R141** Add creates a `makeup` session with no `replaces_session_id` (R10) through `add_makeup`; it counts like any other session (T22), no sync runs (R6 is not triggered by makeups), and the same validation as R9/R10 applies: invalid date, invalid time, end not after start, and core errors show inline under the form (R88), never as toasts. A course without a room uses the course's room.
+- **R142** After a successful add: the form closes, a toast says "Extra class added for November 18, 2026." (R89a; text from `viewmodel.rs`), the calendar moves to the month of the added date and selects that day, and the day panel, the day's marker on the calendar, Next class (R17), and Awaiting attendance (R20) reflect the new session at once. The session then has the usual status buttons.
+- **R143** Next class row layout. Every `SessionLine` shown with the weekday and date columns (the Next class card and any other card that uses `show-date`) must show weekday, date, time, course, room, status chip, and button without overlap at every window width the app allows:
+  1. A row grows in height to fit its content: the second line "Every other week" (R58) never runs over the row divider or into the next card, and rows without it keep the standard 40px row height.
+  2. The course label is never reduced to "…" while other cells still take their full preferred width: when the row is too narrow, the weekday, date, and room columns shrink first, and below a minimum the cells wrap onto a second line inside the same row (the course label gets the full width of that second line). The wrap rule is the same in light and dark and uses `Theme.*` tokens only (new tokens go in DESIGN.md and `theme.slint` together).
+  3. Day-panel rows (without the date columns) already fit and keep their look.
+  The human checks this by eye at the smallest window size, with a bi-weekly class as the next class, in light and dark.
+
+**API** (app crate only, `viewmodel.rs`, all pure functions with unit tests)
+
+```rust
+pub fn extra_class_defaults(selected: NaiveDate, course_count: usize) -> ExtraClassDefaults;  // date text "DD-MM-YYYY", course index 0, empty fields
+pub fn extra_class_added_text(date: NaiveDate) -> String;                                      // R142 toast
+pub fn calendar_focus_after_add(added: NaiveDate) -> (i32, u32, NaiveDate);                    // (year, month, selected day), R142
+// the form is parsed with the existing parse_makeup_form (R9, R10); the Dashboard handler adds the course lookup.
+```
+
+**Tests**
+
+| ID | Given | Then |
+|---|---|---|
+| T129 (app) | selected day 2026-11-18, 3 courses; then 0 courses | defaults: date "18-11-2026", first course, empty times, room, note; with 0 courses the form reports "Add a course first." and cannot be submitted |
+| T130 | a term, two courses; add an extra class on 2026-11-18 through the Dashboard handler logic | one `makeup` session with no `replaces_session_id`; it appears in that day's list, in `dashboard(now)` Awaiting attendance after it ends, and marking it attended counts it; the course's other sessions are unchanged |
+| T131 (app) | date "31-02-2026"; start "930", end "900" (same AM); empty course list | inline errors for the date and for end after start; no session written; each error text comes from `viewmodel.rs` |
+| T132 (app) | extra class added on 2026-12-05 while November is shown; and on a day of the shown month | calendar shows December 2026 with day 5 selected; the second case keeps the month and selects that day |
+| T133 (app) | `extra_class_added_text(2026-11-18)` | "Extra class added for November 18, 2026." |
+| T134 | source scan (like T91) | the Dashboard add-extra-class handler calls the toast on success and shows errors inline; the T91 handler list includes it |
+| T135 (manual) | Next class card with a bi-weekly class, Dashboard at the smallest window size, light and dark; add an extra class from the Dashboard on a day in another month | R143 and R142 hold by eye |
